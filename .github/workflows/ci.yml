@@ -68,12 +68,13 @@ jobs:
         run: |
           python backend/manage.py runserver 127.0.0.1:8000 --noreload > /tmp/training-api.log 2>&1 &
           DJANGO_SETTINGS_MODULE=config.content_settings python backend/manage.py runserver 127.0.0.1:8001 --noreload > /tmp/training-content.log 2>&1 &
-          npm run dev --prefix vendor/scormly -- --base=/studio/ --port 5174 > /tmp/training-studio.log 2>&1 &
+          npm run dev --prefix vendor/scormly -- --base=/studio/ --port 5174 --host 127.0.0.1 > /tmp/training-studio.log 2>&1 &
           npm run dev --prefix frontend > /tmp/training-frontend.log 2>&1 &
           for attempt in $(seq 1 30); do
             if curl -fsS -o /dev/null http://localhost:5173/api/auth/session/ && curl -fsS -o /dev/null http://localhost:5173/studio/; then exit 0; fi
             sleep 1
           done
+          tail -n 40 /tmp/training-api.log /tmp/training-content.log /tmp/training-studio.log /tmp/training-frontend.log
           exit 1
       - run: npm run test:e2e --prefix frontend
       - uses: actions/upload-artifact@v4

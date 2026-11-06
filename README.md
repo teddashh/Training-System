@@ -109,7 +109,7 @@ DEBUG=true DEMO_PASSWORD='Your-local-demo-password' .venv/bin/python backend/man
 DEBUG=true DEMO_MODE=true .venv/bin/python backend/manage.py runserver 127.0.0.1:8000
 DEBUG=true DJANGO_SETTINGS_MODULE=config.content_settings .venv/bin/python backend/manage.py runserver 127.0.0.1:8001
 npm run dev --prefix frontend
-npm run dev --prefix vendor/scormly -- --base=/studio/ --port 5174
+npm run dev --prefix vendor/scormly -- --base=/studio/ --port 5174 --host 127.0.0.1
 ```
 
 開發網址為 <http://localhost:5173>。本機開發不會自動載入 `.env`；Compose 會讀取 `.env` 並傳入明確列出的變數。
