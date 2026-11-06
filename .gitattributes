@@ -1,0 +1,3 @@
+# Preserve upstream source and standards files verbatim, including whitespace.
+legacy/** linguist-vendored -whitespace
+vendor/** linguist-vendored -whitespace

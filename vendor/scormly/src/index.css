@@ -1,0 +1,565 @@
+@import "tailwindcss";
+@import "./styles/blocks.css";
+
+/* Default brand tokens (Rose theme). Overridden per-theme below.
+ * Every theme keeps white text on --color-brand and --color-brand-dark text on
+ * white at >= 4.5:1 (WCAG AA). */
+@theme {
+  --color-brand: #db2777;
+  --color-brand-light: #f9a8d4;
+  --color-brand-dark: #be185d;
+}
+
+/*
+ * Global project themes. data-theme is set on the root container
+ * (see ThemeProvider). Overrides the accent color (and therefore all
+ * bg-brand / text-brand utilities) and the button/interactive shape via radius tokens.
+ */
+:root {
+  --radius-btn: 0.5rem;
+  --radius-interactive: 0.5rem;
+}
+
+[data-theme="rose"] {
+  --color-brand: #db2777;
+  --color-brand-light: #f9a8d4;
+  --color-brand-dark: #be185d;
+  --radius-btn: 0.5rem;
+  --radius-interactive: 0.5rem;
+}
+
+[data-theme="ocean"] {
+  --color-brand: #0369a1;
+  --color-brand-light: #7dd3fc;
+  --color-brand-dark: #075985;
+  --radius-btn: 9999px;
+  --radius-interactive: 1rem;
+}
+
+[data-theme="forest"] {
+  --color-brand: #15803d;
+  --color-brand-light: #86efac;
+  --color-brand-dark: #166534;
+  --radius-btn: 0.25rem;
+  --radius-interactive: 0.25rem;
+}
+
+[data-theme="sunset"] {
+  --color-brand: #c2410c;
+  --color-brand-light: #fdba74;
+  --color-brand-dark: #9a3412;
+  --radius-btn: 0.75rem;
+  --radius-interactive: 0.75rem;
+}
+
+/* Sharp-cornered themes. */
+[data-theme="mono"] {
+  --color-brand: #334155;
+  --color-brand-light: #94a3b8;
+  --color-brand-dark: #1e293b;
+  --radius-btn: 0;
+  --radius-interactive: 0;
+}
+
+[data-theme="indigo"] {
+  --color-brand: #4f46e5;
+  --color-brand-light: #a5b4fc;
+  --color-brand-dark: #4338ca;
+  --radius-btn: 2px;
+  --radius-interactive: 2px;
+}
+
+[data-theme="crimson"] {
+  --color-brand: #dc2626;
+  --color-brand-light: #fca5a5;
+  --color-brand-dark: #b91c1c;
+  --radius-btn: 0;
+  --radius-interactive: 2px;
+}
+
+[data-theme="mint"] {
+  --color-brand: #0f766e;
+  --color-brand-light: #5eead4;
+  --color-brand-dark: #115e59;
+  --radius-btn: 1.25rem;
+  --radius-interactive: 1.5rem;
+}
+
+[data-theme="grape"] {
+  --color-brand: #9333ea;
+  --color-brand-light: #d8b4fe;
+  --color-brand-dark: #7e22ce;
+  --radius-btn: 9999px;
+  --radius-interactive: 0.375rem;
+}
+
+/* Hacker terminal: monospace everywhere, black buttons with phosphor text. */
+[data-theme="terminal"] {
+  --color-brand: #15803d;
+  --color-brand-light: #86efac;
+  --color-brand-dark: #166534;
+  --radius-btn: 0;
+  --radius-interactive: 0;
+  font-family: ui-monospace, "JetBrains Mono", "Fira Code", SFMono-Regular,
+    Menlo, Consolas, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Themed classes for buttons and interactive surfaces. Phase 2 blocks
+ * should use them instead of hardcoding radii/colors, so that themes
+ * affect all interactive elements.
+ */
+@layer components {
+  .btn-primary {
+    border-radius: var(--radius-btn);
+    background-color: var(--color-brand);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    transition: background-color 0.15s ease;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-brand-dark);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  [data-theme="terminal"] .btn-primary {
+    background-color: #0a0f0a;
+    color: #4ade80;
+    box-shadow: inset 0 0 0 1px #16a34a;
+  }
+  [data-theme="terminal"] .btn-primary:hover:not(:disabled) {
+    background-color: #052e16;
+  }
+
+  .btn-secondary {
+    border-radius: var(--radius-btn);
+    border: 1px solid var(--color-brand);
+    color: var(--color-brand-dark);
+    background-color: transparent;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    transition: background-color 0.15s ease;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--color-brand) 12%, transparent);
+  }
+  .btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-primary:focus-visible,
+  .btn-secondary:focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  .interactive-surface {
+    border-radius: var(--radius-interactive);
+  }
+}
+
+/* Rich-text editable area: focus outline off + empty-state placeholder. */
+.rich-text:focus {
+  outline: none;
+}
+.rich-text:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+.rich-text img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+/* Restore list markers inside rich text (Tailwind preflight strips them). */
+.rich-text ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+}
+.rich-text ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+}
+.rich-text a {
+  color: var(--color-brand);
+  text-decoration: underline;
+}
+.rich-text img.rte-selected-img {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* Builder toast notifications (components/editor/Toaster). */
+@keyframes scormly-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.toast-in {
+  animation: scormly-toast-in 0.2s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast-in {
+    animation: none;
+  }
+}
+
+/*
+ * Landing page animations. .reveal is the initial hidden state; adding
+ * .reveal-visible (via IntersectionObserver, the useReveal hook) triggers the appearance.
+ * We respect prefers-reduced-motion.
+ */
+@keyframes scormly-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scormly-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.reveal {
+  opacity: 0;
+}
+.reveal-visible {
+  animation: scormly-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-float {
+  animation: scormly-float 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-visible {
+    opacity: 1;
+    animation: none;
+  }
+  .animate-float {
+    animation: none;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Interactive landing demos (chat trainer, flashcards, tab swap).
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/* Phone frame for the auto-playing dialogue trainer. */
+.phone {
+  width: 100%; max-width: 21rem; margin: 0 auto; position: relative;
+  background: #111827; border-radius: 2.25rem; padding: 0.6rem;
+  box-shadow: 0 30px 60px -20px rgba(17, 24, 39, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+.phone-screen {
+  display: flex; flex-direction: column; height: 30rem;
+  background: #f3f4f6; border-radius: 1.75rem; overflow: hidden;
+}
+
+.chatd-header {
+  display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 0.9rem;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-dark)); color: #fff;
+}
+.chatd-ava {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 2.1rem; height: 2.1rem; border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.25); font-weight: 700;
+}
+.chatd-ava-sm {
+  width: 1.4rem; height: 1.4rem; font-size: 0.7rem; align-self: flex-end;
+  background: color-mix(in srgb, var(--color-brand) 20%, #fff); color: var(--color-brand-dark);
+}
+.chatd-dot { display: inline-block; width: 0.45rem; height: 0.45rem; border-radius: 9999px; background: #4ade80; }
+.chatd-replay {
+  margin-left: auto; border: 0; cursor: pointer; font: inherit; font-size: 0.72rem; font-weight: 600;
+  padding: 0.25rem 0.6rem; border-radius: 9999px; background: rgba(255, 255, 255, 0.18); color: #fff;
+}
+.chatd-replay:hover { background: rgba(255, 255, 255, 0.3); }
+
+.chatd-body { flex: 1; overflow-y: auto; padding: 0.9rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.chatd-row { display: flex; align-items: flex-end; gap: 0.4rem; align-self: flex-start; max-width: 86%; }
+.chatd-bubble { margin: 0; padding: 0.5rem 0.75rem; font-size: 0.85rem; line-height: 1.45; border-radius: 1.1rem; }
+.chatd-bot { background: #fff; color: #1f2937; border-bottom-left-radius: 0.3rem; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05); }
+.chatd-user { align-self: flex-end; max-width: 86%; background: var(--color-brand); color: #fff; border-bottom-right-radius: 0.3rem; }
+.chatd-in { animation: demo-pop 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+.chatd-typing { display: inline-flex; align-items: center; gap: 0.22rem; }
+.chatd-typing i {
+  display: inline-block; width: 0.4rem; height: 0.4rem; border-radius: 9999px; background: #9ca3af;
+  animation: demo-typing 1s infinite ease-in-out;
+}
+.chatd-typing i:nth-child(2) { animation-delay: 0.15s; }
+.chatd-typing i:nth-child(3) { animation-delay: 0.3s; }
+
+.chatd-replies { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.7rem 0.9rem 1rem; min-height: 3.4rem; }
+.chatd-chip {
+  font-size: 0.78rem; font-weight: 500; padding: 0.4rem 0.8rem; border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--color-brand) 40%, transparent);
+  color: var(--color-brand-dark); background: #fff; animation: demo-pop 0.3s both; transition: all 0.25s;
+}
+.chatd-chip-picked { background: var(--color-brand); color: #fff; border-color: var(--color-brand); transform: scale(1.03); }
+.chatd-chip-dim { opacity: 0.35; }
+
+@keyframes demo-pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes demo-typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Flashcards (3D flip) */
+.fcard { perspective: 1000px; width: 100%; height: 8.5rem; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.fcard-inner {
+  position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.fcard-inner.is-flipped { transform: rotateY(180deg); }
+.fcard-face {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 1rem; border-radius: 1rem; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+}
+.fcard-front { background: linear-gradient(140deg, var(--color-brand), var(--color-brand-dark)); color: #fff; font-weight: 700; font-size: 1.05rem; }
+.fcard-back { background: #fff; color: #374151; font-size: 0.85rem; line-height: 1.4; border: 1px solid #e5e7eb; transform: rotateY(180deg); }
+
+.demo-swap { animation: demo-pop 0.35s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .chatd-in, .chatd-chip, .demo-swap { animation: none; }
+  .chatd-typing i { animation: none; }
+  .fcard-inner { transition: none; }
+}
+
+/* Blinking terminal caret in the landing "AI-ready" visual. */
+.ai-caret {
+  display: inline-block; width: 0.5em; height: 1.1em; margin-left: 0.2em; vertical-align: -0.2em;
+  background: color-mix(in srgb, var(--color-brand-light) 85%, transparent);
+  animation: ai-blink 1.1s steps(1) infinite;
+}
+@keyframes ai-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .ai-caret { animation: none; }
+}
+
+/* ==========================================================================
+ * Learner accessibility settings (builder preview only).
+ * Classes are set on the PreviewOverlay root by src/preview/a11y.ts, so none
+ * of this reaches the editor UI. Rules are intentionally unlayered so they
+ * win over Tailwind utilities (which live in @layer utilities).
+ * ========================================================================== */
+
+/* Visible keyboard focus (brand-dark keeps >= 3:1 on white in all themes).
+ * Programmatic focus targets (h1, main, dialog root) use tabindex=-1. */
+.a11y-root :focus-visible:not([tabindex="-1"]) {
+  outline: 2px solid var(--color-brand-dark);
+  outline-offset: 2px;
+}
+
+/* Text size: zoom scales rem-based Tailwind sizes and layout together. */
+.a11y-text-large .a11y-content {
+  zoom: 1.15;
+}
+.a11y-text-xlarge .a11y-content {
+  zoom: 1.3;
+}
+
+/* Readable spacing (WCAG 1.4.12 text-spacing values, no extra fonts). */
+.a11y-spacing .a11y-content,
+.a11y-spacing .a11y-content * {
+  line-height: 1.8;
+  letter-spacing: 0.03em;
+  word-spacing: 0.1em;
+}
+.a11y-spacing .a11y-content .rich-text p:not(:last-child) {
+  margin-bottom: 1.2em;
+}
+
+/* High contrast. The accent is darkened on the root's children (not the root
+ * itself, which holds data-theme, to avoid a custom-property cycle) so white
+ * text on brand buttons reaches ~7:1 in every theme. */
+.a11y-contrast > * {
+  --color-brand: color-mix(in srgb, var(--color-brand-dark) 60%, #000);
+}
+.a11y-contrast .text-gray-300,
+.a11y-contrast .text-gray-400,
+.a11y-contrast .text-gray-500,
+.a11y-contrast .text-gray-600 {
+  color: #1f2937;
+}
+.a11y-contrast .text-gray-700,
+.a11y-contrast .text-gray-800 {
+  color: #111827;
+}
+.a11y-contrast [class*="border-gray-"],
+.a11y-contrast [class*="divide-gray-"] > * + *,
+.a11y-contrast input,
+.a11y-contrast select,
+.a11y-contrast details {
+  border-color: #4b5563;
+}
+.a11y-contrast .border-green-300,
+.a11y-contrast .border-green-400 {
+  border-color: #15803d;
+}
+.a11y-contrast .border-red-300,
+.a11y-contrast .border-red-400 {
+  border-color: #b91c1c;
+}
+.a11y-contrast ::placeholder {
+  color: #4b5563;
+}
+.a11y-contrast a,
+.a11y-contrast .rich-text a {
+  text-decoration: underline;
+}
+.a11y-contrast .btn-secondary {
+  border-width: 2px;
+  color: var(--color-brand);
+}
+.a11y-contrast .btn-primary:hover:not(:disabled) {
+  background-color: #000;
+}
+.a11y-contrast :focus-visible:not([tabindex="-1"]) {
+  outline: 3px solid #000;
+}
+/* Terminal keeps its black/phosphor buttons (already high contrast); only
+ * brighten the secondary text so it isn't dim green on white. */
+[data-theme="terminal"].a11y-contrast .btn-secondary {
+  color: #14532d;
+  border-color: #14532d;
+}
+
+/* Reduced motion: the learner toggle (defaults to the OS setting) ... */
+.a11y-reduce-motion *,
+.a11y-reduce-motion *::before,
+.a11y-reduce-motion *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+.a11y-reduce-motion .animate-ping {
+  display: none;
+}
+/* ... and the OS preference itself, unless the learner explicitly opted out. */
+@media (prefers-reduced-motion: reduce) {
+  .a11y-root:not(.a11y-motion-ok) *,
+  .a11y-root:not(.a11y-motion-ok) *::before,
+  .a11y-root:not(.a11y-motion-ok) *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .a11y-root:not(.a11y-motion-ok) .animate-ping {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+ * Block panels in the builder canvas and preview (React side).
+ * Light text on dark/saturated backgrounds: Tailwind's gray text utilities
+ * turn light inside .blk-on-dark, and revert (revert-layer = back to the
+ * utility's own value) inside light surfaces such as quiz cards or tab panels.
+ * ========================================================================== */
+.blk-on-dark :is(.text-gray-900, .text-gray-800, .text-gray-700) { color: #fff; }
+.blk-on-dark :is(.text-gray-600, .text-gray-500, .text-gray-400) { color: rgb(255 255 255 / 0.75); }
+.blk-on-dark .placeholder-gray-300::placeholder { color: rgb(255 255 255 / 0.5); }
+.blk-on-dark .rich-text a { color: #fff; }
+.blk-on-dark .border-brand { border-color: rgb(255 255 255 / 0.85); }
+/* Accent-colored text (timeline step labels, blank chips) would vanish on the panel. */
+.blk-on-dark :is(.text-brand, .text-brand-dark) { color: rgb(255 255 255 / 0.9); }
+.blk-on-dark :is(.bg-white, .bg-gray-50) :is(.text-brand, .text-brand-dark),
+.blk-on-dark :is(.bg-white, .bg-gray-50):is(.text-brand, .text-brand-dark) { color: revert-layer; }
+/* Accent and gradient panels start at the brand color: brand surfaces
+ * (flashcard faces, primary buttons) on the panel itself turn white; inside
+ * light cards they stay. */
+.blk:is([data-bg="accent"], [data-bg="gradient"]) :is(.interactive-surface.bg-brand, .btn-primary):not(.blk :is(.bg-white, .bg-gray-50, .sc-steps-slides, .sc-reflect) *) {
+  background-color: #fff;
+  color: var(--color-brand-dark);
+}
+.blk:is([data-bg="accent"], [data-bg="gradient"]) .btn-primary:not(.blk :is(.bg-white, .bg-gray-50, .sc-steps-slides, .sc-reflect) *):hover:not(:disabled) {
+  background-color: rgb(255 255 255 / 0.85);
+}
+/* Light surfaces (editor cards, quiz cards) get dark text back, so fields and
+ * unstyled text inside them don't inherit the panel's white. Layered, so a
+ * text color utility on the same element still wins. */
+@layer components {
+  .blk-on-dark :is(.bg-white, .bg-gray-50) { color: #1f2937; }
+}
+.blk-on-dark :is(.bg-white, [class*="bg-white/"], [class*="bg-gray-"], [class*="bg-amber-"], [class*="bg-blue-"], .sc-quote-card, .sc-attach-item, .sc-columns-cards .sc-column, .sc-compare-col, .sc-steps-slides, .sc-reflect)
+  :is(.text-gray-900, .text-gray-800, .text-gray-700, .text-gray-600, .text-gray-500, .text-gray-400),
+.blk-on-dark :is(.bg-white, [class*="bg-white/"], [class*="bg-gray-"]):is(.text-gray-900, .text-gray-800, .text-gray-700, .text-gray-600, .text-gray-500, .text-gray-400) {
+  color: revert-layer;
+}
+.blk-on-dark :is(.bg-white, [class*="bg-white/"], [class*="bg-gray-"], .sc-compare-col, .sc-reflect) .placeholder-gray-300::placeholder { color: revert-layer; }
+
+/* Background swatches in the block style popover. */
+.swatch[data-bg="image"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect width='36' height='36' fill='%23bae6fd'/%3E%3Ccircle cx='25' cy='11' r='4' fill='%23fbbf24'/%3E%3Cpath d='M0 28 12 15l8 8 5-4 11 11v6H0Z' fill='%230369a1'/%3E%3C/svg%3E");
+  background-size: cover;
+}
+.swatch[data-bg="none"] {
+  background-image: linear-gradient(to top right, transparent calc(50% - 1px), #f43f5e calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px));
+}
+
+/* Builder canvas: a soft studio backdrop behind the lesson column. */
+.canvas {
+  background-color: #f6f6f8;
+  background-image:
+    radial-gradient(60rem 30rem at 50% -10rem, color-mix(in srgb, var(--color-brand) 7%, transparent), transparent 70%),
+    radial-gradient(circle at 1px 1px, rgb(15 23 42 / 0.045) 1px, transparent 0);
+  background-size: auto, 22px 22px;
+  background-attachment: local;
+}
+
+/* Menus and popovers. */
+@keyframes scormly-pop {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.pop-in { animation: scormly-pop 0.16s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .pop-in { animation: none; }
+}
+
+/* Preview lesson drawer. */
+@keyframes scormly-drawer-in {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
+.drawer-in { animation: scormly-drawer-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .drawer-in { animation: none; }
+}

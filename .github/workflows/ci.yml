@@ -1,0 +1,91 @@
+name: Build and verify
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: training
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: training
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U training" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DEBUG: 'true'
+      DATABASE_URL: postgres://training:ci-only-password@localhost:5432/training
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r backend/requirements.txt
+      - run: python backend/manage.py makemigrations --check --dry-run
+      - run: python backend/manage.py check
+      - run: python backend/manage.py test training --verbosity 2
+  browser:
+    runs-on: ubuntu-latest
+    env:
+      DEBUG: 'true'
+      DEMO_MODE: 'true'
+      DEMO_PASSWORD: Demo-Training-2026!
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            vendor/scormly/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r backend/requirements.txt
+      - run: npm ci --prefix frontend
+      - run: npm ci --prefix vendor/scormly
+      - run: npm run build --prefix frontend
+      - run: npm run build --prefix vendor/scormly -- --base=/studio/
+      - run: npm test --prefix vendor/scormly
+      - run: npx --prefix frontend playwright install --with-deps chromium
+      - run: python backend/manage.py migrate --noinput
+      - run: python backend/manage.py seed_demo
+      - name: Start application and isolated content server
+        run: |
+          python backend/manage.py runserver 127.0.0.1:8000 --noreload > /tmp/training-api.log 2>&1 &
+          DJANGO_SETTINGS_MODULE=config.content_settings python backend/manage.py runserver 127.0.0.1:8001 --noreload > /tmp/training-content.log 2>&1 &
+          npm run dev --prefix vendor/scormly -- --base=/studio/ --port 5174 > /tmp/training-studio.log 2>&1 &
+          npm run dev --prefix frontend > /tmp/training-frontend.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://localhost:5173/api/auth/session/ && curl -fsS -o /dev/null http://localhost:5173/studio/; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - run: npm run test:e2e --prefix frontend
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failure-traces
+          path: frontend/test-results
+          retention-days: 7
+  containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build deployment images
+        run: |
+          docker build -t training-api:ci .
+          docker build -f Dockerfile.web -t training-web:ci .

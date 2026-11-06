@@ -1,0 +1,22 @@
+from django.core.management.base import BaseCommand
+from django.db import transaction
+from django.utils import timezone
+from training.models import Attempt, AuthRate, EmailCode
+from training.services import finalize
+from datetime import timedelta
+
+
+class Command(BaseCommand):
+    help = "Finalize timed-out attempts; run every minute in production."
+
+    def handle(self, *args, **options):
+        count = 0
+        for pk in Attempt.objects.filter(
+            status="in_progress", deadline__lte=timezone.now()
+        ).values_list("pk", flat=True):
+            with transaction.atomic():
+                finalize(Attempt.objects.select_for_update().get(pk=pk))
+                count += 1
+        AuthRate.objects.filter(window__lt=timezone.now() - timedelta(days=1)).delete()
+        EmailCode.objects.filter(expires_at__lt=timezone.now()).delete()
+        self.stdout.write(f"Finalized {count} expired attempts.")

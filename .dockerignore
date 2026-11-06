@@ -1,0 +1,14 @@
+.git
+.venv
+**/node_modules
+**/dist
+**/__pycache__
+**/*.sqlite3
+backend/media
+backend/staticfiles
+.env
+.env.*
+legacy
+test-results
+frontend/test-results
+docs/screenshots

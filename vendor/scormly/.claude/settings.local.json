@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(node --check public/scorm-player/player.js)",
+      "Bash(git commit -q -m ' *)",
+      "Bash(git push *)",
+      "Bash(node --check public/scorm-player/scorm.js)",
+      "Bash(node --check public/scorm-player/xapi.js)"
+    ]
+  }
+}
