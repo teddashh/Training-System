@@ -8,6 +8,7 @@ import RichTextEditor from '../../components/editor/RichTextEditor'
 import ProcessPreview from '../../preview/components/ProcessPreview'
 import { PROCESS_VARIANTS, processVariant, stepHtml } from '../process'
 import ItemRow, { moved } from './ItemRow'
+import { safeRichHtml } from '../../lib/safeRichHtml'
 
 const LAYOUTS: ProcessLayout[] = ['flow', 'chevrons', 'cycle', 'pyramid']
 const MAX_STEPS = 8
@@ -15,7 +16,7 @@ const MAX_STEPS = 8
 // The plain version of a description, kept in `text` for search and agents.
 function plainText(html: string): string {
   const el = document.createElement('div')
-  el.innerHTML = html
+  el.innerHTML = safeRichHtml(html)
   return el.textContent ?? ''
 }
 

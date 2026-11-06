@@ -1,5 +1,7 @@
 # Evitina Learn · 企業訓練與考核平台
 
+[![Build and verify](https://github.com/teddashh/Training-System/actions/workflows/ci.yml/badge.svg)](https://github.com/teddashh/Training-System/actions/workflows/ci.yml)
+
 以 [FOSSEE/Yaksh](https://github.com/FOSSEE/online_test) 為來源平台，重新建構的企業學習、教材製作、考試與評量系統。支援正式員工、非正式員工及無帳號受測者。
 
 **這是可自行部署、具有實際資料庫與完整主要流程的 v0.1 首版。** Entra ID 與 SMTP 需要公司的設定才能使用；不是已接上公司身分目錄的正式上線服務。
@@ -129,7 +131,7 @@ npx playwright install chromium
 DEMO_PASSWORD='Your-local-demo-password' npm run test:e2e
 ```
 
-GitHub Actions 會執行 PostgreSQL API 測試、兩個前端建置、Scormly 測試、瀏覽器端到端流程，以及 Docker image 建置。
+GitHub Actions 會執行 PostgreSQL API 測試、兩個前端建置、Scormly 測試、瀏覽器端到端流程、依賴漏洞掃描，以及 Docker image 建置。瀏覽器測試包含教材發布、SCORM 續讀、訪客次數限制，以及教材匯入／預覽／貼上的 HTML 安全清理。
 
 ## 上游來源與移轉邊界
 

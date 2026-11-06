@@ -147,9 +147,8 @@ test("SCORM upload, isolated execution, commit and resume persist end to end", a
     blocks: [],
   });
   // Build a standards-shaped test SCO that exercises the real API adapter.
-  const { default: JSZip } = await import(
-    "../../vendor/scormly/node_modules/jszip/lib/index.js"
-  );
+  const { default: JSZip } =
+    await import("../../vendor/scormly/node_modules/jszip/lib/index.js");
   const zip = new JSZip();
   zip.file(
     "imsmanifest.xml",
@@ -226,4 +225,87 @@ test("Scormly publishes a real package and editable backup to the LMS", async ({
   const response = await page.request.get(`/api/courses/${course.id}/source/`);
   expect(response.ok()).toBeTruthy();
   expect(response.headers()["content-type"]).toBe("application/zip");
+});
+
+test("imported and pasted rich text cannot execute in the signed-in authoring origin", async ({
+  page,
+}) => {
+  await login(page);
+  await page.goto("/studio/#/app");
+  const { default: JSZip } =
+    await import("../../vendor/scormly/node_modules/jszip/lib/index.js");
+  const zip = new JSZip();
+  const html = `<p><strong>Safe training content</strong></p>
+    <img src="data:image/png;base64,invalid" onerror="window.__courseXss=true">
+    <svg onload="window.__courseXss=true"></svg>
+    <iframe srcdoc="<script>parent.__courseXss=true</script>"></iframe>
+    <a href="javascript:window.__courseXss=true">Unsafe link</a>
+    <form action="/api/auth/logout/"><input autofocus onfocus="window.__courseXss=true"></form>
+    <table><tbody><tr><td>Preserved table</td></tr></tbody></table>`;
+  zip.file(
+    "project.json",
+    JSON.stringify({
+      id: "security-" + Date.now(),
+      title: "Import security",
+      description: "",
+      theme: "ocean",
+      lessons: [
+        {
+          id: "lesson-1",
+          title: "Safe lesson",
+          status: "published",
+          blocks: [{ id: "paragraph-1", type: "paragraph", data: { html } }],
+        },
+      ],
+    }),
+  );
+  await page
+    .locator('input[type="file"][accept=".zip,application/zip"]')
+    .setInputFiles({
+      name: "security-project.zip",
+      mimeType: "application/zip",
+      buffer: await zip.generateAsync({ type: "nodebuffer" }),
+    });
+  const editor = page.locator('[contenteditable="true"]').first();
+  await expect(editor).toContainText("Safe training content");
+  await expect(editor.locator("strong")).toHaveText("Safe training content");
+  await expect(editor.locator("td")).toHaveText("Preserved table");
+  await expect(
+    editor.locator("[onerror], [onload], iframe, svg, form, input"),
+  ).toHaveCount(0);
+  await expect(editor.locator("a")).not.toHaveAttribute("href", /javascript:/);
+  expect(await page.evaluate(() => "__courseXss" in window)).toBe(false);
+
+  await page
+    .getByRole("button", { name: "Preview", exact: true })
+    .filter({ visible: true })
+    .click();
+  const preview = page.getByRole("dialog");
+  await expect(
+    preview.getByText("Safe training content", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    preview.locator("[onerror], [onload], iframe, svg[onload], form"),
+  ).toHaveCount(0);
+  expect(await page.evaluate(() => "__courseXss" in window)).toBe(false);
+  await page.keyboard.press("Escape");
+
+  await editor.focus();
+  await editor.evaluate((el) => {
+    const clipboardData = new DataTransfer();
+    clipboardData.setData(
+      "text/html",
+      '<p>Pasted safely<img src="data:image/png;base64,invalid" onerror="window.__courseXss=true"></p>',
+    );
+    el.dispatchEvent(
+      new ClipboardEvent("paste", {
+        clipboardData,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+  });
+  await expect(editor).toContainText("Pasted safely");
+  await expect(editor.locator("[onerror]")).toHaveCount(0);
+  expect(await page.evaluate(() => "__courseXss" in window)).toBe(false);
 });

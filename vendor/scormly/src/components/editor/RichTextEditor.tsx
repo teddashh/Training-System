@@ -11,6 +11,7 @@ import {
 import { useT } from '../../i18n/I18nProvider'
 import { saveAsset, resolveAssetUrl } from '../../lib/assets'
 import { KEYS } from '../../lib/keyboard'
+import { safeRichHtml } from '../../lib/safeRichHtml'
 import ContextMenu, { type ContextMenuItem } from './ContextMenu'
 import {
   RT_TABLE_STYLES,
@@ -99,8 +100,8 @@ interface RichTextEditorProps {
 }
 
 // Lightweight rich-text editor: a contentEditable area plus a formatting toolbar
-// (bold / italic / underline, lists, alignment, image). Dependency-free — uses
-// document.execCommand, which produces clean, SCORM-friendly HTML.
+// (bold / italic / underline, lists, alignment, image). Uses execCommand for
+// editing and sanitizes imported or pasted HTML before inserting it.
 export default function RichTextEditor({
   html,
   onChange,
@@ -233,7 +234,7 @@ export default function RichTextEditor({
     const el = ref.current
     if (!el) return
     if (document.activeElement !== el && modelHtml() !== html) {
-      el.innerHTML = html
+      el.innerHTML = safeRichHtml(html)
       resolveAssetImages()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -252,7 +253,7 @@ export default function RichTextEditor({
         img.removeAttribute('data-asset')
       }
     })
-    return clone.innerHTML
+    return safeRichHtml(clone.innerHTML)
   }
 
   // For images whose src is a stored asset path, resolve to an object URL for
@@ -671,6 +672,16 @@ export default function RichTextEditor({
         suppressContentEditableWarning
         data-placeholder={placeholder}
         onInput={emit}
+        onPaste={(e) => {
+          e.preventDefault()
+          const pastedHtml = e.clipboardData.getData('text/html')
+          if (pastedHtml) exec('insertHTML', safeRichHtml(pastedHtml))
+          else exec('insertText', e.clipboardData.getData('text/plain'))
+        }}
+        onDrop={(e) => {
+          e.preventDefault()
+          exec('insertText', e.dataTransfer.getData('text/plain'))
+        }}
         onKeyDown={onEditorKeyDown}
         onClick={onEditorClick}
         onContextMenu={onEditorContextMenu}

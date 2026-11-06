@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useCourseStore } from '../store/courseStore'
 import { resolveAssetUrl } from '../lib/assets'
+import { safeRichHtml } from '../lib/safeRichHtml'
 
 function isDirectUrl(src: string): boolean {
   return /^(data:|blob:|https?:)/.test(src)
@@ -22,7 +23,7 @@ export default function RichHtml({
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    el.innerHTML = html
+    el.innerHTML = safeRichHtml(html)
     el.querySelectorAll('img').forEach((img) => {
       const raw = img.getAttribute('src') || ''
       if (raw && !isDirectUrl(raw)) {
