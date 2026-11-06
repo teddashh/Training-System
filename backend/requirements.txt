@@ -21,7 +21,7 @@ django==5.2.19
     #   -r backend/requirements.in
     #   dj-database-url
     #   djangorestframework
-djangorestframework==3.16.1
+djangorestframework==3.18.3
     # via -r backend/requirements.in
 gunicorn==23.0.0
     # via -r backend/requirements.in

@@ -7,9 +7,23 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: verify-${{ github.ref }}
+  group: verify-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 jobs:
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: pip install pip-audit
+      - run: pip-audit -r backend/requirements.txt --no-deps --disable-pip
+      - run: npm audit --prefix frontend --audit-level=moderate
+      - run: npm audit --prefix vendor/scormly --audit-level=moderate
   api:
     runs-on: ubuntu-latest
     services:

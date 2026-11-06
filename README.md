@@ -135,6 +135,8 @@ GitHub Actions 會執行 PostgreSQL API 測試、兩個前端建置、Scormly �
 
 此 repository 保留 Yaksh Git 歷史，原始應用移至 `legacy/yaksh/`。**新的企業 API 是現代化重建，不是宣稱整套舊 Yaksh 已升級到 Django 5.2。** 舊程式與舊依賴不會在預設 Docker 環境啟動。程式題沙箱、舊成績資料與完整課程遷移尚未整合。
 
+舊版依賴含已知漏洞，GitHub 仍會對封存 manifests 顯示告警；不要安裝或部署 `legacy/`。新平台的 Python／JavaScript lockfiles 有獨立的 CI 依賴掃描，詳見 [安全範圍](SECURITY.md)。
+
 `import_yaksh` 支援 Yaksh `Question.dump_questions` 的 JSON 等價資料（`mcq`／`mcc`）。舊匯出的 `questions_dump.yaml` 可在受控轉換環境用 safe YAML loader 轉成 JSON 陣列；不支援的題型或小數配分會整批拒絕，避免悄悄改變評分語意。範例見 [移轉文件](docs/INTEGRATIONS.md)。
 
 Scormly 已包含其原始碼及 MIT 授權；SCORM-LearningManagementSystem 的 API 表面被移植為新 runtime，保留原始參考與 MIT notice。School Dashboard 與 Evitina 網站僅參考視覺，未複製無明確授權的版型或品牌素材。詳見 [第三方來源](THIRD_PARTY_NOTICES.md)。
