@@ -1,8 +1,9 @@
 from django.contrib import admin
 from django.http import JsonResponse
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from training import auth_views as auth, views, scorm
+from training import auth_views as auth
+from training import scorm, views
 
 router = DefaultRouter()
 router.register("users", views.Users)
@@ -21,6 +22,8 @@ urlpatterns = [
     path("api/auth/entra/callback/", auth.entra_callback),
     path("api/guest/exchange/", views.guest_exchange),
     path("api/guest/exam/", views.guest_exam),
+    path("api/guest/email/request/", views.guest_email_request),
+    path("api/guest/email/verify/", views.guest_email_verify),
     path("api/attempts/<uuid:pk>/", views.attempt_detail),
     path("api/results/", views.results),
     path("api/results/<uuid:pk>/review/", views.review),

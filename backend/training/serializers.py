@@ -1,7 +1,9 @@
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
-from .models import User, Course, Exam, Question, Invitation
+
+from .i18n import translate
+from .models import Course, Exam, Invitation, Question, User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -38,13 +40,17 @@ class UserSerializer(serializers.ModelSerializer):
             if self.instance:
                 collisions = collisions.exclude(pk=self.instance.pk)
             if collisions.exists():
-                raise serializers.ValidationError({field: "此登入識別碼已被使用。"})
+                raise serializers.ValidationError(
+                    {field: translate("This sign-in identifier is already in use.")}
+                )
         if self.instance and any(
             field in data and data[field] != getattr(self.instance, field)
             for field in ("username", "email", "employee_id")
         ):
             raise serializers.ValidationError(
-                "登入識別碼建立後不可透過此 API 變更，避免歷史次數歸戶錯誤。"
+                translate(
+                    "Sign-in identifiers cannot be changed through this API after creation, to preserve historical attempt ownership."
+                )
             )
         if data.get("password"):
             try:
@@ -113,7 +119,9 @@ class CourseSerializer(serializers.ModelSerializer):
 
     def validate_blocks(self, blocks):
         if not isinstance(blocks, list) or len(blocks) > 100:
-            raise serializers.ValidationError("教材最多 100 個區塊。")
+            raise serializers.ValidationError(
+                translate("A course can contain at most 100 blocks.")
+            )
         for block in blocks:
             if (
                 not isinstance(block, dict)
@@ -121,7 +129,9 @@ class CourseSerializer(serializers.ModelSerializer):
                 or not isinstance(block.get("text"), str)
                 or len(block["text"]) > 20000
             ):
-                raise serializers.ValidationError("教材區塊格式不正確。")
+                raise serializers.ValidationError(
+                    translate("Invalid content block format.")
+                )
         return blocks
 
 
@@ -144,9 +154,9 @@ class QuestionSerializer(serializers.ModelSerializer):
         if not isinstance(options, list) or not all(
             isinstance(v, str) and len(v) <= 4000 for v in options
         ):
-            raise serializers.ValidationError("選項格式不正確。")
+            raise serializers.ValidationError(translate("Invalid option format."))
         if not isinstance(solution, list) or not data.get("points", 10) > 0:
-            raise serializers.ValidationError("答案或配分不正確。")
+            raise serializers.ValidationError(translate("Invalid answer or points."))
         if kind in ("single", "multiple"):
             if (
                 len(options) < 2
@@ -158,12 +168,16 @@ class QuestionSerializer(serializers.ModelSerializer):
                 )
             ):
                 raise serializers.ValidationError(
-                    "請設定至少兩個選項及有效的正確答案索引。"
+                    translate(
+                        "Provide at least two options and valid correct-answer indexes."
+                    )
                 )
         if kind == "short" and (
             not solution or not all(isinstance(v, str) and v.strip() for v in solution)
         ):
-            raise serializers.ValidationError("簡答題需要至少一個標準答案。")
+            raise serializers.ValidationError(
+                translate("Short-answer questions need at least one accepted answer.")
+            )
         return data
 
 
@@ -171,6 +185,7 @@ class ExamSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, required=False)
     question_count = serializers.IntegerField(source="questions.count", read_only=True)
     attempts_used = serializers.SerializerMethodField()
+    can_manage = serializers.SerializerMethodField()
 
     class Meta:
         model = Exam
@@ -188,7 +203,17 @@ class ExamSerializer(serializers.ModelSerializer):
             "questions",
             "question_count",
             "attempts_used",
+            "audience",
+            "allowed_users",
+            "allowed_departments",
+            "can_manage",
         ]
+
+    def get_can_manage(self, obj):
+        user = self.context["request"].user
+        return user.role == "admin" or (
+            user.role == "instructor" and obj.owner_id == user.id
+        )
 
     def get_attempts_used(self, obj):
         from .models import AttemptBudget
@@ -199,35 +224,71 @@ class ExamSerializer(serializers.ModelSerializer):
         return row.used if row else 0
 
     def validate(self, data):
+        departments = data.get(
+            "allowed_departments", getattr(self.instance, "allowed_departments", [])
+        )
+        if (
+            not isinstance(departments, list)
+            or len(departments) > 100
+            or any(
+                not isinstance(value, str) or not value.strip() or len(value) > 100
+                for value in departments
+            )
+        ):
+            raise serializers.ValidationError(translate("Select valid departments."))
+        audience = data.get("audience", getattr(self.instance, "audience", "all"))
+        people = data.get(
+            "allowed_users",
+            list(self.instance.allowed_users.all()) if self.instance else [],
+        )
+        if (
+            audience == "departments"
+            and not departments
+            or audience == "people"
+            and not people
+        ):
+            raise serializers.ValidationError(
+                translate("Select at least one audience member or department.")
+            )
         if (
             data.get("duration_minutes", 1) < 1
             or data.get("max_attempts", 1) < 1
             or data.get("pass_score", 0) > 100
         ):
-            raise serializers.ValidationError("時間、次數或及格標準不正確。")
+            raise serializers.ValidationError(
+                translate("Invalid duration, attempt limit or passing score.")
+            )
         start = data.get("starts_at", getattr(self.instance, "starts_at", None))
         end = data.get("ends_at", getattr(self.instance, "ends_at", None))
         if start and end and start >= end:
-            raise serializers.ValidationError("結束時間必須晚於開始時間。")
+            raise serializers.ValidationError(
+                translate("The closing time must be after the opening time.")
+            )
         questions = data.get("questions")
         if questions is not None and len(questions) > 200:
-            raise serializers.ValidationError("每份試卷最多 200 題。")
+            raise serializers.ValidationError(
+                translate("An exam can contain at most 200 questions.")
+            )
         published = data.get("published", getattr(self.instance, "published", False))
         if published and not (
             questions
             if questions is not None
             else self.instance and self.instance.questions.exists()
         ):
-            raise serializers.ValidationError("發布前請先建立題目。")
+            raise serializers.ValidationError(
+                translate("Add questions before publishing.")
+            )
         course = data.get("course")
         user = self.context["request"].user
         if course and user.role != "admin" and course.owner_id != user.id:
-            raise serializers.ValidationError("無權綁定此課程。")
+            raise serializers.ValidationError(translate("You cannot link this course."))
         return data
 
     def create(self, data):
         questions = data.pop("questions", [])
+        people = data.pop("allowed_users", [])
         exam = Exam.objects.create(**data)
+        exam.allowed_users.set(people)
         for q in questions:
             Question.objects.create(exam=exam, **q)
         return exam
@@ -243,9 +304,10 @@ class ExamSerializer(serializers.ModelSerializer):
 
     def to_representation(self, obj):
         data = super().to_representation(obj)
-        user = self.context["request"].user
-        if user.role != "admin" and obj.owner_id != user.id:
+        if not self.get_can_manage(obj):
             data.pop("questions", None)
+            data.pop("allowed_users", None)
+            data.pop("allowed_departments", None)
         return data
 
 
@@ -265,4 +327,6 @@ class InvitationSerializer(serializers.ModelSerializer):
             "expires_at",
             "revoked",
             "created_at",
+            "require_email_verification",
+            "verification_email",
         ]

@@ -1,3 +1,4 @@
+import { t, useLocale, getLocale, LanguagePicker } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -10,20 +11,20 @@ import {
   FileCheck2,
 } from "lucide-react";
 import { api } from "./api";
-import type { Attempt as Data, Guest } from "./types";
+import type { Attempt as Data, Guest, GuestChallenge } from "./types";
 import { Spinner, ErrorBox, Modal, Badge } from "./ui";
-
 export function GuestExam({ go }: { go: (p: string) => void }) {
-  const [guest, setGuest] = useState<Guest | null>(null),
+  useLocale();
+  const [guest, setGuest] = useState<Guest | GuestChallenge | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
-  const pending = useRef<Promise<Guest> | null>(null);
+  const pending = useRef<Promise<Guest | GuestChallenge> | null>(null);
   useEffect(() => {
     const token = window.location.hash.slice(1);
     if (!pending.current)
       pending.current = token
-        ? api<Guest>("guest/exchange/", "POST", { token })
-        : api<Guest>("guest/exam/");
+        ? api<Guest | GuestChallenge>("guest/exchange/", "POST", { token })
+        : api<Guest | GuestChallenge>("guest/exam/");
     pending.current
       .then((v) => {
         setGuest(v);
@@ -43,49 +44,62 @@ export function GuestExam({ go }: { go: (p: string) => void }) {
       setBusy(false);
     }
   }
+  if (guest?.verification_required)
+    return <GuestVerification challenge={guest} onVerified={setGuest} />;
   return (
     <div className="guest-page">
+      <LanguagePicker />
       <div className="guest-brand">
         <ShieldCheck size={25} /> evitina learn
       </div>
       <div className="guest-card">
-        <span className="eyebrow">YOUR PERSONAL INVITATION</span>
-        <h1>歡迎參與評量</h1>
+        <span className="eyebrow">{t("YOUR PERSONAL INVITATION")}</span>
+        <h1>{t("Welcome to your assessment")}</h1>
         <ErrorBox message={error} />
         {guest ? (
           <>
-            <Badge tone="teal">專屬邀請 · 不需建立帳號</Badge>
+            <Badge tone="teal">
+              {t("Personal invitation \u00B7 No account required")}
+            </Badge>
             <h2>{guest.title}</h2>
             <p>{guest.description}</p>
             <div className="guest-details">
               <div>
-                <span>受測者</span>
+                <span>{t("Participant")}</span>
                 <strong>{guest.recipient}</strong>
               </div>
               <div>
-                <span>作答時間</span>
-                <strong>{guest.duration_minutes} 分鐘</strong>
-              </div>
-              <div>
-                <span>可用新作答次數</span>
-                <strong>{guest.remaining} 次</strong>
-              </div>
-              <div>
-                <span>連結有效至</span>
+                <span>{t("Time allowed")}</span>
                 <strong>
-                  {new Date(guest.expires_at).toLocaleString("zh-TW")}
+                  {guest.duration_minutes}
+                  {" " + t("min")}
+                </strong>
+              </div>
+              <div>
+                <span>{t("New attempts remaining")}</span>
+                <strong>
+                  {guest.remaining}
+                  {" " + t("attempts")}
+                </strong>
+              </div>
+              <div>
+                <span>{t("Link expires")}</span>
+                <strong>
+                  {new Date(guest.expires_at).toLocaleString(getLocale())}
                 </strong>
               </div>
             </div>
             <p className="notice">
-              此連結綁定指定受測者，請勿轉傳。開始後即計入一次；若已有進行中的考卷，將繼續作答。
+              {t(
+                "This link belongs to the named participant. Do not forward it. Starting uses one attempt; an existing active attempt will resume.",
+              ) + " "}
             </p>
             <button
               className="btn primary full"
               onClick={start}
               disabled={busy}
             >
-              {busy ? "準備中…" : "開始／繼續考試"}
+              {busy ? t("Preparing\u2026") : t("Start / resume exam")}
               <ArrowRight size={17} />
             </button>
           </>
@@ -93,11 +107,99 @@ export function GuestExam({ go }: { go: (p: string) => void }) {
           !error && <Spinner />
         )}
       </div>
-      <p className="muted">Evitina Learn · 企業人才發展平台</p>
+      <p className="muted">
+        {t("Evitina Learn \u00B7 Enterprise learning platform")}
+      </p>
     </div>
   );
 }
 
+function GuestVerification({
+  challenge,
+  onVerified,
+}: {
+  challenge: GuestChallenge;
+  onVerified: (guest: Guest) => void;
+}) {
+  useLocale();
+  const [code, setCode] = useState("");
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function sendCode() {
+    setBusy(true);
+    setError("");
+    try {
+      await api("guest/email/request/", "POST", {});
+      setSent(true);
+      setCode("");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function verify(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      onVerified(await api<Guest>("guest/email/verify/", "POST", { code }));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="guest-page">
+      <LanguagePicker />
+      <div className="guest-brand">
+        <ShieldCheck size={25} /> evitina learn
+      </div>
+      <div className="guest-card">
+        <h1>{t("Verify your email to continue")}</h1>
+        <h2>{challenge.title}</h2>
+        <p>
+          {t("A code will be sent to {email}.", {
+            email: challenge.email_hint,
+          })}
+        </p>
+        <p className="notice">
+          {t(
+            "Verification does not use an exam attempt. Codes expire in 10 minutes and allow five incorrect entries.",
+          )}
+        </p>
+        <button className="btn full" onClick={sendCode} disabled={busy}>
+          {sent ? t("Send a new code") : t("Send verification code")}
+        </button>
+        {sent && (
+          <form className="modal-form" onSubmit={verify}>
+            <p role="status">
+              {t("A verification code has been sent to the invited recipient.")}
+            </p>
+            <label>
+              {t("Six-digit verification code")}
+              <input
+                required
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+              />
+            </label>
+            <button className="btn primary full" disabled={busy}>
+              {busy ? t("Processing…") : t("Verify and continue")}
+            </button>
+          </form>
+        )}
+        <ErrorBox message={error} />
+      </div>
+    </div>
+  );
+}
 export default function Attempt({
   id,
   go,
@@ -107,12 +209,13 @@ export default function Attempt({
   go: (p: string) => void;
   guest?: boolean;
 }) {
+  useLocale();
   const [attempt, setAttempt] = useState<Data | null>(null),
     [answers, setAnswers] = useState<Data["answers"]>({}),
     [index, setIndex] = useState(0),
     [remaining, setRemaining] = useState(0),
     [error, setError] = useState(""),
-    [saveState, setSaveState] = useState("已載入作答紀錄"),
+    [saveState, setSaveState] = useState("Saved answers loaded"),
     [busy, setBusy] = useState(false),
     [confirm, setConfirm] = useState(false);
   const deadline = useRef(0),
@@ -168,16 +271,16 @@ export default function Attempt({
   }, [attempt?.status, id]);
   useEffect(() => {
     if (!changed.current || attempt?.status !== "in_progress") return;
-    setSaveState("尚有未儲存變更");
+    setSaveState("Unsaved changes");
     const timeout = setTimeout(() => {
-      setSaveState("儲存中…");
+      setSaveState("Saving\u2026");
       api<Data>(`attempts/${id}/`, "PATCH", { answers })
         .then((a) => {
-          setSaveState("答案已自動儲存");
+          setSaveState("Answers saved automatically");
           if (a.status !== "in_progress") setAttempt(a);
         })
         .catch((e) => {
-          setSaveState("儲存失敗");
+          setSaveState("Save failed");
           setError(e.message);
         });
     }, 600);
@@ -203,19 +306,21 @@ export default function Attempt({
   if (attempt.status !== "in_progress")
     return (
       <div className="result-celebration">
+        <LanguagePicker />
         <div className={"result-emblem " + (attempt.passed ? "passed" : "")}>
           <Trophy size={44} />
         </div>
-        <span className="eyebrow">ASSESSMENT COMPLETE</span>
+        <span className="eyebrow">{t("ASSESSMENT COMPLETE")}</span>
         <h1>
           {attempt.status === "pending_review"
-            ? "已交卷，等待講師評分"
+            ? t("Submitted, awaiting instructor review")
             : attempt.passed
-              ? "恭喜，通過本次評量"
-              : "本次評量已完成"}
+              ? t("Congratulations, you passed")
+              : t("Assessment completed")}
         </h1>
         <p>
-          {attempt.title} · 第 {attempt.number} 次作答
+          {attempt.title}
+          {" · " + t("Attempt {number}", { number: attempt.number })}
         </p>
         {attempt.score !== null && (
           <div className="result-score">
@@ -225,14 +330,21 @@ export default function Attempt({
         )}
         <p className="muted">
           {attempt.status === "pending_review"
-            ? "申論題完成評閱後，將顯示最終成績。"
-            : `及格標準 ${attempt.pass_score} 分 · ${attempt.passed ? "持續學習，讓成長發生。" : "檢視教材並準備下一次挑戰。"}`}
+            ? t(
+                "Your final score will appear after the written responses are reviewed.",
+              )
+            : t("Passing score: {v0} points \u00B7 {v1}", {
+                v0: attempt.pass_score,
+                v1: attempt.passed
+                  ? t("Keep learning and growing.")
+                  : t("Review the course and prepare for your next attempt."),
+              })}
         </p>
         <button
           className="btn primary"
           onClick={() => go(guest ? "/invite" : "/results")}
         >
-          返回{guest ? "邀請頁" : "評量紀錄"}
+          {guest ? t("Back to invitation") : t("Back to assessment history")}
           <ArrowRight size={16} />
         </button>
       </div>
@@ -247,11 +359,14 @@ export default function Attempt({
   };
   return (
     <div className="attempt-shell">
+      <LanguagePicker />
       <div className="attempt-header">
         <div>
-          <Badge tone="blue">第 {attempt.number} 次作答</Badge>
+          <Badge tone="blue">
+            {t("Attempt {number}", { number: attempt.number })}
+          </Badge>
           <h1>{attempt.title}</h1>
-          <p>{saveState}</p>
+          <p>{t(saveState)}</p>
         </div>
         <div className={"exam-timer " + (remaining < 60 ? "danger-text" : "")}>
           <Clock3 size={21} />
@@ -259,14 +374,14 @@ export default function Attempt({
             {String(Math.floor(remaining / 60)).padStart(2, "0")}:
             {String(remaining % 60).padStart(2, "0")}
           </strong>
-          <span>剩餘時間</span>
+          <span>{t("Time remaining")}</span>
         </div>
       </div>
       <ErrorBox message={error} />
       <div className="attempt-layout">
         <aside className="question-navigation">
           <h3>
-            作答進度{" "}
+            {t("Your progress")}{" "}
             <span>
               {answered}/{attempt.questions.length}
             </span>
@@ -287,7 +402,7 @@ export default function Attempt({
                   (answers[String(question.id)] !== undefined ? "answered" : "")
                 }
                 onClick={() => setIndex(i)}
-                aria-label={`前往第 ${i + 1} 題`}
+                aria-label={t("Go to question {v0}", { v0: i + 1 })}
               >
                 {i + 1}
               </button>
@@ -295,27 +410,35 @@ export default function Attempt({
           </div>
           <p>
             <span className="tiny-dot blue" />
-            已作答 <span className="tiny-dot neutral" />
-            未作答
+            {t("Answered") + " "}
+            <span className="tiny-dot neutral" />
+            {t("Unanswered") + " "}
           </p>
           <div className="attempt-note">
             <ShieldCheck size={19} />
-            <span>答案會自動儲存。請留意剩餘時間，完成後記得交卷。</span>
+            <span>
+              {t(
+                "Answers save automatically. Watch the timer and submit when you are finished.",
+              )}
+            </span>
           </div>
         </aside>
         <section className="question-paper">
           <div className="question-paper-meta">
-            <span>QUESTION {String(index + 1).padStart(2, "0")}</span>
+            <span>
+              {t("Question")} {String(index + 1).padStart(2, "0")}
+            </span>
             <Badge tone="neutral">
               {
                 {
-                  single: "單選題",
-                  multiple: "複選題",
-                  short: "簡答題",
-                  essay: "申論題",
+                  single: t("Single choice"),
+                  multiple: t("Multiple choice"),
+                  short: t("Short answer"),
+                  essay: t("Written response"),
                 }[q.type]
               }{" "}
-              · {q.points} 分
+              · {q.points}
+              {" " + t("points") + " "}
             </Badge>
           </div>
           <h2>{q.description}</h2>
@@ -356,8 +479,8 @@ export default function Attempt({
           ) : (
             <textarea
               className="essay-answer"
-              aria-label="您的答案"
-              placeholder="請在此輸入答案…"
+              aria-label={t("Your answer")}
+              placeholder={t("Enter your answer here\u2026")}
               rows={q.type === "essay" ? 10 : 4}
               value={String(answers[String(q.id)] || "")}
               onChange={(e) => setAnswer(e.target.value)}
@@ -371,20 +494,20 @@ export default function Attempt({
               disabled={index === 0}
             >
               <ArrowLeft size={16} />
-              上一題
+              {t("Previous question") + " "}
             </button>
             {index < attempt.questions.length - 1 ? (
               <button
                 className="btn primary"
                 onClick={() => setIndex(index + 1)}
               >
-                下一題
+                {t("Next question") + " "}
                 <ArrowRight size={16} />
               </button>
             ) : (
               <button className="btn primary" onClick={() => setConfirm(true)}>
                 <Send size={16} />
-                完成交卷
+                {t("Finish and submit") + " "}
               </button>
             )}
           </div>
@@ -392,25 +515,34 @@ export default function Attempt({
       </div>
       <button className="btn submit-fixed" onClick={() => setConfirm(true)}>
         <FileCheck2 size={17} />
-        交卷
+        {t("Submit") + " "}
       </button>
       {confirm && (
-        <Modal title="確認交卷" onClose={() => setConfirm(false)}>
+        <Modal
+          title={t("Confirm submission")}
+          onClose={() => setConfirm(false)}
+        >
           <div className="modal-form">
             <p>
-              已作答 {answered} / {attempt.questions.length}{" "}
-              題。交卷後無法修改答案。
+              {t("Answered") + " "}
+              {answered} / {attempt.questions.length}{" "}
+              {t("questions. Answers cannot be changed after submission.") +
+                " "}
             </p>
             {answered < attempt.questions.length && (
-              <p className="notice">尚有未作答題目，您可以返回繼續完成。</p>
+              <p className="notice">
+                {t(
+                  "Some questions are unanswered. You can return to complete them.",
+                )}
+              </p>
             )}
             <ErrorBox message={error} />
             <div className="modal-footer">
               <button className="btn" onClick={() => setConfirm(false)}>
-                繼續作答
+                {t("Continue answering") + " "}
               </button>
               <button className="btn primary" onClick={submit} disabled={busy}>
-                {busy ? "交卷中…" : "確認交卷"}
+                {busy ? t("Submitting\u2026") : t("Confirm submission")}
               </button>
             </div>
           </div>

@@ -1,24 +1,23 @@
-# 上游整合與移轉紀錄
+# Upstream integrations and migration
 
-## FOSSEE / online_test（Yaksh）
+## FOSSEE / online_test (Yaksh)
 
-- 來源 commit：`336fc050cce6eab6d45475297d19f3b659491d48`
-- 本 repository 直接保留其 Git 歷史，原始工作樹搬至 `legacy/yaksh/`。
-- 企業平台以其 Question、Quiz、QuestionPaper、AnswerPaper 的題庫／考試／作答／評分概念重建資料模型；課程關聯改為選填，新增 stable Identity、AttemptBudget 與 Invitation。
-- 舊 Django 3.1 與 code-server 未啟用，也沒有宣稱所有舊 API 相容。保留舊 source 供評估與移轉核對。
+Source commit: `336fc050cce6eab6d45475297d19f3b659491d48`.
 
-題庫移轉範例，`questions.json`：
+The repository retains Yaksh Git history and its original tree in `legacy/yaksh/`. The new enterprise model builds on question, quiz, question-paper, answer-paper and grading concepts, with optional course association and stable identities, attempt budgets and invitations. The archived Django 3.1 application and code-server are not started by the supported deployment; compatibility with all legacy APIs is not claimed.
+
+Example `questions.json` for migration:
 
 ```json
 [
   {
     "summary": "Security",
     "type": "mcq",
-    "description": "收到可疑郵件時應如何處理？",
+    "description": "What should you do with a suspicious email?",
     "points": 10,
     "testcase": [
-      {"test_case_type": "mcqtestcase", "options": "回報資訊窗口", "correct": true},
-      {"test_case_type": "mcqtestcase", "options": "提供密碼", "correct": false}
+      {"test_case_type": "mcqtestcase", "options": "Report it to IT", "correct": true},
+      {"test_case_type": "mcqtestcase", "options": "Send your password", "correct": false}
     ]
   }
 ]
@@ -26,30 +25,33 @@
 
 ```bash
 DEBUG=true .venv/bin/python backend/manage.py import_yaksh questions.json \
-  --owner demo.admin --title '舊題庫移轉檢查'
+  --owner demo.admin --title 'Legacy question-bank review'
 ```
 
-原生 YAML export 可在有 PyYAML 的受控環境執行 `list(yaml.safe_load_all(...))` 後輸出 JSON。禁止 `yaml.load` 或執行舊 HookTestCase 程式碼。轉換器只接受 mcq／mcc 與整數配分，清除 HTML 顯示標籤，驗證選項與答案後整批建立為草稿。其餘題型、附件、使用者、課程、歷史成績應另做有對照表的資料移轉；不要直接把舊 DB 接到新 app。
+Yaksh's native YAML export can be converted to a JSON array with `list(yaml.safe_load_all(...))` in a controlled environment with PyYAML. Do not use unsafe YAML loading or execute legacy HookTestCase code. The adapter accepts `mcq`/`mcc` with integer points, strips HTML display tags and validates options/solutions before creating the entire draft. Other question types, attachments, users, courses and historical results require a separate mapped migration. Do not attach a legacy database directly to the new app.
 
 ## dhodges47 / SCORM-LearningManagementSystem
 
-- 來源 commit：`87a57d9702aa5d9f3befb22b55444d026ba3be51`
-- 原 `OutermostLMSV5.js` 與 MIT license 放在 `vendor/scorm-reference/`。
-- 新 runtime 保留 `API`（SCORM 1.2）／`API_1484_11`（2004）的 initialize/get/set/commit/finish 表面，改由跨 origin postMessage 交給登入中的父頁面，再寫入 Django。
-- 不執行舊 .NET Core 2.1／SQL Server app。ZIP 防路徑穿越與解壓限制、簽署啟動票證、專用內容 cookie 和獨立來源為新整合層。
-- synchronous SCORM Commit 先接受記憶體 buffer；父頁面取得伺服器回覆後才顯示已儲存，失敗時保留畫面錯誤且 runtime 設置 general exception。每 15 秒 commit 一次。這不是完整 SCORM certification，未實作完整 sequencing 或所有資料型別驗證。
+Source commit: `87a57d9702aa5d9f3befb22b55444d026ba3be51`.
+
+The original `OutermostLMSV5.js` and MIT license remain in `vendor/scorm-reference/`. The modern runtime adapts its SCORM 1.2 `API` and SCORM 2004 `API_1484_11` initialize/get/set/commit/finish surface. Progress messages cross to the authenticated parent origin, which writes to Django. The old .NET Core 2.1/SQL Server application is not deployed.
+
+The new integration adds ZIP path and expansion limits, signed launch tickets, package-scoped content cookies and an isolated content origin. Synchronous SCORM Commit accepts an in-memory buffer; the workspace reports a durable save only after server acknowledgement. Failure remains visible and sets a runtime general exception. Automatic commits run every 15 seconds. This is a single-SCO subset without full sequencing or complete SCORM data-model validation.
 
 ## dmmat / Scormly
 
-- 來源 commit：`53c35d2753e89db5f58f07de4d6164be14359fce`
-- 完整 MIT 原始碼在 `vendor/scormly/`，建置時掛載 `/studio/`。
-- 新增 `buildScormZip` 與 `PublishLms`：透過登入 session／CSRF 將 SCORM 1.2 和 project ZIP 送到指定課程。
-- 原始專案不放到公開媒體 URL，僅課程擁有講師／管理員可下載；教材版本檔保留舊版。
-- 載入還原：在主平台教材卡下載原始專案，再於 Scormly「Open a project (.zip)」開啟。不是多人即時共同編輯，也不會自動持續同步每一個編輯動作。
-- 原版 192 個測試與建置納入 CI；企業新增發布流程另有瀏覽器整合驗證。
+Source commit: `53c35d2753e89db5f58f07de4d6164be14359fce`.
 
-## 視覺參考
+The complete MIT source is in `vendor/scormly/`, built under `/studio/`. `buildScormZip` and `PublishLms` send a SCORM 1.2 package and editable project ZIP to a selected course using the signed-in session and CSRF protection. Backups are restricted to the owning instructor/administrator, and older package files are retained.
 
-[School-Management-Dashboard](https://github.com/MariemMagdi/School-Management-Dashboard) 用作卡片、圖表、表格的資訊架構參考；其公開 repository 未列出明確 license，因此沒有複製其原始碼或圖像。
+To restore editing, download the source project from the course card and open it in Scormly with **Open a project (.zip)**. This is not simultaneous collaborative editing or continuous server synchronization. Projects can still live in a local folder, browser storage or the tab; **Publish to LMS** explicitly uploads content and the editable backup to the company server.
 
-[Evitina](https://www.evitina.tw/) 用作深色底、青綠 accent、Serif 中文標題和幾何系統圖語彙參考。企業介面原創實作，搭配 Azure 藍。未複製其 CSS/template，也未使用其 Logo 圖檔。
+The platform and studio use the same English, Traditional Chinese and Spanish catalog. Existing upstream Ukrainian dictionaries are retained in source, while the company language picker exposes the three requested languages. Exported player text now includes Traditional Chinese, and automatic player language selection can use the LMS preference. Author-written content is preserved.
+
+Scormly builds, upstream unit tests, locale coverage and browser checks for publication, rich-text sanitation and language continuity run in CI. Imported/pasted HTML is sanitized before insertion into the authenticated editor; published packages run on the isolated origin.
+
+## Visual references
+
+[School-Management-Dashboard](https://github.com/MariemMagdi/School-Management-Dashboard) informed the card, chart and table information structure. Its repository did not provide an explicit license, so its code and images were not copied.
+
+[Evitina](https://www.evitina.tw/) informed dark surfaces, teal accents and geometric visual motifs. The enterprise interface is an original implementation combining these cues with Azure blue. Its CSS/template and logo assets were not copied.

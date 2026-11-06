@@ -10,6 +10,8 @@ This repository contains new enterprise application code and retained upstream p
 
 New code outside `legacy/` and `vendor/` is licensed under the BSD 3-Clause license in `LICENSE`. Adaptations in `vendor/scormly/` remain under its MIT license. The new SCORM runtime acknowledges David Hodges in its header and retains the original MIT notice in this repository.
 
+`shared/locales/messages.json` includes translations of Scormly interface text. Those derived entries retain Scormly's MIT terms and attribution in `vendor/scormly/LICENSE` alongside the original enterprise platform messages.
+
 School-Management-Dashboard and evitina.tw are visual references only; their source code, CSS, logos, and screenshots were not redistributed. Application screenshots in `docs/screenshots/` are generated from this implementation with synthetic data.
 
 Fonts are requested from Google Fonts with system fallbacks. For deployments requiring no external font requests, remove the import in `frontend/src/style.css` or serve licensed font files internally. Dependency license information is maintained in each package's metadata and the committed lockfiles.

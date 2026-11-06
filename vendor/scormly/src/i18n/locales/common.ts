@@ -4,6 +4,7 @@ import type { LocaleTable } from '../types'
 // add-block menu.
 const common: LocaleTable = {
   en: {
+    interfaceLanguage: 'Interface language',
     lmsPublish: 'Publish to LMS',
     lmsIntro: 'Upload SCORM 1.2 and a source project backup to your company course. This transfers content to the company server.',
     lmsCourse: 'Select a company course',
@@ -171,6 +172,7 @@ const common: LocaleTable = {
     lessonTitle: 'Lesson title',
   },
   uk: {
+    interfaceLanguage: 'Мова інтерфейсу',
     lmsPublish: 'Опублікувати в LMS',
     lmsIntro: 'Завантажте SCORM 1.2 і резервну копію проєкту до курсу компанії. Вміст буде передано на сервер компанії.',
     lmsCourse: 'Виберіть курс компанії',

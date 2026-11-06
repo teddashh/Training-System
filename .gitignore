@@ -14,5 +14,6 @@ playwright-report/
 .DS_Store
 .coverage
 *.log
+backend/test-mail/
 *.tsbuildinfo
 .openai/

@@ -10,7 +10,7 @@ import {
 import { DEFAULT_LANGUAGE, type Language } from './types'
 import { DICTIONARY, type Namespace } from './dictionary'
 
-const STORAGE_KEY = 'scormly-language'
+const STORAGE_KEY = 'training-language'
 
 // Current UI language mirrored at module scope so non-React code (the store,
 // services) can localize default content via translate().
@@ -25,11 +25,9 @@ function interpolate(
   vars?: Record<string, string | number>,
 ): string {
   if (!vars) return str
-  let out = str
-  for (const [k, v] of Object.entries(vars)) {
-    out = out.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v))
-  }
-  return out
+  return str.replace(/\{(\w+)\}/g, (match, key) =>
+    Object.prototype.hasOwnProperty.call(vars, key) ? String(vars[key]) : match,
+  )
 }
 
 /** Translate outside React (uses the last-known UI language). */
@@ -50,11 +48,14 @@ interface I18nContextValue {
 const I18nContext = createContext<I18nContextValue | null>(null)
 
 function detectInitial(): Language {
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored === 'en' || stored === 'uk') return stored
-  return navigator.language.toLowerCase().startsWith('uk')
-    ? 'uk'
-    : DEFAULT_LANGUAGE
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored === 'en' || stored === 'zh-TW' || stored === 'es') {
+      currentLanguage = stored
+      return stored
+    }
+  } catch { /* Restricted browser storage: use English. */ }
+  return DEFAULT_LANGUAGE
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
@@ -63,13 +64,25 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const setLang = useCallback((next: Language) => {
     setLangState(next)
     currentLanguage = next
-    localStorage.setItem(STORAGE_KEY, next)
+    try { localStorage.setItem(STORAGE_KEY, next) } catch { /* Use the in-memory choice. */ }
   }, [])
 
   useEffect(() => {
     currentLanguage = lang
     document.documentElement.lang = lang
+    document.cookie = `django_language=${lang === 'zh-TW' ? 'zh-hant' : lang}; Path=/; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`
   }, [lang])
+
+  useEffect(() => {
+    const sync = (event: StorageEvent) => {
+      if (event.key === STORAGE_KEY && ['en', 'zh-TW', 'es'].includes(event.newValue || '')) {
+        currentLanguage = event.newValue as Language
+        setLangState(currentLanguage)
+      }
+    }
+    window.addEventListener('storage', sync)
+    return () => window.removeEventListener('storage', sync)
+  }, [])
 
   const value = useMemo(() => ({ lang, setLang }), [lang, setLang])
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
@@ -91,13 +104,7 @@ export function useT(namespace: Namespace): { t: TFunction; lang: Language } {
 
   const t = useCallback<TFunction>(
     (key, vars) => {
-      let str = table[key] ?? key
-      if (vars) {
-        for (const [k, v] of Object.entries(vars)) {
-          str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v))
-        }
-      }
-      return str
+      return interpolate(table[key] ?? key, vars)
     },
     [table],
   )

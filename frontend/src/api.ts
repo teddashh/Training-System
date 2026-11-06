@@ -1,3 +1,4 @@
+import { t, getLocale } from "./i18n";
 export async function api<T>(
   path: string,
   method = "GET",
@@ -13,6 +14,7 @@ export async function api<T>(
     method,
     credentials: "same-origin",
     headers: {
+      "Accept-Language": getLocale() === "zh-TW" ? "zh-hant" : getLocale(),
       ...(!form && data !== undefined
         ? { "Content-Type": "application/json" }
         : {}),
@@ -26,14 +28,16 @@ export async function api<T>(
       typeof body.detail === "string"
         ? body.detail
         : Array.isArray(body)
-          ? body.join("；")
+          ? body.join("; ")
           : Object.entries(body)
               .map(
                 ([k, v]) =>
-                  `${k}：${Array.isArray(v) ? v.join("；") : JSON.stringify(v)}`,
+                  `${k}: ${Array.isArray(v) ? v.join("; ") : JSON.stringify(v)}`,
               )
-              .join("；");
-    throw new Error(message || "無法完成操作，請稍後再試。");
+              .join("; ");
+    throw new Error(
+      message || t("The operation could not be completed. Please try again."),
+    );
   }
   return body;
 }

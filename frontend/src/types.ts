@@ -50,6 +50,16 @@ export type Exam = {
   questions?: Question[];
   question_count: number;
   attempts_used: number;
+  audience:
+    | "all"
+    | "employees"
+    | "contractors"
+    | "departments"
+    | "people"
+    | "invitation";
+  allowed_departments?: string[];
+  allowed_users?: number[];
+  can_manage: boolean;
 };
 export type Attempt = {
   id: string;
@@ -89,6 +99,8 @@ export type Invitation = {
   expires_at: string;
   revoked: boolean;
   url?: string;
+  require_email_verification: boolean;
+  verification_email: string;
 };
 export type Dashboard = {
   people: number;
@@ -108,6 +120,7 @@ export type Dashboard = {
   distribution: number[];
 };
 export type Guest = {
+  verification_required?: false;
   exam_id: number;
   title: string;
   description: string;
@@ -115,4 +128,9 @@ export type Guest = {
   remaining: number;
   recipient: string;
   expires_at: string;
+};
+export type GuestChallenge = {
+  verification_required: true;
+  email_hint: string;
+  title: string;
 };

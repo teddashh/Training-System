@@ -1,5 +1,20 @@
 # AGENTS.md
 
+## Company integration overrides
+
+This vendored copy runs inside Evitina Learn at `/studio/`. The company picker
+offers English (default), Traditional Chinese and Spanish, sharing
+`training-language` with the platform. Upstream Ukrainian dictionaries remain
+for source compatibility. Add company translations to
+`../../shared/locales/messages.json`; use `studio.<namespace>.<key>` entries
+when the same English word needs different translations by context. Namespace
+English/Ukrainian source keys remain in `src/i18n/locales/`.
+
+Publish to LMS uploads a SCORM package and editable project backup to the
+company server. Local editing still works without publication. Keep interface
+copy accurate about this upload. Docker/CI in the repository root deploy this
+integrated version; the upstream GitHub Pages notes below describe Scormly.
+
 Instructions for AI agents working in this repository. For the full project
 overview, stack, structure, and conventions, see [CLAUDE.md](./CLAUDE.md).
 

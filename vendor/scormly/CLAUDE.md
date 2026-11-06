@@ -1,5 +1,20 @@
 # Scormly
 
+## Company integration overrides
+
+This vendored copy runs inside Evitina Learn at `/studio/`. The company picker
+offers English (default), Traditional Chinese and Spanish, sharing
+`training-language` with the platform. Upstream Ukrainian dictionaries remain
+for source compatibility. Add company translations to
+`../../shared/locales/messages.json`; use `studio.<namespace>.<key>` entries
+when the same English word needs different translations by context. Namespace
+English/Ukrainian source keys remain in `src/i18n/locales/`.
+
+Publish to LMS uploads a SCORM package and editable project backup to the
+company server. Local editing still works without publication. Keep interface
+copy accurate about this upload. Docker/CI in the repository root deploy this
+integrated version; the upstream GitHub Pages notes below describe Scormly.
+
 A local-first, block-based course builder that
 exports to **SCORM 1.2 / 2004** and **cmi5**. It runs entirely client-side, with
 no backend. A project lives in a folder on disk (**File System Access API**), in

@@ -3546,3 +3546,82 @@ form > label {
     scroll-behavior: auto !important;
   }
 }
+
+.language-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted, #64748b);
+  flex-shrink: 0;
+}
+.language-picker select {
+  max-width: 140px;
+  border: 1px solid #dce5ee;
+  border-radius: 7px;
+  background: white;
+  color: #263c52;
+  padding: 7px 9px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.login-form-wrap .language-picker {
+  margin-bottom: 16px;
+}
+.guest-page > .language-picker {
+  align-self: flex-end;
+  margin-bottom: 18px;
+}
+.attempt-shell > .language-picker {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+@media (max-width: 700px) {
+  .topbar-right {
+    gap: 8px;
+  }
+  .language-picker select {
+    max-width: 112px;
+  }
+  .topbar .language-picker svg {
+    display: none;
+  }
+}
+
+.audience-options {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid #dce5ee;
+  border-radius: 10px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+.audience-options legend {
+  font-weight: 600;
+  padding: 0 6px;
+}
+.audience-options .checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+}
+.audience-options input {
+  width: auto;
+}
+.modal > header {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.modal > header h2 {
+  flex: 1;
+  min-width: 140px;
+}
+.result-celebration > .language-picker {
+  margin-bottom: 20px;
+}
+.nav-item {
+  white-space: normal;
+}

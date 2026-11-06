@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { t, useLocale } from "./i18n";
+import { useEffect, useState } from "react";
 import {
   Plus,
   Search,
@@ -13,7 +14,6 @@ import {
 import { api } from "./api";
 import type { Exam, Course, Question, User, Attempt } from "./types";
 import { Modal, Badge, ErrorBox, Empty } from "./ui";
-
 function ExamEditor({
   exam,
   courses,
@@ -25,6 +25,23 @@ function ExamEditor({
   onSaved: () => void;
   onClose: () => void;
 }) {
+  useLocale();
+  const [audience, setAudience] = useState<Exam["audience"]>(
+    exam?.audience || "all",
+  );
+  const [departments, setDepartments] = useState(
+    exam?.allowed_departments || [],
+  );
+  const [people, setPeople] = useState<number[]>(exam?.allowed_users || []);
+  const [options, setOptions] = useState<{
+    departments: string[];
+    people: Pick<User, "id" | "display_name" | "username" | "department">[];
+  }>({ departments: [], people: [] });
+  useEffect(() => {
+    api<typeof options>("exams/audience-options/")
+      .then(setOptions)
+      .catch((e) => setError(e.message));
+  }, []);
   const [title, setTitle] = useState(exam?.title || ""),
     [description, setDescription] = useState(exam?.description || ""),
     [course, setCourse] = useState(exam?.course?.toString() || ""),
@@ -84,6 +101,9 @@ function ExamEditor({
           max_attempts: limit,
           pass_score: pass,
           published,
+          audience,
+          allowed_departments: departments,
+          allowed_users: people,
           starts_at: start ? new Date(start).toISOString() : null,
           ends_at: end ? new Date(end).toISOString() : null,
           questions: questions.map((q, i) => ({
@@ -103,14 +123,16 @@ function ExamEditor({
   }
   return (
     <Modal
-      title={exam ? "編輯考試" : "建立獨立考試／課程評量"}
+      title={
+        exam ? t("Edit exam") : t("Create standalone exam / course assessment")
+      }
       onClose={onClose}
       wide
     >
       <form className="modal-form" onSubmit={save}>
         <div className="form-grid">
           <label className="span-2">
-            考試名稱
+            {t("Exam title") + " "}
             <input
               required
               value={title}
@@ -119,7 +141,7 @@ function ExamEditor({
             />
           </label>
           <label className="span-2">
-            作答說明
+            {t("Instructions") + " "}
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -127,9 +149,9 @@ function ExamEditor({
             />
           </label>
           <label>
-            關聯課程
+            {t("Linked course") + " "}
             <select value={course} onChange={(e) => setCourse(e.target.value)}>
-              <option value="">獨立考試（不綁定課程）</option>
+              <option value="">{t("Standalone exam (no course)")}</option>
               {courses.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.title}
@@ -138,7 +160,7 @@ function ExamEditor({
             </select>
           </label>
           <label>
-            作答時間（分鐘）
+            {t("Time allowed (minutes)") + " "}
             <input
               type="number"
               min={1}
@@ -149,7 +171,7 @@ function ExamEditor({
             />
           </label>
           <label>
-            每位受測者預設次數
+            {t("Default attempts per participant") + " "}
             <input
               type="number"
               min={1}
@@ -160,7 +182,7 @@ function ExamEditor({
             />
           </label>
           <label>
-            及格標準（百分制）
+            {t("Passing score (out of 100)") + " "}
             <input
               type="number"
               min={0}
@@ -171,7 +193,7 @@ function ExamEditor({
             />
           </label>
           <label>
-            開放時間（選填）
+            {t("Opens at (optional)") + " "}
             <input
               type="datetime-local"
               value={start}
@@ -179,7 +201,7 @@ function ExamEditor({
             />
           </label>
           <label>
-            結束時間（選填）
+            {t("Closes at (optional)") + " "}
             <input
               type="datetime-local"
               value={end}
@@ -188,17 +210,109 @@ function ExamEditor({
           </label>
         </div>
         <div className="form-section">
+          <h3>{t("Exam audience")}</h3>
+          <p>
+            {t(
+              "Audience rules apply to new account attempts. Personal invitations grant access separately; existing attempts remain available.",
+            )}
+          </p>
+        </div>
+        <label>
+          {t("Who can take this exam?")}
+          <select
+            aria-label={t("Who can take this exam?")}
+            value={audience}
+            onChange={(e) => setAudience(e.target.value as Exam["audience"])}
+          >
+            {(
+              [
+                ["all", "Everyone with an account"],
+                ["employees", "Employees"],
+                ["contractors", "Contractors"],
+                ["departments", "Selected departments"],
+                ["people", "Selected people"],
+                ["invitation", "Invitation only"],
+              ] as const
+            ).map(([value, label]) => (
+              <option key={value} value={value}>
+                {t(label)}
+              </option>
+            ))}
+          </select>
+        </label>
+        {audience === "departments" && (
+          <fieldset className="audience-options">
+            <legend>{t("Selected departments")}</legend>
+            {[...new Set([...options.departments, ...departments])].map(
+              (name) => (
+                <label className="checkbox" key={name}>
+                  <input
+                    type="checkbox"
+                    checked={departments.includes(name)}
+                    onChange={(e) =>
+                      setDepartments(
+                        e.target.checked
+                          ? [...departments, name]
+                          : departments.filter((d) => d !== name),
+                      )
+                    }
+                  />
+                  {name}
+                </label>
+              ),
+            )}
+            {!options.departments.length && !departments.length && (
+              <p>
+                {t("Assign departments to people before using this audience.")}
+              </p>
+            )}
+          </fieldset>
+        )}
+        {audience === "people" && (
+          <fieldset className="audience-options">
+            <legend>{t("Selected people")}</legend>
+            {options.people.map((person) => (
+              <label className="checkbox" key={person.id}>
+                <input
+                  type="checkbox"
+                  checked={people.includes(person.id)}
+                  onChange={(e) =>
+                    setPeople(
+                      e.target.checked
+                        ? [...people, person.id]
+                        : people.filter((id) => id !== person.id),
+                    )
+                  }
+                />
+                {person.display_name || person.username}{" "}
+                {person.department && `· ${person.department}`}
+              </label>
+            ))}
+          </fieldset>
+        )}
+        <div className="form-section">
           <h3>
-            試卷題目 <Badge tone="neutral">{questions.length} 題</Badge>
+            {t("Exam questions") + " "}
+            <Badge tone="neutral">
+              {questions.length}
+              {" " + t("questions")}
+            </Badge>
           </h3>
-          <p>單選、複選與簡答自動評分；申論題交由講師評閱。</p>
+          <p>
+            {t(
+              "Choice and short-answer questions are graded automatically. Written responses are reviewed by an instructor.",
+            )}
+          </p>
         </div>
         {questions.map((q, i) => (
           <div className="question-editor" key={i}>
             <div className="question-toolbar">
-              <strong>題目 {i + 1}</strong>
+              <strong>
+                {t("Question") + " "}
+                {i + 1}
+              </strong>
               <select
-                aria-label={`題目 ${i + 1} 題型`}
+                aria-label={t("Question {v0} type", { v0: i + 1 })}
                 value={q.type}
                 onChange={(e) => {
                   const type = e.target.value as Question["type"];
@@ -211,13 +325,13 @@ function ExamEditor({
                   });
                 }}
               >
-                <option value="single">單選題</option>
-                <option value="multiple">複選題</option>
-                <option value="short">簡答題</option>
-                <option value="essay">申論題</option>
+                <option value="single">{t("Single choice")}</option>
+                <option value="multiple">{t("Multiple choice")}</option>
+                <option value="short">{t("Short answer")}</option>
+                <option value="essay">{t("Written response")}</option>
               </select>
               <label className="inline-label">
-                配分
+                {t("Points") + " "}
                 <input
                   type="number"
                   min={1}
@@ -229,7 +343,7 @@ function ExamEditor({
               <button
                 type="button"
                 className="icon-btn"
-                aria-label={`刪除題目 ${i + 1}`}
+                aria-label={t("Delete question {v0}", { v0: i + 1 })}
                 onClick={() =>
                   setQuestions(questions.filter((_, j) => i !== j))
                 }
@@ -239,19 +353,22 @@ function ExamEditor({
             </div>
             <textarea
               required
-              aria-label={`題目 ${i + 1} 內容`}
+              aria-label={t("Question {v0} content", { v0: i + 1 })}
               value={q.description}
               onChange={(e) => patch(i, { description: e.target.value })}
-              placeholder="請輸入題目內容"
+              placeholder={t("Enter the question")}
               rows={2}
             />
             {["single", "multiple"].includes(q.type) && (
               <>
-                <p className="field-hint">勾選正確答案</p>
+                <p className="field-hint">{t("Select the correct answers")}</p>
                 {q.options.map((option, j) => (
                   <div className="option-editor" key={j}>
                     <input
-                      aria-label={`題目 ${i + 1} 選項 ${j + 1} 為正確答案`}
+                      aria-label={t("Question {v0} option {v1} is correct", {
+                        v0: i + 1,
+                        v1: j + 1,
+                      })}
                       type={q.type === "single" ? "radio" : "checkbox"}
                       name={"solution-" + i}
                       checked={q.solution?.includes(j) || false}
@@ -268,7 +385,10 @@ function ExamEditor({
                     />
                     <input
                       required
-                      aria-label={`題目 ${i + 1} 選項 ${j + 1}`}
+                      aria-label={t("Question {v0} option {v1}", {
+                        v0: i + 1,
+                        v1: j + 1,
+                      })}
                       value={option}
                       onChange={(e) =>
                         patch(i, {
@@ -277,7 +397,7 @@ function ExamEditor({
                           ),
                         })
                       }
-                      placeholder={`選項 ${j + 1}`}
+                      placeholder={t("Option {v0}", { v0: j + 1 })}
                     />
                   </div>
                 ))}
@@ -287,13 +407,13 @@ function ExamEditor({
                   onClick={() => patch(i, { options: [...q.options, ""] })}
                 >
                   <Plus size={14} />
-                  新增選項
+                  {t("Add option") + " "}
                 </button>
               </>
             )}
             {q.type === "short" && (
               <label>
-                可接受的標準答案（每行一個）
+                {t("Accepted answers (one per line)") + " "}
                 <textarea
                   required
                   value={q.solution?.join("\n")}
@@ -304,7 +424,11 @@ function ExamEditor({
               </label>
             )}
             {q.type === "essay" && (
-              <p className="notice">這一題需要人工評分，可輸入得分及回饋。</p>
+              <p className="notice">
+                {t(
+                  "This question needs manual grading, with points and feedback.",
+                )}
+              </p>
             )}
           </div>
         ))}
@@ -325,7 +449,7 @@ function ExamEditor({
           }
         >
           <Plus size={16} />
-          新增題目
+          {t("Add question") + " "}
         </button>
         <label className="checkbox-label">
           <input
@@ -333,22 +457,21 @@ function ExamEditor({
             checked={published}
             onChange={(e) => setPublished(e.target.checked)}
           />
-          發布考試
+          {t("Publish exam") + " "}
         </label>
         <ErrorBox message={error} />
         <div className="modal-footer">
           <button type="button" className="btn" onClick={onClose}>
-            取消
+            {t("Cancel") + " "}
           </button>
           <button className="btn primary" disabled={busy}>
-            {busy ? "儲存中…" : "儲存考試"}
+            {busy ? t("Saving\u2026") : t("Save exam")}
           </button>
         </div>
       </form>
     </Modal>
   );
 }
-
 export default function Exams({
   exams,
   courses,
@@ -362,6 +485,7 @@ export default function Exams({
   onSaved: () => void;
   go: (p: string) => void;
 }) {
+  useLocale();
   const [search, setSearch] = useState(""),
     [editing, setEditing] = useState<Exam | null | undefined>(),
     [starting, setStarting] = useState<Exam | null>(null),
@@ -403,14 +527,16 @@ export default function Exams({
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">ASSESSMENT CENTER</div>
-          <h1>考試與評量</h1>
-          <p>獨立規劃每一場評量，讓能力與成果清楚呈現。</p>
+          <div className="eyebrow">{t("ASSESSMENT CENTER")}</div>
+          <h1>{t("Exams & assessments")}</h1>
+          <p>
+            {t("Plan assessments independently and make progress visible.")}
+          </p>
         </div>
         {manage && (
           <button className="btn primary" onClick={() => setEditing(null)}>
             <Plus size={17} />
-            建立考試
+            {t("Create exam") + " "}
           </button>
         )}
       </div>
@@ -418,30 +544,31 @@ export default function Exams({
         <div>
           <FileQuestion size={22} />
           <strong>{exams.length}</strong>
-          <span>場考試</span>
+          <span>{t("exams")}</span>
         </div>
         <div>
           <Target size={22} />
           <strong>{exams.filter((e) => !e.course).length}</strong>
-          <span>場獨立評量</span>
+          <span>{t("standalone assessments")}</span>
         </div>
         <div>
           <Clock3 size={22} />
           <strong>{exams.filter((e) => e.published).length}</strong>
-          <span>場已發布</span>
+          <span>{t("published")}</span>
         </div>
       </div>
       <div className="toolbar">
         <h2>
-          所有考試 <span className="count">{exams.length}</span>
+          {t("All exams") + " "}
+          <span className="count">{exams.length}</span>
         </h2>
         <div className="search-field">
           <Search size={16} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            aria-label="搜尋考試"
-            placeholder="搜尋考試名稱…"
+            aria-label={t("Search exams")}
+            placeholder={t("Search exam titles\u2026")}
           />
         </div>
       </div>
@@ -459,21 +586,44 @@ export default function Exams({
                   <div className="exam-title">
                     <h2>{exam.title}</h2>
                     <Badge tone={exam.published ? "teal" : "neutral"}>
-                      {exam.published ? "已發布" : "草稿"}
+                      {exam.published ? t("Published") : t("Draft")}
                     </Badge>
                     <Badge tone="blue">
-                      {exam.course ? "課程評量" : "獨立考試"}
+                      {exam.course
+                        ? t("Course assessment")
+                        : t("Standalone exam")}
                     </Badge>
                   </div>
                   <p>
-                    {exam.description || "請在開始前確認考試時間與作答次數。"}
+                    {exam.description ||
+                      t(
+                        "Check the time limit and available attempts before starting.",
+                      )}
                   </p>
                   <div className="exam-details">
-                    <span>{exam.question_count} 題</span>
-                    <span>{exam.duration_minutes} 分鐘</span>
-                    <span>及格 {exam.pass_score} 分</span>
-                    <span>預設 {exam.max_attempts} 次</span>
-                    <span>已使用 {exam.attempts_used} 次</span>
+                    <span>
+                      {exam.question_count}
+                      {" " + t("questions")}
+                    </span>
+                    <span>
+                      {exam.duration_minutes}
+                      {" " + t("min")}
+                    </span>
+                    <span>
+                      {t("Pass") + " "}
+                      {exam.pass_score}
+                      {" " + t("points")}
+                    </span>
+                    <span>
+                      {t("Default") + " "}
+                      {exam.max_attempts}
+                      {" " + t("attempts")}
+                    </span>
+                    <span>
+                      {t("Used") + " "}
+                      {exam.attempts_used}
+                      {" " + t("attempts")}
+                    </span>
                   </div>
                 </div>
                 <div className="exam-actions">
@@ -485,22 +635,24 @@ export default function Exams({
                       setStarting(exam);
                     }}
                   >
-                    開始／繼續
+                    {t("Start / resume") + " "}
                     <ArrowRight size={15} />
                   </button>
-                  {manage && (
+                  {exam.can_manage && (
                     <div className="exam-tools">
                       <button
-                        title="編輯試卷"
-                        aria-label={"編輯 " + exam.title}
+                        title={t("Edit questions")}
+                        aria-label={t("Edit ") + exam.title}
                         className="icon-btn"
                         onClick={() => setEditing(exam)}
                       >
                         <Pencil size={16} />
                       </button>
                       <button
-                        title="個別次數設定"
-                        aria-label={"設定 " + exam.title + " 個別次數"}
+                        title={t("Individual attempt limits")}
+                        aria-label={
+                          t("Set ") + exam.title + t(" attempt limit")
+                        }
                         className="icon-btn"
                         onClick={() => {
                           setError("");
@@ -510,8 +662,8 @@ export default function Exams({
                         <Target size={16} />
                       </button>
                       <button
-                        title="邀請訪客"
-                        aria-label={"邀請 " + exam.title + " 訪客"}
+                        title={t("Invite guest")}
+                        aria-label={t("Invite ") + exam.title + t(" guests")}
                         className="icon-btn"
                         onClick={() => go("/invitations")}
                       >
@@ -524,7 +676,7 @@ export default function Exams({
             ))}
         </div>
       ) : (
-        <Empty title="尚無符合的考試" />
+        <Empty title={t("No matching exams")} />
       )}
       {editing !== undefined && (
         <ExamEditor
@@ -535,36 +687,47 @@ export default function Exams({
         />
       )}{" "}
       {starting && (
-        <Modal title="準備開始考試" onClose={() => setStarting(null)}>
+        <Modal title={t("Ready to start?")} onClose={() => setStarting(null)}>
           <div className="modal-form">
             <h3>{starting.title}</h3>
             <div className="preflight">
               <div>
                 <Clock3 />
-                <strong>{starting.duration_minutes} 分鐘</strong>
-                <span>作答時間</span>
+                <strong>
+                  {starting.duration_minutes}
+                  {" " + t("min")}
+                </strong>
+                <span>{t("Time allowed")}</span>
               </div>
               <div>
                 <Target />
-                <strong>{starting.pass_score} 分</strong>
-                <span>及格標準</span>
+                <strong>
+                  {starting.pass_score}
+                  {" " + t("points")}
+                </strong>
+                <span>{t("Passing score")}</span>
               </div>
               <div>
                 <FileQuestion />
-                <strong>{starting.question_count} 題</strong>
-                <span>題目總數</span>
+                <strong>
+                  {starting.question_count}
+                  {" " + t("questions")}
+                </strong>
+                <span>{t("Total questions")}</span>
               </div>
             </div>
             <p className="notice">
-              開始即使用一次額度。重新整理或返回可繼續未到期的作答；計時不會暫停，到期將依已儲存答案交卷。
+              {t(
+                "Starting uses one attempt. Refreshing or returning resumes an active attempt. The timer does not pause; saved answers are submitted when time runs out.",
+              ) + " "}
             </p>
             <ErrorBox message={error} />
             <div className="modal-footer">
               <button className="btn" onClick={() => setStarting(null)}>
-                稍後再考
+                {t("Take it later") + " "}
               </button>
               <button className="btn primary" disabled={busy} onClick={start}>
-                {busy ? "準備中…" : "開始／繼續作答"}
+                {busy ? t("Preparing\u2026") : t("Start / resume attempt")}
                 <ArrowRight size={16} />
               </button>
             </div>
@@ -572,14 +735,19 @@ export default function Exams({
         </Modal>
       )}
       {budget && (
-        <Modal title="受測者個別次數" onClose={() => setBudget(null)}>
+        <Modal
+          title={t("Participant attempt limit")}
+          onClose={() => setBudget(null)}
+        >
           <form className="modal-form" onSubmit={saveBudget}>
             <h3>{budget.title}</h3>
             <p className="muted">
-              這是該身分的總次數上限，包含帳號登入與所有訪客連結。
+              {t(
+                "This is the total limit for this identity, including account access and all guest links.",
+              ) + " "}
             </p>
             <label>
-              E-mail、帳號或員工編號
+              {t("Email, username or employee ID") + " "}
               <input
                 required
                 value={key}
@@ -587,7 +755,7 @@ export default function Exams({
               />
             </label>
             <label>
-              總次數上限
+              {t("Total attempt limit") + " "}
               <input
                 type="number"
                 min={1}
@@ -599,7 +767,7 @@ export default function Exams({
             <ErrorBox message={error} />
             <div className="modal-footer">
               <button className="btn primary" disabled={busy}>
-                儲存設定
+                {t("Save settings") + " "}
               </button>
             </div>
           </form>

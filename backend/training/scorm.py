@@ -4,19 +4,23 @@ import shutil
 import stat
 import zipfile
 from pathlib import Path, PurePosixPath
-from urllib.parse import urlsplit, unquote, quote
+from urllib.parse import quote, unquote, urlsplit
+
 from defusedxml import ElementTree
 from django.conf import settings
 from django.core import signing
 from django.db import transaction
-from django.http import HttpResponse, FileResponse, HttpResponseForbidden
+from django.http import FileResponse, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.translation import get_language
 from django.views.decorators.clickjacking import xframe_options_exempt
 from rest_framework.decorators import api_view
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError, PermissionDenied
-from .models import Course, ScormPackage, ScormState, Enrollment
+
+from .i18n import translate
+from .models import Course, Enrollment, ScormPackage, ScormState
 from .services import audit
 
 MAX_BYTES = 100 * 1024 * 1024
@@ -33,7 +37,7 @@ def safe_path(path):
         or ".." in p.parts
         or ":" in raw
     ):
-        raise ValidationError("套件含有不安全的檔案路徑。")
+        raise ValidationError(translate("The package contains an unsafe file path."))
     return p.as_posix()
 
 
@@ -41,11 +45,11 @@ def inspect_package(upload):
     try:
         archive = zipfile.ZipFile(upload)
     except (zipfile.BadZipFile, OSError):
-        raise ValidationError("請上傳有效的 SCORM ZIP 套件。")
+        raise ValidationError(translate("Upload a valid SCORM ZIP package."))
     files = archive.infolist()
     if len(files) > 2000 or sum(f.file_size for f in files) > MAX_BYTES:
         archive.close()
-        raise ValidationError("套件超過 100 MB 或 2,000 個檔案。")
+        raise ValidationError(translate("The package exceeds 100 MB or 2,000 files."))
     seen = set()
     try:
         for info in files:
@@ -55,11 +59,15 @@ def inspect_package(upload):
                 or stat.S_ISLNK(info.external_attr >> 16)
                 or info.flag_bits & 1
             ):
-                raise ValidationError("不接受重複路徑、符號連結或加密檔案。")
+                raise ValidationError(
+                    translate(
+                        "Duplicate paths, symbolic links and encrypted files are not allowed."
+                    )
+                )
             seen.add(normalized)
         manifest_info = archive.getinfo("imsmanifest.xml")
         if manifest_info.file_size > 1024 * 1024:
-            raise ValidationError("Manifest 過大。")
+            raise ValidationError(translate("The manifest is too large."))
         root = ElementTree.fromstring(archive.read("imsmanifest.xml"))
         resources = [
             r
@@ -72,15 +80,19 @@ def inspect_package(upload):
         ]
         if len(resources) != 1:
             raise ValidationError(
-                "目前支援單一 SCO；多 SCO／SCORM 2004 sequencing 套件需先重新匯出為單一 SCO。"
+                translate(
+                    "Only single-SCO packages are supported. Re-export multi-SCO or SCORM 2004 sequencing packages as a single SCO."
+                )
             )
         href = resources[0].get("href", "")
         parts = urlsplit(href)
         if parts.scheme or parts.netloc:
-            raise ValidationError("教材啟動位置必須位於套件內。")
+            raise ValidationError(
+                translate("The launch file must be inside the package.")
+            )
         path = safe_path(parts.path)
         if path not in seen:
-            raise ValidationError("套件缺少啟動檔案。")
+            raise ValidationError(translate("The package is missing its launch file."))
         version = next(
             (
                 e.text or ""
@@ -104,7 +116,9 @@ def inspect_package(upload):
         raise
     except Exception:
         archive.close()
-        raise ValidationError("無法解析 imsmanifest.xml；請確認套件格式。")
+        raise ValidationError(
+            translate("Cannot parse imsmanifest.xml. Check the package format.")
+        )
 
 
 @api_view(["POST"])
@@ -116,7 +130,7 @@ def upload_package(request, course_id):
         raise PermissionDenied()
     upload = request.FILES.get("file")
     if not upload or upload.size > MAX_BYTES:
-        raise ValidationError("請提供小於 100 MB 的 SCORM ZIP。")
+        raise ValidationError(translate("Provide a SCORM ZIP smaller than 100 MB."))
     archive, version, launch_path, title = inspect_package(upload)
     package = ScormPackage(
         course=course, version=version, launch_path=launch_path, title=title
@@ -159,7 +173,9 @@ def upload_package(request, course_id):
         if dest.exists():
             shutil.rmtree(dest)
         source_path.unlink(missing_ok=True)
-        raise ValidationError("套件解壓失敗，未建立教材版本。")
+        raise ValidationError(
+            translate("Package extraction failed. No content version was created.")
+        )
     finally:
         archive.close()
     audit(
@@ -182,7 +198,7 @@ def download_source(request, course_id):
         raise PermissionDenied()
     package = course.packages.order_by("-created_at").first()
     if not package or not package.has_source:
-        raise ValidationError("此版本未附 Scormly 原始專案。")
+        raise ValidationError(translate("This version has no Scormly source project."))
     source_path = settings.MEDIA_ROOT / "sources" / (str(package.id) + ".zip")
     return FileResponse(
         source_path.open("rb"),
@@ -211,7 +227,12 @@ def launch(request, package_id):
     launches[str(package.id)] = nonce
     request.session["scorm_launches"] = dict(list(launches.items())[-20:])
     ticket = signing.dumps(
-        {"package": str(package.id), "user": request.user.id, "nonce": nonce},
+        {
+            "package": str(package.id),
+            "user": request.user.id,
+            "nonce": nonce,
+            "language": "zh-TW" if get_language() == "zh-hant" else get_language(),
+        },
         salt="scorm-launch",
     )
     return Response(
@@ -228,10 +249,10 @@ def commit(request, package_id):
     package = get_object_or_404(ScormPackage, pk=package_id)
     expected = request.session.get("scorm_launches", {}).get(str(package_id))
     if not expected or request.data.get("nonce") != expected:
-        raise PermissionDenied("播放器工作階段無效。")
+        raise PermissionDenied(translate("Invalid player session."))
     cmi = request.data.get("cmi")
     if not isinstance(cmi, dict) or len(json.dumps(cmi)) > 100000 or len(cmi) > 1000:
-        raise ValidationError("SCORM 資料超過限制。")
+        raise ValidationError(translate("SCORM data exceeds the size limit."))
     if any(
         not isinstance(k, str)
         or not k.startswith("cmi.")
@@ -239,7 +260,7 @@ def commit(request, package_id):
         or len(v) > 64000
         for k, v in cmi.items()
     ):
-        raise ValidationError("SCORM 資料格式不正確。")
+        raise ValidationError(translate("Invalid SCORM data format."))
     with transaction.atomic():
         ScormState.objects.update_or_create(
             user=request.user, package=package, defaults={"cmi": cmi}
@@ -288,6 +309,8 @@ def content_launch(request):
             "cmi.learner_id": str(payload["user"]),
             "cmi.core.entry": "resume" if state else "ab-initio",
             "cmi.entry": "resume" if state else "ab-initio",
+            "cmi.student_preference.language": payload.get("language", "en"),
+            "cmi.learner_preference.language": payload.get("language", "en"),
         }
     )
     config = json.dumps(
@@ -303,7 +326,7 @@ def content_launch(request):
         '<!doctype html><html><head><meta charset="utf-8"><title>SCORM Player</title>'
         "<style>html,body,iframe{margin:0;width:100%;height:100%;border:0;display:block}body{overflow:hidden}</style></head>"
         f"<body><script>const CONFIG={config};\n{runtime}</script>"
-        '<iframe id="sco" title="課程教材" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"></iframe>'
+        '<iframe id="sco" title="Course content" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"></iframe>'
         '<script>document.getElementById("sco").src=CONFIG.src;</script></body></html>'
     )
     cookie = signing.dumps({"package": str(package.id)}, salt="scorm-content")

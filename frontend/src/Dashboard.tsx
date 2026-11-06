@@ -1,3 +1,4 @@
+import { t, useLocale } from "./i18n";
 import { useEffect, useState } from "react";
 import {
   Users,
@@ -34,7 +35,6 @@ import {
   Empty,
   Badge,
 } from "./ui";
-
 export default function Dashboard({
   user,
   courses,
@@ -48,6 +48,7 @@ export default function Dashboard({
   go: (p: string) => void;
   refreshKey: number;
 }) {
+  useLocale();
   const [data, setData] = useState<Data | null>(null),
     [days, setDays] = useState("30"),
     [department, setDepartment] = useState(""),
@@ -71,40 +72,45 @@ export default function Dashboard({
   if (error) return <ErrorBox message={error} />;
   if (!data) return <Spinner />;
   const audience = [
-    { name: "正式員工", value: data.employee_count },
-    { name: "非正式員工", value: data.contractor_count },
+    { name: t("Employees"), value: data.employee_count },
+    { name: t("Contractors"), value: data.contractor_count },
   ];
   const stats = [
     {
-      label: "培訓人員",
+      label: t("Training participants"),
       value: data.people,
-      suffix: "人",
+      suffix: t("people"),
       icon: Users,
-      detail: `正式 ${data.employee_count} · 非正式 ${data.contractor_count}`,
+      detail: t("Employees {v0} \u00B7 Contractors {v1}", {
+        v0: data.employee_count,
+        v1: data.contractor_count,
+      }),
       color: "blue",
     },
     {
-      label: "學習課程",
+      label: t("Learning courses"),
       value: data.courses,
-      suffix: "門",
+      suffix: t("courses"),
       icon: BookOpen,
-      detail: `累計 ${data.enrollments} 筆修課紀錄`,
+      detail: t("{v0} total enrollments", { v0: data.enrollments }),
       color: "teal",
     },
     {
-      label: "課程完成率",
+      label: t("Course completion"),
       value: data.completion,
       suffix: "%",
       icon: GraduationCap,
-      detail: `${data.completed} 筆已完成學習`,
+      detail: t("{v0} completed enrollments", { v0: data.completed }),
       color: "purple",
     },
     {
-      label: "考試通過率",
+      label: t("Exam pass rate"),
       value: data.pass_rate,
       suffix: "%",
       icon: Target,
-      detail: `期間內 ${data.graded_count} 份已評分考卷`,
+      detail: t("{v0} graded attempts in this period", {
+        v0: data.graded_count,
+      }),
       color: "amber",
     },
   ];
@@ -113,20 +119,22 @@ export default function Dashboard({
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">WORKSPACE OVERVIEW</div>
+          <div className="eyebrow">{t("WORKSPACE OVERVIEW")}</div>
           <h1>
-            人才發展總覽
+            {t("Learning & development overview") + " "}
             <span className="heading-dot" />
           </h1>
-          <p>掌握團隊的學習進度，讓每一份努力都被看見。</p>
+          <p>
+            {t("Follow your team's progress and recognize every step forward.")}
+          </p>
         </div>
         <div className="heading-actions">
           <select
-            aria-label="部門篩選"
+            aria-label={t("Filter by department")}
             value={department}
             onChange={(e) => setDepartment(e.target.value)}
           >
-            <option value="">所有部門</option>
+            <option value="">{t("All departments")}</option>
             {Array.from(
               new Set(data.departments.map((d) => d.user__department)),
             )
@@ -142,13 +150,13 @@ export default function Dashboard({
           <div className="select-icon">
             <CalendarDays size={16} />
             <select
-              aria-label="統計期間"
+              aria-label={t("Reporting period")}
               value={days}
               onChange={(e) => setDays(e.target.value)}
             >
-              <option value="7">最近 7 天</option>
-              <option value="30">最近 30 天</option>
-              <option value="90">最近 90 天</option>
+              <option value="7">{t("Last 7 days")}</option>
+              <option value="30">{t("Last 30 days")}</option>
+              <option value="90">{t("Last 90 days")}</option>
             </select>
           </div>
         </div>
@@ -156,16 +164,23 @@ export default function Dashboard({
       <section className="welcome-banner">
         <div>
           <span className="banner-label">
-            <span /> LEARNING NEVER STOPS
+            <span />
+            {" " + t("LEARNING NEVER STOPS")}
           </span>
-          <h2>{user.display_name}，一起讓團隊持續成長。</h2>
+          <h2>
+            {user.display_name}
+            {t(", let's help your team grow.")}
+          </h2>
           <p>
             {data.pending
-              ? `目前有 ${data.pending} 份考卷等待評分，幫助學員更快獲得回饋。`
-              : "從今天的一小步，累積明天的更多可能。"}
+              ? t(
+                  "{v0} attempts await grading. Help learners get timely feedback.",
+                  { v0: data.pending },
+                )
+              : t("Small steps today create new possibilities tomorrow.")}
           </p>
           <button onClick={() => go(data.pending ? "/results" : "/courses")}>
-            {data.pending ? "前往評分中心" : "探索學習課程"}
+            {data.pending ? t("Go to grading") : t("Explore courses")}
             <ArrowRight size={16} />
           </button>
         </div>
@@ -173,12 +188,12 @@ export default function Dashboard({
           <div className="art-grid" />
           <div className="art-card one">
             <BookOpen size={28} />
-            <span>KNOWLEDGE</span>
+            <span>{t("KNOWLEDGE")}</span>
             <i />
           </div>
           <div className="art-card two">
             <GraduationCap size={30} />
-            <span>GROWTH</span>
+            <span>{t("GROWTH")}</span>
             <i />
           </div>
           <div className="art-dot" />
@@ -207,16 +222,22 @@ export default function Dashboard({
       <div className="dashboard-main">
         <section className="panel trend-panel">
           <SectionTitle
-            title="學習與評量趨勢"
-            subtitle="觀察每日交卷量與團隊學習節奏"
-            action={<Badge tone="neutral">近 {data.days} 天</Badge>}
+            title={t("Learning & assessment trends")}
+            subtitle={t("Daily submissions and your team's learning activity")}
+            action={
+              <Badge tone="neutral">
+                {t("Last") + " "}
+                {data.days}
+                {" " + t("days")}
+              </Badge>
+            }
           />
           <div className="chart-top">
             <span className="chart-key" />
-            <span>已評分考卷</span>
+            <span>{t("Graded attempts")}</span>
             <strong>
               {data.graded_count}
-              <small> 份</small>
+              <small>{" " + t("submissions")}</small>
             </strong>
           </div>
           <div className="chart-area">
@@ -261,7 +282,7 @@ export default function Dashboard({
                   <Area
                     type="monotone"
                     dataKey="count"
-                    name="已評分考卷"
+                    name={t("Graded attempts")}
                     stroke="#2584e7"
                     strokeWidth={2.5}
                     fill="url(#areaBlue)"
@@ -271,27 +292,36 @@ export default function Dashboard({
               </ResponsiveContainer>
             ) : (
               <Empty
-                title="尚無評量紀錄"
-                description="學員交卷並完成評分後，趨勢將顯示於此。"
+                title={t("No assessment records yet")}
+                description={t(
+                  "Trends appear here once learners submit exams and receive grades.",
+                )}
               />
             )}
           </div>
           <div className="chart-footer">
             <CheckCheck size={16} />
-            <span>依實際交卷紀錄統計</span>
+            <span>{t("Based on actual submissions")}</span>
             <span>
-              平均分數 <strong>{data.average_score}</strong> 分
+              {t("Average score") + " "}
+              <strong>{data.average_score}</strong>
+              {" " + t("points") + " "}
             </span>
           </div>
         </section>
         <section className="panel audience-panel">
-          <SectionTitle title="培訓對象" subtitle="讓不同角色，都能持續成長" />
+          <SectionTitle
+            title={t("Training audience")}
+            subtitle={t("Room to grow in every role")}
+          />
           <div className="donut-container">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={
-                    data.people ? audience : [{ name: "尚無人員", value: 1 }]
+                    data.people
+                      ? audience
+                      : [{ name: t("No people yet"), value: 1 }]
                   }
                   innerRadius={65}
                   outerRadius={83}
@@ -309,7 +339,7 @@ export default function Dashboard({
             </ResponsiveContainer>
             <div className="donut-label">
               <strong>{data.people}</strong>
-              <span>培訓總人數</span>
+              <span>{t("Total participants")}</span>
             </div>
           </div>
           {audience.map((a, i) => (
@@ -327,10 +357,12 @@ export default function Dashboard({
       <div className="dashboard-bottom">
         <section className="panel">
           <SectionTitle
-            title="部門學習成效"
-            subtitle="各部門課程完成率"
+            title={t("Department learning outcomes")}
+            subtitle={t("Course completion by department")}
             action={
-              <LinkButton onClick={() => go("/results")}>完整報表</LinkButton>
+              <LinkButton onClick={() => go("/results")}>
+                {t("Full report")}
+              </LinkButton>
             }
           />
           <div className="department-list">
@@ -342,9 +374,12 @@ export default function Dashboard({
                   </div>
                   <div className="dept-detail">
                     <div>
-                      <span>{d.user__department || "未分配部門"}</span>
+                      <span>
+                        {d.user__department || t("No department assigned")}
+                      </span>
                       <small>
-                        {d.completed} / {d.total} 筆完成
+                        {d.completed} / {d.total}
+                        {" " + t("completed") + " "}
                       </small>
                     </div>
                     <div className="progress">
@@ -368,16 +403,22 @@ export default function Dashboard({
                 </div>
               ))
             ) : (
-              <Empty description="修課後會出現部門統計。" />
+              <Empty
+                description={t(
+                  "Department statistics appear after enrollment.",
+                )}
+              />
             )}
           </div>
         </section>
         <section className="panel">
           <SectionTitle
-            title="考試與評量"
-            subtitle="安排下一步，檢視學習成果"
+            title={t("Exams & assessments")}
+            subtitle={t("Plan the next step and review learning outcomes")}
             action={
-              <LinkButton onClick={() => go("/exams")}>查看全部</LinkButton>
+              <LinkButton onClick={() => go("/exams")}>
+                {t("View all")}
+              </LinkButton>
             }
           />
           {published.length ? (
@@ -394,32 +435,40 @@ export default function Dashboard({
                   <strong>{exam.title}</strong>
                   <span>
                     <Clock3 size={12} />
-                    {exam.duration_minutes} 分鐘
-                    <span className="inline-sep">·</span>最多{" "}
-                    {exam.max_attempts} 次
+                    {exam.duration_minutes}
+                    {" " + t("min") + " "}
+                    <span className="inline-sep">·</span>
+                    {t("up to")} {exam.max_attempts}
+                    {" " + t("attempts") + " "}
                   </span>
                 </div>
                 <Badge tone={exam.course ? "teal" : "blue"}>
-                  {exam.course ? "課程評量" : "獨立考試"}
+                  {exam.course ? t("Course assessment") : t("Standalone exam")}
                 </Badge>
                 <ArrowUpRight size={16} />
               </button>
             ))
           ) : (
-            <Empty title="尚無已開放考試" />
+            <Empty title={t("No exams available yet")} />
           )}
           <div className="panel-bottom-note">
-            <Target size={15} /> 課程與考試可獨立規劃，依需求彈性組合。
+            <Target size={15} />
+            {" " +
+              t("Courses and exams can be planned independently or combined.") +
+              " "}
           </div>
         </section>
       </div>
       <section className="panel score-overview">
-        <SectionTitle title="分數分布" subtitle="已評分考卷的成績區間" />
+        <SectionTitle
+          title={t("Score distribution")}
+          subtitle={t("Score ranges for graded attempts")}
+        />
         <div className="score-chart">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data.distribution.map((count, i) => ({
-                name: ["未滿 60", "60–69", "70–79", "80–89", "90–100"][i],
+                name: [t("Below 60"), "60–69", "70–79", "80–89", "90–100"][i],
                 count,
               }))}
             >
@@ -429,7 +478,7 @@ export default function Dashboard({
               <Tooltip />
               <Bar
                 dataKey="count"
-                name="考卷數"
+                name={t("Attempts")}
                 fill="#5e9de1"
                 radius={[5, 5, 0, 0]}
                 maxBarSize={75}

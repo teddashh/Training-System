@@ -1,3 +1,4 @@
+import { t, useLocale } from "./i18n";
 import { useEffect, useState } from "react";
 import {
   Plus,
@@ -25,14 +26,18 @@ import {
   date,
   statusLabel,
 } from "./ui";
-
 export function Invitations({ exams }: { exams: Exam[] }) {
+  useLocale();
   const [rows, setRows] = useState<Invitation[]>([]),
     [open, setOpen] = useState(false),
-    [exam, setExam] = useState(exams[0]?.id.toString() || ""),
+    [exam, setExam] = useState(
+      exams.find((e) => e.can_manage)?.id.toString() || "",
+    ),
     [key, setKey] = useState(""),
     [limit, setLimit] = useState(1),
     [days, setDays] = useState(7),
+    [verifyEmail, setVerifyEmail] = useState(true),
+    [recipientEmail, setRecipientEmail] = useState(""),
     [url, setUrl] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -54,6 +59,8 @@ export function Invitations({ exams }: { exams: Exam[] }) {
         key,
         max_attempts: limit,
         days,
+        require_email_verification: verifyEmail,
+        verification_email: recipientEmail,
       });
       setUrl(row.url!);
       await load();
@@ -76,16 +83,20 @@ export function Invitations({ exams }: { exams: Exam[] }) {
       await navigator.clipboard.writeText(url);
       setCopied(true);
     } catch {
-      setError("無法使用剪貼簿，請選取連結後手動複製。");
+      setError(t("Clipboard unavailable. Select and copy the link manually."));
     }
   }
   return (
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">GUEST ACCESS</div>
-          <h1>訪客考試邀請</h1>
-          <p>一人一個專屬連結，讓非帳號使用者也能安心參與。</p>
+          <div className="eyebrow">{t("GUEST ACCESS")}</div>
+          <h1>{t("Guest exam invitations")}</h1>
+          <p>
+            {t(
+              "A personal link for each participant, including people without accounts.",
+            )}
+          </p>
         </div>
         <button
           className="btn primary"
@@ -97,16 +108,17 @@ export function Invitations({ exams }: { exams: Exam[] }) {
           }}
         >
           <Plus size={17} />
-          建立專屬連結
+          {t("Create personal link") + " "}
         </button>
       </div>
       <div className="info-banner">
         <ShieldCheck size={25} />
         <div>
-          <strong>每一份邀請，都有明確的使用範圍。</strong>
+          <strong>{t("Every invitation has a clear scope.")}</strong>
           <p>
-            以 E-mail
-            或帳號綁定受測者，設定有效天數與可考次數。多個連結仍共用同一受測者的總額度。
+            {t(
+              "Bind each participant to an email or account and set an expiry and attempt limit. Multiple links share the same participant's total budget.",
+            ) + " "}
           </p>
         </div>
       </div>
@@ -116,12 +128,12 @@ export function Invitations({ exams }: { exams: Exam[] }) {
           <table>
             <thead>
               <tr>
-                <th>受測者</th>
-                <th>考試</th>
-                <th>連結使用次數</th>
-                <th>有效期限</th>
-                <th>狀態</th>
-                <th>操作</th>
+                <th>{t("Participant")}</th>
+                <th>{t("Exam")}</th>
+                <th>{t("Link attempts used")}</th>
+                <th>{t("Expires")}</th>
+                <th>{t("Status")}</th>
+                <th>{t("Actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -153,10 +165,10 @@ export function Invitations({ exams }: { exams: Exam[] }) {
                       }
                     >
                       {row.revoked
-                        ? "已停用"
+                        ? t("Disabled")
                         : new Date(row.expires_at) < new Date()
-                          ? "已過期"
-                          : "有效"}
+                          ? t("Expired")
+                          : t("Active")}
                     </Badge>
                   </td>
                   <td>
@@ -166,7 +178,7 @@ export function Invitations({ exams }: { exams: Exam[] }) {
                       onClick={() => revoke(row.id)}
                     >
                       <Ban size={14} />
-                      停用
+                      {t("Disable") + " "}
                     </button>
                   </td>
                 </tr>
@@ -176,14 +188,16 @@ export function Invitations({ exams }: { exams: Exam[] }) {
         </div>
         {!rows.length && (
           <Empty
-            title="尚未建立邀請"
-            description="建立連結後，即可分享給指定受測者。"
+            title={t("No invitations yet")}
+            description={t(
+              "Create a link and share it with the intended participant.",
+            )}
           />
         )}
       </div>
       {open && (
         <Modal
-          title={url ? "專屬連結已建立" : "建立考試邀請"}
+          title={url ? t("Personal link created") : t("Create exam invitation")}
           onClose={() => setOpen(false)}
         >
           <form className="modal-form" onSubmit={issue}>
@@ -193,10 +207,12 @@ export function Invitations({ exams }: { exams: Exam[] }) {
                   <Check size={28} />
                 </div>
                 <p>
-                  請複製並分享給指定受測者。為保護存取權限，此完整連結只顯示一次。
+                  {t(
+                    "Copy and share with the intended participant. For security, this full link is shown only once.",
+                  ) + " "}
                 </p>
                 <label>
-                  專屬考試連結
+                  {t("Personal exam link") + " "}
                   <input
                     readOnly
                     value={url}
@@ -209,29 +225,35 @@ export function Invitations({ exams }: { exams: Exam[] }) {
                   onClick={copy}
                 >
                   {copied ? <Check size={16} /> : <Copy size={16} />}{" "}
-                  {copied ? "已複製連結" : "複製連結"}
+                  {copied ? t("Link copied") : t("Copy link")}
                 </button>
-                <p className="notice">連結是受測者的存取憑證，請勿公開張貼。</p>
+                <p className="notice">
+                  {t(
+                    "This link is an access credential. Do not post it publicly.",
+                  )}
+                </p>
               </>
             ) : (
               <>
                 <label>
-                  指定考試
+                  {t("Select exam") + " "}
                   <select
                     required
                     value={exam}
                     onChange={(e) => setExam(e.target.value)}
                   >
-                    <option value="">請選擇</option>
-                    {exams.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.title}
-                      </option>
-                    ))}
+                    <option value="">{t("Please select")}</option>
+                    {exams
+                      .filter((e) => e.can_manage)
+                      .map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.title}
+                        </option>
+                      ))}
                   </select>
                 </label>
                 <label>
-                  受測者 E-mail、帳號或員工編號
+                  {t("Participant email, username or employee ID") + " "}
                   <input
                     required
                     value={key}
@@ -239,9 +261,40 @@ export function Invitations({ exams }: { exams: Exam[] }) {
                     placeholder="person@example.com"
                   />
                 </label>
+                <label className="checkbox">
+                  <input
+                    type="checkbox"
+                    checked={verifyEmail}
+                    onChange={(e) => setVerifyEmail(e.target.checked)}
+                  />
+                  {t("Require recipient email verification")}
+                </label>
+                {verifyEmail && (
+                  <label>
+                    {t("Verification email (optional override)")}
+                    <input
+                      type="email"
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                      placeholder="person@example.com"
+                    />
+                    <span className="field-hint">
+                      {t(
+                        "Leave blank to use the invited email or the account's email. The recipient must enter a code before accessing the exam.",
+                      )}
+                    </span>
+                  </label>
+                )}
+                {!verifyEmail && (
+                  <p className="notice">
+                    {t(
+                      "Anyone holding this link can act as its named participant.",
+                    )}
+                  </p>
+                )}
                 <div className="form-grid">
                   <label>
-                    此連結最多可考幾次
+                    {t("Maximum attempts with this link") + " "}
                     <input
                       type="number"
                       min={1}
@@ -251,7 +304,7 @@ export function Invitations({ exams }: { exams: Exam[] }) {
                     />
                   </label>
                   <label>
-                    有效天數
+                    {t("Valid for (days)") + " "}
                     <input
                       type="number"
                       min={1}
@@ -262,12 +315,13 @@ export function Invitations({ exams }: { exams: Exam[] }) {
                   </label>
                 </div>
                 <p className="notice">
-                  若需要增加受測者總次數，請在「考試與評量 →
-                  個別次數設定」調整；重新建立連結不會重置已使用次數。
+                  {t(
+                    "To increase the total attempt budget, use Exams & assessments \u2192 Individual attempt limits. Creating another link does not reset usage.",
+                  ) + " "}
                 </p>
                 <div className="modal-footer">
                   <button className="btn primary" disabled={busy}>
-                    {busy ? "建立中…" : "建立專屬連結"}
+                    {busy ? t("Creating\u2026") : t("Create personal link")}
                     <Link2 size={16} />
                   </button>
                 </div>
@@ -280,7 +334,6 @@ export function Invitations({ exams }: { exams: Exam[] }) {
     </>
   );
 }
-
 function ReviewModal({
   id,
   onClose,
@@ -290,6 +343,7 @@ function ReviewModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  useLocale();
   const [attempt, setAttempt] = useState<Attempt | null>(null),
     [marks, setMarks] = useState<Attempt["manual_grades"]>({}),
     [error, setError] = useState(""),
@@ -317,7 +371,7 @@ function ReviewModal({
     }
   }
   return (
-    <Modal title="試卷評閱" onClose={onClose} wide>
+    <Modal title={t("Review attempt")} onClose={onClose} wide>
       <form className="modal-form" onSubmit={save}>
         <ErrorBox message={error} />
         {attempt ? (
@@ -329,7 +383,9 @@ function ReviewModal({
               <div className="review-question" key={q.id}>
                 <div>
                   <Badge tone="neutral">
-                    題目 {i + 1} · {q.points} 分
+                    {t("Question") + " "}
+                    {i + 1} · {q.points}
+                    {" " + t("points") + " "}
                   </Badge>
                   <h3>{q.description}</h3>
                   <p className="review-answer">
@@ -339,13 +395,15 @@ function ReviewModal({
                           .join("、")
                       : typeof attempt.answers[String(q.id)] === "number"
                         ? q.options[attempt.answers[String(q.id)] as number]
-                        : String(attempt.answers[String(q.id)] || "（未作答）")}
+                        : String(
+                            attempt.answers[String(q.id)] || t("(Unanswered)"),
+                          )}
                   </p>
                 </div>
                 {q.type === "essay" ? (
                   <div className="form-grid">
                     <label>
-                      得分
+                      {t("Score") + " "}
                       <input
                         type="number"
                         min={0}
@@ -365,7 +423,7 @@ function ReviewModal({
                       />
                     </label>
                     <label>
-                      評語
+                      {t("Feedback") + " "}
                       <input
                         value={marks[String(q.id)]?.feedback || ""}
                         onChange={(e) =>
@@ -382,7 +440,7 @@ function ReviewModal({
                   </div>
                 ) : (
                   <small className="muted">
-                    自動評分 · 標準答案：
+                    {t("Auto-graded \u00B7 Accepted answer:") + " "}
                     {q.solution
                       ?.map((v) => (typeof v === "number" ? q.options[v] : v))
                       .join("、")}
@@ -392,11 +450,11 @@ function ReviewModal({
             ))}
             <div className="modal-footer">
               <button type="button" className="btn" onClick={onClose}>
-                關閉
+                {t("Close") + " "}
               </button>
               {attempt.questions.some((q) => q.type === "essay") && (
                 <button className="btn primary" disabled={busy}>
-                  {busy ? "儲存中…" : "儲存評分與回饋"}
+                  {busy ? t("Saving\u2026") : t("Save grades & feedback")}
                 </button>
               )}
             </div>
@@ -408,7 +466,6 @@ function ReviewModal({
     </Modal>
   );
 }
-
 export function Results({
   user,
   refreshKey,
@@ -420,6 +477,7 @@ export function Results({
   onSaved: () => void;
   go: (p: string) => void;
 }) {
+  useLocale();
   const [rows, setRows] = useState<Result[]>([]),
     [search, setSearch] = useState(""),
     [status, setStatus] = useState(""),
@@ -444,41 +502,41 @@ export function Results({
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">PERFORMANCE & INSIGHTS</div>
-          <h1>成績與考核</h1>
-          <p>從每一份評量中，找到下一次進步的方向。</p>
+          <div className="eyebrow">{t("PERFORMANCE & INSIGHTS")}</div>
+          <h1>{t("Results & reviews")}</h1>
+          <p>{t("Use each assessment to guide the next improvement.")}</p>
         </div>
         <a className="btn" href="/api/results/export/">
           <Download size={17} />
-          匯出成績 CSV
+          {t("Export results CSV") + " "}
         </a>
       </div>
       <div className="summary-strip">
         <div>
           <FileCheck2 size={23} />
           <strong>{rows.length}</strong>
-          <span>份作答紀錄</span>
+          <span>{t("attempt records")}</span>
         </div>
         <div>
           <Check size={23} />
           <strong>{average}</strong>
-          <span>平均分數</span>
+          <span>{t("Average score")}</span>
         </div>
         <div>
           <ClockIcon />
           <strong>
             {rows.filter((r) => r.status === "pending_review").length}
           </strong>
-          <span>份待評分</span>
+          <span>{t("awaiting review")}</span>
         </div>
       </div>
       <div className="toolbar">
         <div className="tabs">
           {[
-            ["", "全部紀錄"],
-            ["pending_review", "待人工評分"],
-            ["graded", "已評分"],
-            ["in_progress", "作答中"],
+            ["", t("All records")],
+            ["pending_review", t("Awaiting manual review")],
+            ["graded", t("Graded")],
+            ["in_progress", t("In progress")],
           ].map(([value, label]) => (
             <button
               className={status === value ? "active" : ""}
@@ -495,8 +553,8 @@ export function Results({
         <div className="search-field">
           <Search size={16} />
           <input
-            placeholder="搜尋人員、考試或部門…"
-            aria-label="搜尋成績"
+            placeholder={t("Search people, exams or departments\u2026")}
+            aria-label={t("Search results")}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -511,13 +569,13 @@ export function Results({
           <table>
             <thead>
               <tr>
-                <th>受測者</th>
-                <th>考試名稱</th>
-                <th>第幾次</th>
-                <th>成績</th>
-                <th>狀態</th>
-                <th>交卷時間</th>
-                <th>操作</th>
+                <th>{t("Participant")}</th>
+                <th>{t("Exam title")}</th>
+                <th>{t("Attempt number")}</th>
+                <th>{t("Result")}</th>
+                <th>{t("Status")}</th>
+                <th>{t("Submitted at")}</th>
+                <th>{t("Actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -528,12 +586,14 @@ export function Results({
                       <div className="avatar soft">{r.person.slice(0, 1)}</div>
                       <div>
                         <strong>{r.person}</strong>
-                        <small>{r.department || "未分配部門"}</small>
+                        <small>
+                          {r.department || t("No department assigned")}
+                        </small>
                       </div>
                     </div>
                   </td>
                   <td>{r.exam}</td>
-                  <td>第 {r.number} 次</td>
+                  <td>{t("Attempt {number}", { number: r.number })}</td>
                   <td>
                     <strong className={r.passed ? "teal-text" : ""}>
                       {r.score === null ? "—" : r.score}
@@ -556,9 +616,9 @@ export function Results({
                     >
                       {r.status === "graded"
                         ? r.passed
-                          ? "通過"
-                          : "未通過"
-                        : statusLabel[r.status]}
+                          ? t("Passed")
+                          : t("Not passed")
+                        : statusLabel()[r.status]}
                     </Badge>
                   </td>
                   <td>{date(r.submitted_at)}</td>
@@ -569,18 +629,18 @@ export function Results({
                         onClick={() => setReview(r.id)}
                       >
                         {r.status === "pending_review"
-                          ? "前往評分"
-                          : "檢視試卷"}
+                          ? t("Grade attempt")
+                          : t("View attempt")}
                       </button>
                     ) : user.role === "learner" ? (
                       <button
                         className="text-btn"
                         onClick={() => go("/attempt/" + r.id)}
                       >
-                        查看
+                        {t("View") + " "}
                       </button>
                     ) : (
-                      <span className="muted">尚未交卷</span>
+                      <span className="muted">{t("Not yet submitted")}</span>
                     )}
                   </td>
                 </tr>
@@ -588,12 +648,16 @@ export function Results({
             </tbody>
           </table>
         </div>
-        {!filtered.length && <Empty title="尚無符合的評量紀錄" />}
+        {!filtered.length && (
+          <Empty title={t("No matching assessment records")} />
+        )}
         <div className="table-footer">
           <span>
-            共 {filtered.length} 筆
+            {t("Total") + " "}
+            {filtered.length}
+            {" " + t("records") + " "}
             {rows.length === 1000
-              ? "（顯示最近 1,000 筆；完整資料請匯出）"
+              ? t("(Showing the latest 1,000; export for the full history)")
               : ""}
           </span>
           <div>
@@ -602,7 +666,7 @@ export function Results({
               disabled={!page}
               onClick={() => setPage(page - 1)}
             >
-              上一頁
+              {t("Previous page") + " "}
             </button>
             <span>
               {page + 1} / {Math.max(1, Math.ceil(filtered.length / 12))}
@@ -612,7 +676,7 @@ export function Results({
               disabled={(page + 1) * 12 >= filtered.length}
               onClick={() => setPage(page + 1)}
             >
-              下一頁
+              {t("Next page") + " "}
             </button>
           </div>
         </div>
@@ -628,10 +692,11 @@ export function Results({
   );
 }
 function ClockIcon() {
+  useLocale();
   return <FileCheck2 size={23} />;
 }
-
 export function People() {
+  useLocale();
   const [users, setUsers] = useState<User[]>([]),
     [search, setSearch] = useState(""),
     [open, setOpen] = useState(false),
@@ -671,9 +736,11 @@ export function People() {
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">PEOPLE DIRECTORY</div>
-          <h1>人員與權限</h1>
-          <p>串聯正式員工與合作夥伴，建立共同成長的學習空間。</p>
+          <div className="eyebrow">{t("PEOPLE DIRECTORY")}</div>
+          <h1>{t("People & permissions")}</h1>
+          <p>
+            {t("Connect employees and partners in a shared learning space.")}
+          </p>
         </div>
         <button
           className="btn primary"
@@ -683,18 +750,19 @@ export function People() {
           }}
         >
           <Plus size={17} />
-          新增人員
+          {t("Add person") + " "}
         </button>
       </div>
       <div className="toolbar">
         <h2>
-          所有人員 <span className="count">{users.length}</span>
+          {t("All people") + " "}
+          <span className="count">{users.length}</span>
         </h2>
         <div className="search-field">
           <Search size={16} />
           <input
-            placeholder="搜尋姓名、E-mail 或部門…"
-            aria-label="搜尋人員"
+            placeholder={t("Search names, email or departments\u2026")}
+            aria-label={t("Search people")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -706,13 +774,13 @@ export function People() {
           <table>
             <thead>
               <tr>
-                <th>人員</th>
-                <th>員工編號</th>
-                <th>部門</th>
-                <th>身分類型</th>
-                <th>權限</th>
-                <th>狀態</th>
-                <th>操作</th>
+                <th>{t("Person")}</th>
+                <th>{t("Employee ID")}</th>
+                <th>{t("Department")}</th>
+                <th>{t("Employment type")}</th>
+                <th>{t("Role")}</th>
+                <th>{t("Status")}</th>
+                <th>{t("Actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -740,27 +808,27 @@ export function People() {
                         tone={u.employment === "employee" ? "blue" : "purple"}
                       >
                         {u.employment === "employee"
-                          ? "正式員工"
-                          : "非正式員工"}
+                          ? t("Employees")
+                          : t("Contractors")}
                       </Badge>
                     </td>
                     <td>
                       {
                         {
-                          admin: "管理員",
-                          instructor: "講師",
-                          learner: "學員",
+                          admin: t("Administrator"),
+                          instructor: t("Instructor"),
+                          learner: t("Learner"),
                         }[u.role]
                       }
                     </td>
                     <td>
                       <Badge tone={u.is_active ? "teal" : "neutral"}>
-                        {u.is_active ? "啟用" : "停用"}
+                        {u.is_active ? t("Enable") : t("Disable")}
                       </Badge>
                     </td>
                     <td>
                       <button className="text-btn" onClick={() => toggle(u)}>
-                        {u.is_active ? "停用" : "啟用"}
+                        {u.is_active ? t("Disable") : t("Enable")}
                       </button>
                     </td>
                   </tr>
@@ -770,46 +838,49 @@ export function People() {
         </div>
       </div>
       {open && (
-        <Modal title="新增培訓人員" onClose={() => setOpen(false)}>
+        <Modal
+          title={t("Add training participant")}
+          onClose={() => setOpen(false)}
+        >
           <form className="modal-form" onSubmit={create}>
             <div className="form-grid">
               <label>
-                顯示姓名
+                {t("Display name") + " "}
                 <input name="display_name" required maxLength={100} />
               </label>
               <label>
-                登入帳號
+                {t("Username") + " "}
                 <input name="username" required maxLength={100} />
               </label>
               <label className="span-2">
-                E-mail（選填，可使用驗證碼登入）
+                {t("Email (optional, for code sign-in)") + " "}
                 <input name="email" type="email" />
               </label>
               <label>
-                員工編號（選填）
+                {t("Employee ID (optional)") + " "}
                 <input name="employee_id" />
               </label>
               <label>
-                部門
+                {t("Department") + " "}
                 <input name="department" />
               </label>
               <label>
-                身分類型
+                {t("Employment type") + " "}
                 <select name="employment">
-                  <option value="employee">正式員工</option>
-                  <option value="contractor">非正式員工</option>
+                  <option value="employee">{t("Employees")}</option>
+                  <option value="contractor">{t("Contractors")}</option>
                 </select>
               </label>
               <label>
-                系統權限
+                {t("System role") + " "}
                 <select name="role">
-                  <option value="learner">學員</option>
-                  <option value="instructor">講師</option>
-                  <option value="admin">管理員</option>
+                  <option value="learner">{t("Learner")}</option>
+                  <option value="instructor">{t("Instructor")}</option>
+                  <option value="admin">{t("Administrator")}</option>
                 </select>
               </label>
               <label className="span-2">
-                初始密碼（選填，至少 12 碼）
+                {t("Initial password (optional, at least 12 characters)") + " "}
                 <input
                   name="password"
                   type="password"
@@ -819,13 +890,14 @@ export function People() {
               </label>
             </div>
             <p className="notice">
-              未設定密碼的帳號可透過已設定的 E-mail 驗證碼登入。Entra
-              帳號連結可由 Django 管理介面設定。
+              {t(
+                "Accounts without passwords can sign in with an email code if an email is configured. Entra account linking is available in Django administration.",
+              ) + " "}
             </p>
             <ErrorBox message={error} />
             <div className="modal-footer">
               <button className="btn primary" disabled={busy}>
-                {busy ? "建立中…" : "建立人員"}
+                {busy ? t("Creating\u2026") : t("Create person")}
               </button>
             </div>
           </form>
@@ -834,8 +906,8 @@ export function People() {
     </>
   );
 }
-
 export function Settings({ entra }: { entra: boolean }) {
+  useLocale();
   const [rows, setRows] = useState<
       {
         id: number;
@@ -855,12 +927,12 @@ export function Settings({ entra }: { entra: boolean }) {
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">WORKSPACE SETTINGS</div>
-          <h1>系統與稽核</h1>
-          <p>清楚掌握登入設定與系統操作紀錄。</p>
+          <div className="eyebrow">{t("WORKSPACE SETTINGS")}</div>
+          <h1>{t("Settings & audit")}</h1>
+          <p>{t("Review authentication settings and system activity.")}</p>
         </div>
         <a className="btn" href="/admin/" target="_blank" rel="noreferrer">
-          進階管理
+          {t("Advanced administration") + " "}
           <ExternalLink size={16} />
         </a>
       </div>
@@ -870,14 +942,20 @@ export function Settings({ entra }: { entra: boolean }) {
             ShieldCheck,
             "Microsoft Entra ID",
             entra
-              ? "已設定企業單一登入"
-              : "等待設定 Tenant ID、Client ID 與伺服器端 Secret",
+              ? t("Enterprise SSO configured")
+              : t("Awaiting Tenant ID, Client ID and server-side secret"),
           ],
-          [Mail, "E-mail 驗證碼", "管理員建立帳號後，可寄送一次性登入驗證碼"],
+          [
+            Mail,
+            t("Email verification code"),
+            t(
+              "One-time sign-in codes for accounts created by an administrator",
+            ),
+          ],
           [
             KeyRound,
-            "帳號／員工編號",
-            "支援帳號、E-mail 或員工編號搭配密碼登入",
+            t("Username / employee ID"),
+            t("Sign in with a username, email or employee ID and password"),
           ],
         ].map(([Icon, title, body]) => {
           const C = Icon as typeof ShieldCheck;
@@ -891,8 +969,8 @@ export function Settings({ entra }: { entra: boolean }) {
         })}
       </div>
       <div className="toolbar">
-        <h2>最近操作紀錄</h2>
-        <Badge tone="neutral">最近 200 筆</Badge>
+        <h2>{t("Recent activity")}</h2>
+        <Badge tone="neutral">{t("Latest 200 entries")}</Badge>
       </div>
       <ErrorBox message={error} />
       <div className="panel table-panel">
@@ -900,16 +978,16 @@ export function Settings({ entra }: { entra: boolean }) {
           <table>
             <thead>
               <tr>
-                <th>操作者</th>
-                <th>動作</th>
-                <th>對象 ID</th>
-                <th>時間</th>
+                <th>{t("Actor")}</th>
+                <th>{t("Action")}</th>
+                <th>{t("Target ID")}</th>
+                <th>{t("Time")}</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td>{r.actor__display_name || "訪客／系統"}</td>
+                  <td>{r.actor__display_name || t("Guest / system")}</td>
                   <td>
                     <code>{r.action}</code>
                   </td>
@@ -920,7 +998,7 @@ export function Settings({ entra }: { entra: boolean }) {
             </tbody>
           </table>
         </div>
-        {!rows.length && <Empty title="尚無操作紀錄" />}
+        {!rows.length && <Empty title={t("No activity yet")} />}
       </div>
     </>
   );

@@ -21,6 +21,7 @@
   };
 
   var T = {
+    "zh-TW": {"prev":"上一個","next":"下一步","progress":"單元 {n}／{total}","empty":"此單元尚無內容。","submit":"提交答案","submitAll":"提交答案","retry":"再試一次","correct":"正確","incorrect":"錯誤","yourScore":"您的成績：{s}%","passed":"通過","failed":"未通過","restart":"重新開始","end":"結束","finish":"完成","exitCourse":"離開課程","courseComplete":"課程完成","courseCompleteText":"您已完成課程，可以關閉此視窗。","courseIncomplete":"課程尚未完成","courseIncompleteText":"還有活動尚未作答。完成後即可結束課程；進度已儲存。","unfinishedLessons":"未完成單元","courseFailed":"課程尚未通過","courseFailedText":"需要達到 {p}% 才能通過。請重做這些單元的測驗；進度已儲存。","retakeLessons":"需要重考的單元","review":"複習課程","watchToContinue":"請觀看影片後繼續。","close":"關閉","hotspotMarker":"標記 {n}：{title}","hotspotProgress":"已探索 {n}／{total}","stepOf":"步驟 {n}／{total}","goToStep":"前往步驟 {n}","sequenceHint":"拖曳項目或使用箭頭，將項目排成正確順序。","categoriesHint":"拖曳項目至類別，或從清單選擇類別。","unsorted":"尚未分類","chooseCategory":"選擇類別","dragItem":"拖曳以重新排序","moveUp":"上移","moveDown":"下移","correctPosition":"正確位置：{n}","correctCategory":"正確答案：{c}","correctAnswer":"答案：{a}","blankN":"填空 {n}","skipToContent":"跳至內容","lessonNav":"單元導覽","a11ySettings":"無障礙設定","textSize":"文字大小","textNormal":"一般","textLarge":"大","textXLarge":"特大","highContrast":"高對比","readableSpacing":"易讀間距","reduceMotion":"減少動畫","captionsDefault":"預設開啟字幕","captions":"字幕","transcript":"文字稿","embedTitle":"嵌入內容","lessonAnnounce":"第 {n}／{total} 課：{title}","cardFront":"正面","cardBack":"背面","flipHint":"按 Enter 或空白鍵翻卡。","startCourse":"開始課程","continueCourse":"繼續課程","lessonsCount":"{n} 個單元","nextLesson":"下一單元","lessonsMenu":"單元","courseHome":"課程首頁","closeMenu":"關閉","progressPct":"已完成 {n}%","download":"下載","carousel":"圖片輪播","slideOf":"圖片 {n}／{total}","prevSlide":"上一張圖片","nextSlide":"下一張圖片","goToSlide":"顯示圖片 {n}","openStep":"步驟 {n}：{title}","exploredOf":"已探索 {n}／{total}","back":"返回","startOver":"重新開始","baSlider":"拖曳以比較「{before}」與「{after}」","answerPlaceholder":"輸入您的答案…","submitAnswer":"提交答案","answerSaved":"您的答案已儲存。","editAnswer":"編輯答案","sampleAnswer":"範例答案","continueLocked":"完成上方任務後即可繼續。"},
     en: { prev: 'Previous', next: 'Next', progress: 'Lesson {n} of {total}',
       empty: 'This lesson has no content yet.', submit: 'Submit answer', submitAll: 'Submit answers', retry: 'Try again',
       correct: 'Correct', incorrect: 'Incorrect', yourScore: 'Your score: {s}%',
@@ -294,9 +295,14 @@
       answerPlaceholder: 'Digite sua resposta…', submitAnswer: 'Enviar', answerSaved: 'Sua resposta foi salva.',
       editAnswer: 'Editar resposta', sampleAnswer: 'Exemplo de resposta', continueLocked: 'Conclua as tarefas acima para continuar.' },
   };
+  function supportedLanguage(value) {
+    var normalized = String(value || '').toLowerCase();
+    if (normalized === 'zh-tw' || normalized.indexOf('zh-hant') === 0) return 'zh-TW';
+    return normalized.slice(0, 2);
+  }
   // Browser-based default; resume() refines it from the course settings / LMS.
   var lang = (function () {
-    var l = (navigator.language || 'en').toLowerCase().slice(0, 2);
+    var l = supportedLanguage(navigator.language || 'en');
     return Object.prototype.hasOwnProperty.call(T, l) ? l : 'en';
   })();
   function t(key, vars) {
@@ -588,9 +594,9 @@
     // preference (SCORM learner_preference.language / cmi5
     // languagePreference), then the browser-based default.
     var fixedLang = settings().playerLanguage;
-    var courseLang = (contentLang() || '').toLowerCase().slice(0, 2);
+    var courseLang = supportedLanguage(contentLang());
     var lmsLang = (SCORM.getPreferredLanguage && SCORM.getPreferredLanguage()) || '';
-    var twoLetter = lmsLang.toLowerCase().slice(0, 2);
+    var twoLetter = supportedLanguage(lmsLang);
     if (fixedLang !== 'auto') lang = fixedLang;
     else if (Object.prototype.hasOwnProperty.call(T, courseLang)) lang = courseLang;
     else if (Object.prototype.hasOwnProperty.call(T, twoLetter)) lang = twoLetter;

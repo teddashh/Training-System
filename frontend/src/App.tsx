@@ -1,3 +1,4 @@
+import { t, useLocale, LanguagePicker } from "./i18n";
 import { useCallback, useEffect, useState } from "react";
 import {
   LayoutDashboard,
@@ -27,30 +28,45 @@ import Exams from "./Exams";
 import Attempt, { GuestExam } from "./Attempt";
 import { Invitations, People, Results, Settings } from "./Management";
 import { Modal, ErrorBox, Spinner } from "./ui";
-
-const nav = [
+const getNav = () => [
   {
     path: "/",
-    label: "總覽 Dashboard",
+    label: t("Overview Dashboard"),
     icon: LayoutDashboard,
-    group: "工作空間",
+    group: t("Workspace"),
   },
-  { path: "/courses", label: "學習課程", icon: BookOpen },
-  { path: "/exams", label: "考試與評量", icon: ClipboardCheck },
-  { path: "/results", label: "成績與考核", icon: BarChart3 },
+  { path: "/courses", label: t("Learning courses"), icon: BookOpen },
+  { path: "/exams", label: t("Exams & assessments"), icon: ClipboardCheck },
+  { path: "/results", label: t("Results & reviews"), icon: BarChart3 },
   {
     path: "/authoring",
-    label: "教材工作室",
+    label: t("Authoring studio"),
     icon: Layers3,
     manage: true,
-    group: "內容與管理",
+    group: t("Content & administration"),
   },
-  { path: "/invitations", label: "訪客考試邀請", icon: Link2, manage: true },
-  { path: "/people", label: "人員與權限", icon: Users, admin: true },
-  { path: "/settings", label: "系統與稽核", icon: SettingsIcon, admin: true },
+  {
+    path: "/invitations",
+    label: t("Guest exam invitations"),
+    icon: Link2,
+    manage: true,
+  },
+  {
+    path: "/people",
+    label: t("People & permissions"),
+    icon: Users,
+    admin: true,
+  },
+  {
+    path: "/settings",
+    label: t("Settings & audit"),
+    icon: SettingsIcon,
+    admin: true,
+  },
 ];
-
 export default function App() {
+  useLocale();
+  const nav = getNav();
   const [user, setUser] = useState<User | null>(null),
     [ready, setReady] = useState(false),
     [entra, setEntra] = useState(false),
@@ -76,9 +92,11 @@ export default function App() {
   useEffect(() => {
     const pop = () => setPath(window.location.pathname);
     window.addEventListener("popstate", pop);
-    api<{ user: User | null; entra_enabled: boolean; demo_mode?: boolean }>(
-      "auth/session/",
-    )
+    api<{
+      user: User | null;
+      entra_enabled: boolean;
+      demo_mode?: boolean;
+    }>("auth/session/")
       .then((s) => {
         setUser(s.user);
         setEntra(s.entra_enabled);
@@ -117,10 +135,12 @@ export default function App() {
   if (error && !user)
     return (
       <div className="connection-error">
-        <ErrorBox message={"無法連接訓練平台：" + error} />
+        <ErrorBox
+          message={t("Cannot connect to the learning platform: ") + error}
+        />
         <button className="btn" onClick={() => window.location.reload()}>
           <RefreshCw size={16} />
-          重新連線
+          {t("Reconnect") + " "}
         </button>
       </div>
     );
@@ -148,7 +168,7 @@ export default function App() {
       .map((c) => ({
         id: "c" + c.id,
         title: c.title,
-        type: "學習課程",
+        type: t("Learning courses"),
         path: "/courses",
       })),
     ...exams
@@ -156,19 +176,19 @@ export default function App() {
       .map((e) => ({
         id: "e" + e.id,
         title: e.title,
-        type: "考試評量",
+        type: t("Assessment"),
         path: "/exams",
       })),
   ].slice(0, 8);
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
-        跳至主要內容
+        {t("Skip to main content") + " "}
       </a>
       {mobile && (
         <button
           className="sidebar-backdrop"
-          aria-label="關閉導覽"
+          aria-label={t("Close navigation")}
           onClick={() => setMobile(false)}
         />
       )}
@@ -186,18 +206,18 @@ export default function App() {
           </span>
           <span>
             evitina<span className="brand-light"> learn</span>
-            <small>企業人才發展平台</small>
+            <small>{t("Enterprise learning platform")}</small>
           </span>
         </a>
         <div className="workspace-picker">
           <div className="workspace-avatar">E</div>
           <div>
-            <strong>企業學習工作空間</strong>
-            <span>Enterprise workspace</span>
+            <strong>{t("Company learning workspace")}</strong>
+            <span>{t("Enterprise workspace")}</span>
           </div>
           <ShieldCheck size={16} />
         </div>
-        <nav aria-label="主要導覽">
+        <nav aria-label={t("Main navigation")}>
           {nav
             .filter(
               (n) =>
@@ -228,22 +248,24 @@ export default function App() {
               <BookOpen size={22} />
               <span>+</span>
             </div>
-            <h3>成長，從學習開始。</h3>
-            <p>每一份投入，都是更好的自己。</p>
+            <h3>{t("Growth starts with learning.")}</h3>
+            <p>{t("Every step brings new possibilities.")}</p>
             <button onClick={() => go("/courses")}>
-              探索學習資源
+              {t("Explore learning resources") + " "}
               <ArrowUpRight size={15} />
             </button>
           </div>
           <button className="sidebar-help" onClick={() => setHelp(true)}>
             <HelpCircle size={17} />
-            使用說明與支援
+            {t("Help & support") + " "}
             <ArrowUpRight size={14} />
           </button>
           <div className="sidebar-version">
             <span className="live-dot" />
-            {demo ? "示範環境 · 合成資料" : "企業訓練工作空間"}
-            <span>v0.1</span>
+            {demo
+              ? t("Demo environment \u00B7 Synthetic data")
+              : t("Enterprise training workspace")}
+            <span>v0.2</span>
           </div>
         </div>
       </aside>
@@ -251,22 +273,23 @@ export default function App() {
         <header className="topbar">
           <button
             className="icon-btn mobile-toggle"
-            aria-label="開啟導覽"
+            aria-label={t("Open navigation")}
             onClick={() => setMobile(true)}
           >
             <Menu size={22} />
           </button>
           <div className="breadcrumb">
-            <span>工作空間</span>
+            <span>{t("Workspace")}</span>
             <ChevronRight size={14} />
-            <strong>{current?.label || "頁面"}</strong>
+            <strong>{current?.label || t("Page")}</strong>
           </div>
           <div className="topbar-right">
+            <LanguagePicker />
             <div className="global-search">
               <Search size={17} />
               <input
-                placeholder="搜尋課程、考試…"
-                aria-label="全站搜尋"
+                placeholder={t("Search courses and exams\u2026")}
+                aria-label={t("Search everything")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
@@ -284,7 +307,7 @@ export default function App() {
                       </button>
                     ))
                   ) : (
-                    <p>找不到符合的課程或考試</p>
+                    <p>{t("No matching courses or exams")}</p>
                   )}
                 </div>
               )}
@@ -292,7 +315,7 @@ export default function App() {
             <button
               className="icon-btn help-top"
               onClick={() => setHelp(true)}
-              aria-label="使用說明"
+              aria-label={t("Help")}
             >
               <HelpCircle size={19} />
             </button>
@@ -309,9 +332,9 @@ export default function App() {
                   <span>
                     {
                       {
-                        admin: "系統管理員",
-                        instructor: "培訓講師",
-                        learner: "學習成員",
+                        admin: t("System administrator"),
+                        instructor: t("Training instructor"),
+                        learner: t("Learning member"),
                       }[user.role]
                     }
                   </span>
@@ -321,10 +344,10 @@ export default function App() {
               {profile && (
                 <div className="profile-menu">
                   <strong>{user.email || user.username}</strong>
-                  <span>{user.department || "未分配部門"}</span>
+                  <span>{user.department || t("No department assigned")}</span>
                   <button onClick={signOut}>
                     <LogOut size={15} />
-                    登出工作空間
+                    {t("Sign out") + " "}
                   </button>
                 </div>
               )}
@@ -337,9 +360,9 @@ export default function App() {
             <Spinner />
           ) : !allowed ? (
             <div className="panel not-found">
-              <h1>此頁面不存在或無存取權限</h1>
+              <h1>{t("This page does not exist or is not accessible")}</h1>
               <button className="btn primary" onClick={() => go("/")}>
-                返回總覽
+                {t("Back to overview") + " "}
               </button>
             </div>
           ) : path === "/" ? (
@@ -379,39 +402,48 @@ export default function App() {
           <footer className="app-footer">
             <span>
               © {new Date().getFullYear()} Evitina Learn
-              <span className="inline-sep">·</span>讓學習成為成長的力量
+              <span className="inline-sep">·</span>
+              {t("Make learning a part of growth") + " "}
             </span>
             <span>
               <ShieldCheck size={13} />
-              企業人才發展平台
+              {t("Enterprise learning platform") + " "}
             </span>
           </footer>
         </main>
       </div>
       {help && (
-        <Modal title="歡迎使用 Evitina Learn" onClose={() => setHelp(false)}>
+        <Modal
+          title={t("Welcome to Evitina Learn")}
+          onClose={() => setHelp(false)}
+        >
           <div className="modal-form help-content">
-            <h3>開始學習</h3>
+            <h3>{t("Start learning")}</h3>
             <p>
-              前往「學習課程」開啟教材。SCORM
-              課程會自動儲存進度，下次可以接續學習。
+              {t(
+                "Open a course from Learning courses. SCORM courses save progress automatically so you can continue later.",
+              ) + " "}
             </p>
-            <h3>參與評量</h3>
+            <h3>{t("Take an assessment")}</h3>
             <p>
-              在「考試與評量」查看開放中的考試。開始後計時不會暫停，答案會自動儲存；交卷後可在「成績與考核」查看結果。
+              {t(
+                "Find available exams in Exams & assessments. The timer keeps running once you start. Answers save automatically; view submitted results in Results & reviews.",
+              ) + " "}
             </p>
             {user.role !== "learner" && (
               <>
-                <h3>製作教材與邀請受測者</h3>
+                <h3>{t("Create content and invite participants")}</h3>
                 <p>
-                  使用「教材工作室」編寫文字教材，或開啟 Scormly
-                  製作互動課程並匯出 SCORM
-                  ZIP。訪客可透過專屬連結參加考試，每個身分的總次數由伺服器統一管理。
+                  {t(
+                    "Write lessons in Authoring studio or use Scormly to create interactive SCORM courses. Guests can take exams through personal links, with a shared attempt budget for each identity.",
+                  ) + " "}
                 </p>
               </>
             )}
             <div className="notice">
-              如需變更權限、重設密碼或調整考試次數，請聯絡公司訓練管理員。
+              {t(
+                "Contact your training administrator to change permissions, reset a password or adjust exam attempts.",
+              ) + " "}
             </div>
           </div>
         </Modal>

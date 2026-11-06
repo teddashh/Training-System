@@ -1,3 +1,4 @@
+import { t, useLocale, getLocale, LanguagePicker } from "./i18n";
 import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import {
@@ -7,7 +8,6 @@ import {
   AlertCircle,
   ArrowUpRight,
 } from "lucide-react";
-
 export function Modal({
   title,
   children,
@@ -19,6 +19,7 @@ export function Modal({
   onClose: () => void;
   wide?: boolean;
 }) {
+  useLocale();
   const panel = useRef<HTMLDivElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
@@ -70,7 +71,12 @@ export function Modal({
       >
         <header>
           <h2>{title}</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="關閉">
+          <LanguagePicker />
+          <button
+            className="icon-btn"
+            onClick={onClose}
+            aria-label={t("Close")}
+          >
             <X size={20} />
           </button>
         </header>
@@ -86,17 +92,20 @@ export function Badge({
   children: ReactNode;
   tone?: string;
 }) {
+  useLocale();
   return <span className={"badge " + tone}>{children}</span>;
 }
 export function Spinner() {
+  useLocale();
   return (
     <div className="loading">
       <LoaderCircle className="spin" size={24} />
-      <span>正在載入資料…</span>
+      <span>{t("Loading data\u2026")}</span>
     </div>
   );
 }
 export function ErrorBox({ message }: { message: string }) {
+  useLocale();
   return message ? (
     <div className="error" role="alert">
       <AlertCircle size={17} />
@@ -105,14 +114,15 @@ export function ErrorBox({ message }: { message: string }) {
   ) : null;
 }
 export function Empty({
-  title = "尚無資料",
-  description = "建立第一筆資料，開始您的訓練計畫。",
+  title = t("No data yet"),
+  description = t("Create your first record to start your training program."),
   action,
 }: {
   title?: string;
   description?: string;
   action?: ReactNode;
 }) {
+  useLocale();
   return (
     <div className="empty">
       <Inbox size={34} />
@@ -131,6 +141,7 @@ export function SectionTitle({
   subtitle?: string;
   action?: ReactNode;
 }) {
+  useLocale();
   return (
     <div className="section-title">
       <div>
@@ -148,6 +159,7 @@ export function LinkButton({
   children: ReactNode;
   onClick: () => void;
 }) {
+  useLocale();
   return (
     <button className="text-btn" onClick={onClick}>
       {children}
@@ -157,7 +169,7 @@ export function LinkButton({
 }
 export function date(value: string | null) {
   return value
-    ? new Date(value).toLocaleString("zh-TW", {
+    ? new Date(value).toLocaleString(getLocale(), {
         month: "2-digit",
         day: "2-digit",
         hour: "2-digit",
@@ -165,8 +177,8 @@ export function date(value: string | null) {
       })
     : "—";
 }
-export const statusLabel: Record<string, string> = {
-  in_progress: "作答中",
-  pending_review: "待人工評分",
-  graded: "已評分",
-};
+export const statusLabel = (): Record<string, string> => ({
+  in_progress: t("In progress"),
+  pending_review: t("Awaiting manual review"),
+  graded: t("Graded"),
+});

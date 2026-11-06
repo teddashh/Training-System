@@ -12,11 +12,11 @@ export default function ZipUpdateDialog() {
 }
 
 function Dialog({ match, answer }: { match: ZipMatch; answer: (c: ZipChoice) => void }) {
-  const { t } = useT('welcome')
+  const { t, lang } = useT('welcome')
   const ref = useRef<HTMLDivElement>(null)
   useDialog(ref, () => answer('cancel'))
   const when = (ms: number | null) =>
-    ms ? new Date(ms).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : t('zipMatchUnknown')
+    ms ? new Date(ms).toLocaleString(lang, { dateStyle: 'medium', timeStyle: 'short' }) : t('zipMatchUnknown')
   const newer = match.zipDate && match.updatedAt ? (match.zipDate > match.updatedAt ? 'zip' : 'here') : null
 
   return (

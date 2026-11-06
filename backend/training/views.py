@@ -2,6 +2,7 @@ import csv
 import io
 import secrets
 from datetime import timedelta
+
 from django.db import transaction
 from django.db.models import Avg, Count, Q
 from django.db.models.functions import TruncDate
@@ -11,37 +12,41 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.permissions import BasePermission, AllowAny
-from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.permissions import AllowAny, BasePermission
+from rest_framework.response import Response
+
+from .i18n import translate
 from .models import (
-    User,
+    Attempt,
+    AttemptBudget,
+    AuditEvent,
     Course,
     Enrollment,
     Exam,
-    Attempt,
-    AttemptBudget,
+    GuestEmailChallenge,
     Invitation,
-    AuditEvent,
+    User,
 )
 from .serializers import (
-    UserSerializer,
     CourseSerializer,
     ExamSerializer,
     InvitationSerializer,
+    UserSerializer,
 )
 from .services import (
     audit,
-    resolve_identity,
-    identity_for_user,
-    hash_token,
-    invitation_from_token,
     check_invite,
-    start_attempt,
     finalize,
     grade,
-    validate_answers,
+    hash_token,
+    identity_for_user,
+    in_exam_audience,
+    invitation_from_token,
     public_attempt,
+    resolve_identity,
+    start_attempt,
+    validate_answers,
 )
 
 
@@ -51,7 +56,7 @@ def manager(user):
 
 def manage_exam(user, exam):
     if not manager(user) or (user.role != "admin" and exam.owner_id != user.id):
-        raise PermissionDenied("您無權管理此考試。")
+        raise PermissionDenied(translate("You cannot manage this exam."))
 
 
 class AdminOnly(BasePermission):
@@ -78,7 +83,11 @@ class Users(viewsets.ModelViewSet):
             serializer.validated_data.get("role", user.role) != "admin"
             or serializer.validated_data.get("is_active") is False
         ):
-            raise ValidationError("不能停用自己或移除自己的管理員權限。")
+            raise ValidationError(
+                translate(
+                    "You cannot disable yourself or remove your own administrator role."
+                )
+            )
         serializer.save()
         audit(self.request.user, "user.updated", user.id)
 
@@ -120,7 +129,11 @@ class Courses(viewsets.ModelViewSet):
     def complete(self, request, pk=None):
         course = self.get_object()
         if course.packages.exists() or not course.blocks:
-            raise ValidationError("SCORM 請由播放器回報完成；空白教材無法完成。")
+            raise ValidationError(
+                translate(
+                    "SCORM completion must be reported by the player. Empty content cannot be completed."
+                )
+            )
         Enrollment.objects.update_or_create(
             user=request.user,
             course=course,
@@ -134,10 +147,35 @@ class Exams(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "head", "options"]
 
     def get_queryset(self):
-        qs = Exam.objects.all().order_by("-created_at")
+        qs = Exam.objects.prefetch_related("allowed_users").order_by("-created_at")
         if self.request.user.role == "admin":
             return qs
-        return qs.filter(Q(published=True) | Q(owner=self.request.user))
+        permitted = [
+            exam.pk
+            for exam in qs.filter(published=True)
+            if in_exam_audience(exam, self.request.user)
+        ]
+        if self.request.user.role == "instructor":
+            return qs.filter(Q(pk__in=permitted) | Q(owner=self.request.user))
+        return qs.filter(pk__in=permitted)
+
+    @action(detail=False, methods=["get"], url_path="audience-options")
+    def audience_options(self, request):
+        if not manager(request.user):
+            raise PermissionDenied()
+        people = list(
+            User.objects.filter(is_active=True)
+            .order_by("display_name", "id")
+            .values("id", "display_name", "username", "department")
+        )
+        return Response(
+            {
+                "people": people,
+                "departments": sorted(
+                    {person["department"] for person in people if person["department"]}
+                ),
+            }
+        )
 
     @transaction.atomic
     def perform_create(self, serializer):
@@ -167,9 +205,9 @@ class Exams(viewsets.ModelViewSet):
         try:
             limit = int(request.data["limit"])
         except (KeyError, ValueError, TypeError):
-            raise ValidationError("請輸入有效次數。")
+            raise ValidationError(translate("Enter a valid attempt limit."))
         if not 1 <= limit <= 100:
-            raise ValidationError("次數需介於 1 至 100。")
+            raise ValidationError(translate("Attempts must be between 1 and 100."))
         with transaction.atomic():
             Exam.objects.select_for_update().get(pk=exam.pk)
             identity = resolve_identity(request.data.get("key", ""))
@@ -177,7 +215,11 @@ class Exams(viewsets.ModelViewSet):
                 exam=exam, identity=identity
             )
             if limit < budget.used:
-                raise ValidationError("次數上限不能低於已使用次數。")
+                raise ValidationError(
+                    translate(
+                        "The limit cannot be lower than the attempts already used."
+                    )
+                )
             budget.limit_override = limit
             budget.save(update_fields=["limit_override"])
             audit(
@@ -214,13 +256,44 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
                 int(request.data.get("days", 7)),
             )
         except (TypeError, ValueError):
-            raise ValidationError("次數與有效天數必須是整數。")
+            raise ValidationError(
+                translate("Attempts and validity days must be integers.")
+            )
         if not 1 <= limit <= 100 or not 1 <= days <= 90:
-            raise ValidationError("次數需為 1–100；有效天數需為 1–90。")
+            raise ValidationError(
+                translate("Attempts must be 1–100 and validity must be 1–90 days.")
+            )
+        required = request.data.get("require_email_verification", False)
+        if type(required) is not bool:
+            raise ValidationError(
+                translate("Email verification must be enabled or disabled.")
+            )
         token = secrets.token_urlsafe(32)
         with transaction.atomic():
             Exam.objects.select_for_update().get(pk=exam.pk)
             identity = resolve_identity(request.data.get("key", ""))
+            email = ""
+            if required:
+                from django.core.exceptions import ValidationError as InvalidEmail
+                from django.core.validators import validate_email
+
+                email = (
+                    str(request.data.get("verification_email", "")).strip().casefold()
+                )
+                if not email:
+                    email = (
+                        identity.key.removeprefix("email:")
+                        if identity.key.startswith("email:")
+                        else (identity.user.email if identity.user else "")
+                    )
+                try:
+                    validate_email(email)
+                except InvalidEmail:
+                    raise ValidationError(
+                        translate(
+                            "A valid recipient email is required for verification."
+                        )
+                    )
             inv = Invitation.objects.create(
                 exam=exam,
                 identity=identity,
@@ -228,6 +301,8 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
                 max_attempts=limit,
                 expires_at=timezone.now() + timedelta(days=days),
                 created_by=request.user,
+                require_email_verification=required,
+                verification_email=email,
             )
             audit(request.user, "invitation.created", inv.id, {"exam": exam.id})
         from django.conf import settings
@@ -236,7 +311,9 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
             {
                 **self.get_serializer(inv).data,
                 "url": settings.APP_ORIGIN + "/invite#" + token,
-                "note": "此連結額度仍受受測者總次數上限約束。",
+                "note": translate(
+                    "This link is also subject to the participant's total attempt limit."
+                ),
             },
             status=201,
         )
@@ -256,6 +333,12 @@ def session_invite(request):
         pk=request.session.get("guest_invitation"),
     )
     check_invite(inv)
+    if inv.require_email_verification and request.session.get(
+        "guest_verified_invitation"
+    ) != str(inv.pk):
+        raise PermissionDenied(
+            translate("Verify the recipient email before accessing this exam.")
+        )
     return inv
 
 
@@ -265,7 +348,137 @@ def session_invite(request):
 def guest_exchange(request):
     inv = invitation_from_token(request.data.get("token", ""))
     request.session.cycle_key()
+    for key in (
+        "guest_invitation",
+        "guest_pending_invitation",
+        "guest_verified_invitation",
+        "guest_challenge",
+    ):
+        request.session.pop(key, None)
+    if inv.require_email_verification:
+        request.session["guest_pending_invitation"] = str(inv.id)
+        return Response(verification_info(inv))
     request.session["guest_invitation"] = str(inv.id)
+    return Response(guest_info(inv))
+
+
+def verification_info(inv):
+    local, domain = inv.verification_email.rsplit("@", 1)
+    return {
+        "verification_required": True,
+        "email_hint": local[:1] + "***@" + domain,
+        "title": inv.exam.title,
+    }
+
+
+def pending_invite(request):
+    inv = get_object_or_404(
+        Invitation.objects.select_related("exam", "identity"),
+        pk=request.session.get("guest_pending_invitation"),
+    )
+    check_invite(inv)
+    if not inv.require_email_verification:
+        raise PermissionDenied()
+    return inv
+
+
+@csrf_protect
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def guest_email_request(request):
+    from django.conf import settings
+    from django.core.mail import send_mail
+
+    from .auth_views import rate_limit
+
+    inv = pending_invite(request)
+    rate_limit(request, "guest:" + str(inv.pk))
+    old = request.session.pop("guest_challenge", None)
+    if old:
+        GuestEmailChallenge.objects.filter(pk=old, invitation=inv).delete()
+    # Remove expired rows without exposing codes or mailboxes in logs.
+    GuestEmailChallenge.objects.filter(expires_at__lt=timezone.now()).delete()
+    challenge = GuestEmailChallenge(
+        invitation=inv, expires_at=timezone.now() + timedelta(minutes=10)
+    )
+    code = f"{secrets.randbelow(1000000):06d}"
+    challenge.digest = hash_token(settings.SECRET_KEY + str(challenge.pk) + code)
+    challenge.save()
+    request.session["guest_challenge"] = str(challenge.pk)
+    try:
+        send_mail(
+            translate("Evitina Learn exam verification"),
+            translate("Your verification code: ")
+            + code
+            + "\n"
+            + translate("Valid for 10 minutes."),
+            settings.DEFAULT_FROM_EMAIL,
+            [inv.verification_email],
+        )
+    except Exception:
+        challenge.delete()
+        request.session.pop("guest_challenge", None)
+        return Response(
+            {
+                "detail": translate(
+                    "Email delivery failed. Please try again or contact the organizer."
+                )
+            },
+            status=503,
+        )
+    return Response(
+        {
+            "detail": translate(
+                "A verification code has been sent to the invited recipient."
+            )
+        }
+    )
+
+
+@csrf_protect
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def guest_email_verify(request):
+    from django.conf import settings
+
+    from .auth_views import rate_limit
+
+    inv = pending_invite(request)
+    rate_limit(request, "guest:" + str(inv.pk))
+    challenge_id = request.session.get("guest_challenge")
+    valid = False
+    with transaction.atomic():
+        challenge = (
+            GuestEmailChallenge.objects.select_for_update()
+            .filter(pk=challenge_id, invitation=inv)
+            .first()
+        )
+        if (
+            challenge
+            and challenge.expires_at > timezone.now()
+            and challenge.failures < 5
+        ):
+            digest = hash_token(
+                settings.SECRET_KEY
+                + str(challenge.pk)
+                + str(request.data.get("code", ""))
+            )
+            if secrets.compare_digest(challenge.digest, digest):
+                valid = True
+                challenge.delete()
+            else:
+                challenge.failures += 1
+                challenge.save(update_fields=["failures"])
+    if not valid:
+        raise ValidationError(
+            translate("The code is invalid, already used or expired.")
+        )
+    request.session.cycle_key()
+    request.session.pop("guest_pending_invitation", None)
+    request.session.pop("guest_challenge", None)
+    request.session["guest_invitation"] = str(inv.pk)
+    request.session["guest_verified_invitation"] = str(inv.pk)
+    audit(None, "invitation.email_verified", inv.pk)
     return Response(guest_info(inv))
 
 
@@ -293,6 +506,8 @@ def guest_info(inv):
 @api_view(["GET", "POST"])
 @permission_classes([AllowAny])
 def guest_exam(request):
+    if request.method == "GET" and request.session.get("guest_pending_invitation"):
+        return Response(verification_info(pending_invite(request)))
     inv = session_invite(request)
     if request.method == "GET":
         return Response(guest_info(inv))
@@ -356,7 +571,7 @@ def results(request):
                 "person": a.identity.label,
                 "department": a.identity.user.department
                 if a.identity.user
-                else "外部人員",
+                else translate("External participant"),
                 "number": a.number,
                 "status": a.status,
                 "score": a.score if a.status == "graded" else None,
@@ -377,11 +592,11 @@ def review(request, pk):
         )
         manage_exam(request.user, attempt.exam)
         if attempt.status not in ("pending_review", "graded"):
-            raise ValidationError("作答尚未交卷。")
+            raise ValidationError(translate("This attempt has not been submitted."))
         if request.method == "POST":
             marks = request.data.get("grades", {})
             if not isinstance(marks, dict):
-                raise ValidationError("評分格式不正確。")
+                raise ValidationError(translate("Invalid grading format."))
             essay = {str(q["id"]): q for q in attempt.snapshot if q["type"] == "essay"}
             for key, mark in marks.items():
                 if (
@@ -391,7 +606,11 @@ def review(request, pk):
                     or not 0 <= mark["points"] <= essay[key]["points"]
                     or len(str(mark.get("feedback", ""))) > 5000
                 ):
-                    raise ValidationError("申論題分數超出配分或題目不存在。")
+                    raise ValidationError(
+                        translate(
+                            "The written-response score exceeds its points or the question does not exist."
+                        )
+                    )
             attempt.manual_grades.update(marks)
             grade(attempt)
             attempt.save()
@@ -411,7 +630,7 @@ def dashboard(request):
     try:
         days = min(365, max(1, int(request.query_params.get("days", "30"))))
     except ValueError:
-        raise ValidationError("日期範圍無效。")
+        raise ValidationError(translate("Invalid date range."))
     since = timezone.now() - timedelta(days=days)
     attempts = scoped_attempts(user).filter(started_at__gte=since)
     enrollments = Enrollment.objects.all()
@@ -479,7 +698,17 @@ def dashboard(request):
 def export_results(request):
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["考試", "受測者", "次數", "狀態", "分數", "及格", "交卷時間"])
+    writer.writerow(
+        [
+            translate("Exam"),
+            translate("Participant"),
+            translate("Attempts"),
+            translate("Status"),
+            translate("Score"),
+            translate("Passed"),
+            translate("Submitted at"),
+        ]
+    )
 
     def safe(value):
         s = str(value) if value is not None else ""

@@ -1,6 +1,7 @@
 import hashlib
 import secrets
 from datetime import timedelta
+
 import msal
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
@@ -10,11 +11,13 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import Throttled, ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError, Throttled
-from .models import User, EmailCode, AuthRate
-from .services import find_user, identity_for_user, audit
+
+from .i18n import translate
+from .models import AuthRate, EmailCode, User
+from .services import audit, find_user, identity_for_user
 
 
 def user_data(user):
@@ -47,7 +50,9 @@ def rate_limit(request, identifier):
             row.save()
             blocked = row.count > 20
         if blocked:
-            raise Throttled(detail="登入嘗試過於頻繁，請稍後再試。")
+            raise Throttled(
+                detail=translate("Too many sign-in attempts. Please try again later.")
+            )
 
 
 @ensure_csrf_cookie
@@ -81,7 +86,9 @@ def password_login(request):
         password=str(request.data.get("password", "")),
     )
     if not user:
-        return Response({"detail": "帳號或密碼不正確。"}, status=400)
+        return Response(
+            {"detail": translate("Incorrect account or password.")}, status=400
+        )
     identity_for_user(user)
     login(request, user)
     audit(user, "auth.password", user.id)
@@ -110,15 +117,24 @@ def email_request(request):
         )
         try:
             send_mail(
-                "Evitina Learn 登入驗證碼",
-                f"您的驗證碼：{code}\n10 分鐘內有效。",
+                translate("Evitina Learn sign-in code"),
+                translate("Your verification code: ")
+                + code
+                + "\n"
+                + translate("Valid for 10 minutes."),
                 settings.DEFAULT_FROM_EMAIL,
                 [email],
             )
         except Exception:
             EmailCode.objects.filter(email=email).delete()
             # Same response prevents disclosing whether the account exists.
-    return Response({"detail": "若此 E-mail 已由管理員建立帳號，您將收到登入驗證碼。"})
+    return Response(
+        {
+            "detail": translate(
+                "If an administrator has created an account for this email, you will receive a sign-in code."
+            )
+        }
+    )
 
 
 @csrf_protect
@@ -146,7 +162,9 @@ def email_verify(request):
         else None
     )
     if not user:
-        raise ValidationError("驗證碼無效、已使用或已過期。")
+        raise ValidationError(
+            translate("The code is invalid, already used or expired.")
+        )
     identity_for_user(user)
     login(request, user)
     audit(user, "auth.email", user.id)
@@ -167,7 +185,9 @@ def entra_client():
             settings.ENTRA_CLIENT_SECRET,
         ]
     ):
-        raise ValidationError("尚未設定公司 Microsoft Entra ID。")
+        raise ValidationError(
+            translate("Company Microsoft Entra ID has not been configured.")
+        )
     return msal.ConfidentialClientApplication(
         settings.ENTRA_CLIENT_ID,
         authority=f"https://login.microsoftonline.com/{settings.ENTRA_TENANT_ID}",
@@ -190,26 +210,32 @@ def entra_start(request):
 def entra_callback(request):
     flow = request.session.pop("entra_flow", None)
     if not flow:
-        raise ValidationError("SSO 工作階段已過期，請重新登入。")
+        raise ValidationError(
+            translate("Your SSO session expired. Please sign in again.")
+        )
     try:
         result = entra_client().acquire_token_by_auth_code_flow(
             flow, request.GET.dict()
         )
     except ValueError:
-        raise ValidationError("SSO 狀態驗證失敗。")
+        raise ValidationError(translate("SSO state validation failed."))
     claims = result.get("id_token_claims", {})
     if (
         not claims.get("oid")
         or claims.get("tid", "").casefold() != settings.ENTRA_TENANT_ID.casefold()
     ):
-        raise ValidationError("SSO 登入失敗或租用戶不符。")
+        raise ValidationError(
+            translate("SSO sign-in failed or the tenant did not match.")
+        )
     subject = f"{claims['tid']}:{claims['oid']}"
     user = User.objects.filter(entra_subject=subject).first()
     if not user:
         email = str(claims.get("preferred_username", "")).casefold()
         if find_user(email):
             raise ValidationError(
-                "此 E-mail 已存在，請管理員先設定 Entra subject 以連結帳號。"
+                translate(
+                    "This email already exists. Ask an administrator to link the account using its Entra subject."
+                )
             )
         user = User.objects.create_user(
             username="entra_" + claims["oid"],
@@ -218,7 +244,7 @@ def entra_callback(request):
             entra_subject=subject,
         )
     if not user.is_active:
-        raise ValidationError("帳號已停用。")
+        raise ValidationError(translate("This account is disabled."))
     identity_for_user(user)
     login(request, user)
     audit(user, "auth.entra", user.id)

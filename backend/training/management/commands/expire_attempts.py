@@ -1,9 +1,11 @@
+from datetime import timedelta
+
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
-from training.models import Attempt, AuthRate, EmailCode
+
+from training.models import Attempt, AuthRate, EmailCode, GuestEmailChallenge
 from training.services import finalize
-from datetime import timedelta
 
 
 class Command(BaseCommand):
@@ -19,4 +21,5 @@ class Command(BaseCommand):
                 count += 1
         AuthRate.objects.filter(window__lt=timezone.now() - timedelta(days=1)).delete()
         EmailCode.objects.filter(expires_at__lt=timezone.now()).delete()
+        GuestEmailChallenge.objects.filter(expires_at__lt=timezone.now()).delete()
         self.stdout.write(f"Finalized {count} expired attempts.")

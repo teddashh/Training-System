@@ -32,7 +32,7 @@ interface WelcomeScreenProps {
 }
 
 export default function WelcomeScreen({ onSkip, onSample }: WelcomeScreenProps) {
-  const { t } = useT('welcome')
+  const { t, lang } = useT('welcome')
   const supported = isFileSystemAccessSupported()
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -119,7 +119,7 @@ export default function WelcomeScreen({ onSkip, onSample }: WelcomeScreenProps) 
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-gray-800">{p.title}</span>
                         <span className="block text-xs text-gray-400">
-                          {t('updatedAgo', { when: new Date(p.updatedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) })}
+                          {t('updatedAgo', { when: new Date(p.updatedAt).toLocaleString(lang, { dateStyle: 'medium', timeStyle: 'short' }) })}
                         </span>
                       </span>
                     </button>

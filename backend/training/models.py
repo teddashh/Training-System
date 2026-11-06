@@ -1,4 +1,5 @@
 import uuid
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models.functions import Lower
@@ -6,9 +7,9 @@ from django.db.models.functions import Lower
 
 class User(AbstractUser):
     class Role(models.TextChoices):
-        ADMIN = "admin", "管理員"
-        INSTRUCTOR = "instructor", "講師"
-        LEARNER = "learner", "學員"
+        ADMIN = "admin", "Administrator"
+        INSTRUCTOR = "instructor", "Instructor"
+        LEARNER = "learner", "Learner"
 
     email = models.EmailField(blank=True)
     employee_id = models.CharField(max_length=64, null=True, blank=True, unique=True)
@@ -16,7 +17,7 @@ class User(AbstractUser):
     department = models.CharField(max_length=100, blank=True)
     employment = models.CharField(
         max_length=20,
-        choices=[("employee", "正式員工"), ("contractor", "非正式員工")],
+        choices=[("employee", "Employee"), ("contractor", "Contractor")],
         default="employee",
     )
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.LEARNER)
@@ -45,7 +46,7 @@ class Identity(models.Model):
 class Course(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    category = models.CharField(max_length=50, default="通識培訓")
+    category = models.CharField(max_length=50, default="General training")
     duration_minutes = models.PositiveIntegerField(default=30)
     published = models.BooleanField(default=False)
     owner = models.ForeignKey(User, on_delete=models.PROTECT)
@@ -104,6 +105,22 @@ class Exam(models.Model):
     max_attempts = models.PositiveSmallIntegerField(default=2)
     pass_score = models.PositiveSmallIntegerField(default=70)
     published = models.BooleanField(default=False)
+    audience = models.CharField(
+        max_length=20,
+        default="all",
+        choices=[
+            ("all", "Everyone"),
+            ("employees", "Employees"),
+            ("contractors", "Contractors"),
+            ("departments", "Departments"),
+            ("people", "Selected people"),
+            ("invitation", "Invitation only"),
+        ],
+    )
+    allowed_departments = models.JSONField(default=list, blank=True)
+    allowed_users = models.ManyToManyField(
+        User, blank=True, related_name="assigned_exams"
+    )
     starts_at = models.DateTimeField(null=True, blank=True)
     ends_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -126,10 +143,10 @@ class Question(models.Model):
     type = models.CharField(
         max_length=20,
         choices=[
-            ("single", "單選"),
-            ("multiple", "複選"),
-            ("short", "簡答"),
-            ("essay", "申論"),
+            ("single", "Single choice"),
+            ("multiple", "Multiple choice"),
+            ("short", "Short answer"),
+            ("essay", "Written response"),
         ],
         default="single",
     )
@@ -170,8 +187,18 @@ class Invitation(models.Model):
     used = models.PositiveIntegerField(default=0)
     expires_at = models.DateTimeField()
     revoked = models.BooleanField(default=False)
+    require_email_verification = models.BooleanField(default=False)
+    verification_email = models.EmailField(blank=True)
     created_by = models.ForeignKey(User, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class GuestEmailChallenge(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    invitation = models.ForeignKey(Invitation, on_delete=models.CASCADE)
+    digest = models.CharField(max_length=64)
+    expires_at = models.DateTimeField()
+    failures = models.PositiveSmallIntegerField(default=0)
 
 
 class Attempt(models.Model):

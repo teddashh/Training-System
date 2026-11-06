@@ -807,7 +807,7 @@ export const DEFAULT_INTRO: CourseIntro = {
 
 /** Languages the learner player's own UI (buttons, feedback) is translated
  *  into — keep in sync with the `T` table in public/scorm-player/player.js. */
-export const PLAYER_LANGUAGES = ['en', 'uk', 'es', 'fr', 'de', 'it', 'nl', 'pt'] as const
+export const PLAYER_LANGUAGES = ['en', 'zh-TW', 'uk', 'es', 'fr', 'de', 'it', 'nl', 'pt'] as const
 
 export type PlayerLanguage = 'auto' | (typeof PLAYER_LANGUAGES)[number]
 

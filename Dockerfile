@@ -4,6 +4,8 @@ WORKDIR /app
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && useradd --uid 10001 --create-home app
 COPY backend/ .
+COPY shared/ ./shared/
+ENV LOCALE_ROOT=/app/shared/locales
 RUN mkdir -p media staticfiles && chown -R app:app /app
 USER app
 RUN DEBUG=true python manage.py collectstatic --noinput

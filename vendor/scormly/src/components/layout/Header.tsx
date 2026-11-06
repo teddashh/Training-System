@@ -122,7 +122,7 @@ export default function Header() {
             disabled={saveState === 'saving'}
             title={
               lastSavedAt
-                ? `${t('savedAt', { time: new Date(lastSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })} · ${tw('save')} (${KEYS.save})`
+                ? `${t('savedAt', { time: new Date(lastSavedAt).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' }) })} · ${tw('save')} (${KEYS.save})`
                 : `${tw('save')} (${KEYS.save})`
             }
             className={`rounded-md px-3 py-1.5 text-sm font-medium hover:bg-gray-100 disabled:opacity-40 ${

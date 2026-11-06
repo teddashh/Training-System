@@ -1,3 +1,4 @@
+import { t, useLocale, LanguagePicker } from "./i18n";
 import { useState } from "react";
 import {
   ArrowRight,
@@ -9,7 +10,6 @@ import {
 import { api } from "./api";
 import type { User } from "./types";
 import { ErrorBox } from "./ui";
-
 export default function Login({
   entra,
   onLogin,
@@ -17,6 +17,7 @@ export default function Login({
   entra: boolean;
   onLogin: (u: User) => void;
 }) {
+  useLocale();
   const [mode, setMode] = useState("password"),
     [identifier, setIdentifier] = useState(""),
     [password, setPassword] = useState(""),
@@ -33,7 +34,9 @@ export default function Login({
         await api("auth/email/request/", "POST", { email: identifier });
         setSent(true);
       } else {
-        const response = await api<{ user: User }>(
+        const response = await api<{
+          user: User;
+        }>(
           mode === "email" ? "auth/email/verify/" : "auth/login/",
           "POST",
           mode === "email"
@@ -60,22 +63,25 @@ export default function Login({
           </span>
         </div>
         <div className="login-copy">
-          <div className="eyebrow">PEOPLE · LEARNING · GROWTH</div>
+          <div className="eyebrow">
+            {t("PEOPLE \u00b7 LEARNING \u00b7 GROWTH")}
+          </div>
           <h1>
-            讓每一次學習，
+            {t("Let every lesson") + " "}
             <br />
-            成為成長的<span>起點。</span>
+            {t("be a new ")}
+            <span>{t("beginning.")}</span>
           </h1>
           <p>
-            串聯知識、培訓與評量，
+            {t("Connect knowledge, training and assessment.") + " "}
             <br />
-            打造屬於團隊的人才發展旅程。
+            {t("Build your team's journey of growth.") + " "}
           </p>
           <div className="login-features">
             {[
-              [BookOpen, "學習，隨時開始"],
-              [ShieldCheck, "評量，安心進行"],
-              [BarChart3, "成效，一目了然"],
+              [BookOpen, t("Learn at your own pace")],
+              [ShieldCheck, t("Assess with confidence")],
+              [BarChart3, t("See progress clearly")],
             ].map(([Icon, text]) => {
               const C = Icon as typeof BookOpen;
               return (
@@ -95,14 +101,17 @@ export default function Login({
           </div>
         </div>
         <footer>
-          EVITINA LEARN <span>企業人才發展平台</span>
+          EVITINA LEARN <span>{t("Enterprise learning platform")}</span>
         </footer>
       </div>
       <div className="login-form">
         <div className="login-box">
-          <span className="eyebrow blue-text">WELCOME BACK</span>
-          <h2>歡迎回來</h2>
-          <p className="muted">登入您的工作空間，繼續學習與成長。</p>
+          <span className="eyebrow blue-text">{t("WELCOME BACK")}</span>
+          <LanguagePicker />
+          <h2>{t("Welcome back")}</h2>
+          <p className="muted">
+            {t("Sign in to your workspace and continue learning.")}
+          </p>
           <a
             className={"sso-button " + (!entra ? "disabled" : "")}
             href={entra ? "/api/auth/entra/" : undefined}
@@ -114,16 +123,17 @@ export default function Login({
               <i />
               <i />
             </span>
-            使用 Microsoft 帳號登入
+            {t("Sign in with Microsoft") + " "}
             <ArrowRight size={17} />
           </a>
           {!entra && (
             <small className="muted">
-              公司 SSO 尚待管理員完成 Entra ID 設定
+              {t("Company SSO is awaiting administrator setup in Entra ID") +
+                " "}
             </small>
           )}
           <div className="divider">
-            <span>或使用其他方式</span>
+            <span>{t("or use another method")}</span>
           </div>
           <div className="segmented">
             <button
@@ -133,7 +143,7 @@ export default function Login({
                 setError("");
               }}
             >
-              E-mail／員工編號
+              {t("Email / employee ID") + " "}
             </button>
             <button
               className={mode === "email" ? "active" : ""}
@@ -142,12 +152,14 @@ export default function Login({
                 setError("");
               }}
             >
-              E-mail 驗證碼
+              {t("Email verification code") + " "}
             </button>
           </div>
           <form onSubmit={submit}>
             <label>
-              {mode === "email" ? "E-mail" : "E-mail、帳號或員工編號"}
+              {mode === "email"
+                ? "E-mail"
+                : t("Email, username or employee ID")}
               <input
                 required
                 autoComplete="username"
@@ -158,30 +170,34 @@ export default function Login({
                   setSent(false);
                 }}
                 placeholder={
-                  mode === "email" ? "name@company.com" : "請輸入您的登入識別碼"
+                  mode === "email"
+                    ? "name@company.com"
+                    : t("Enter your sign-in identifier")
                 }
               />
             </label>
             {mode === "password" ? (
               <label>
-                密碼
+                {t("Password") + " "}
                 <input
                   type="password"
                   autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="請輸入密碼"
+                  placeholder={t("Enter your password")}
                 />
               </label>
             ) : (
               sent && (
                 <>
                   <p className="notice">
-                    若帳號存在，驗證碼已寄送，10 分鐘內有效。
+                    {t(
+                      "If the account exists, a code has been sent. It expires in 10 minutes.",
+                    ) + " "}
                   </p>
                   <label>
-                    六位數驗證碼
+                    {t("Six-digit verification code") + " "}
                     <input
                       inputMode="numeric"
                       pattern="[0-9]{6}"
@@ -197,21 +213,28 @@ export default function Login({
             <ErrorBox message={error} />
             <button className="btn primary full" disabled={busy}>
               {busy
-                ? "處理中…"
+                ? t("Processing\u2026")
                 : mode === "email" && !sent
-                  ? "寄送登入驗證碼"
-                  : "登入工作空間"}
+                  ? t("Send sign-in code")
+                  : t("Sign in to workspace")}
               <ArrowRight size={17} />
             </button>
           </form>
           <p className="login-help">
-            尚未取得帳號？請聯絡您的公司訓練管理員。
+            {t(
+              "Need an account? Contact your company training administrator.",
+            ) + " "}
             <br />
-            收到考試邀請的訪客，請直接開啟專屬連結。
+            {t(
+              "Guests with an exam invitation should open their personal link.",
+            ) + " "}
           </p>
         </div>
         <div className="login-legal">
-          <ShieldCheck size={14} /> 以安全的企業身分驗證保護您的學習紀錄
+          <ShieldCheck size={14} />
+          {" " +
+            t("Your learning records are protected by secure authentication") +
+            " "}
         </div>
       </div>
     </div>

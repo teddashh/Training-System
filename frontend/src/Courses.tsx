@@ -1,3 +1,4 @@
+import { t, useLocale } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import {
   BookOpen,
@@ -21,7 +22,6 @@ import {
 import type { Course, Block, User } from "./types";
 import { api } from "./api";
 import { Modal, Badge, Empty, ErrorBox } from "./ui";
-
 export function CourseEditor({
   course,
   onClose,
@@ -31,14 +31,17 @@ export function CourseEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  useLocale();
   const [title, setTitle] = useState(course?.title || ""),
     [description, setDescription] = useState(course?.description || ""),
-    [category, setCategory] = useState(course?.category || "通識培訓"),
+    [category, setCategory] = useState(
+      course?.category || t("General training"),
+    ),
     [duration, setDuration] = useState(course?.duration_minutes || 30),
     [published, setPublished] = useState(course?.published || false),
     [blocks, setBlocks] = useState<Block[]>(
       course?.blocks || [
-        { type: "heading", text: "學習目標" },
+        { type: "heading", text: t("Learning objectives") },
         { type: "text", text: "" },
       ],
     ),
@@ -78,24 +81,26 @@ export function CourseEditor({
   }
   return (
     <Modal
-      title={course ? "編輯課程與教材" : "建立學習課程"}
+      title={
+        course ? t("Edit course & content") : t("Create a learning course")
+      }
       onClose={onClose}
       wide
     >
       <form onSubmit={save} className="modal-form">
         <div className="form-grid">
           <label className="span-2">
-            課程名稱
+            {t("Course title") + " "}
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
               maxLength={200}
-              placeholder="例如：資訊安全與個資保護"
+              placeholder={t("For example: Information security and privacy")}
             />
           </label>
           <label>
-            課程類別
+            {t("Course category") + " "}
             <input
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -104,7 +109,7 @@ export function CourseEditor({
             />
           </label>
           <label>
-            預估時間（分鐘）
+            {t("Estimated duration (minutes)") + " "}
             <input
               type="number"
               min={1}
@@ -114,7 +119,7 @@ export function CourseEditor({
             />
           </label>
           <label className="span-2">
-            課程簡介
+            {t("Course description") + " "}
             <textarea
               rows={2}
               value={description}
@@ -124,11 +129,13 @@ export function CourseEditor({
         </div>
         <div className="form-section">
           <h3>
-            教材內容<span className="muted"> · 區塊編輯器</span>
+            {t("Learning content")}
+            <span className="muted">{" " + t("\u00B7 Block editor")}</span>
           </h3>
           <p>
-            文字教材儲存在公司平台。需要影片、測驗或互動內容，可使用 Scormly
-            製作並上傳 SCORM。
+            {t(
+              "Text lessons are saved on the company platform. Use Scormly for video, quizzes and interactive SCORM content.",
+            ) + " "}
           </p>
         </div>
         <div className="block-editor">
@@ -136,7 +143,7 @@ export function CourseEditor({
             <div className="editor-block" key={i}>
               <div className="block-toolbar">
                 <select
-                  aria-label={`區塊 ${i + 1} 類型`}
+                  aria-label={t("Block {v0} type", { v0: i + 1 })}
                   value={block.type}
                   onChange={(e) =>
                     setBlocks(
@@ -148,15 +155,15 @@ export function CourseEditor({
                     )
                   }
                 >
-                  <option value="heading">標題</option>
-                  <option value="text">段落</option>
-                  <option value="callout">重點提示</option>
+                  <option value="heading">{t("Heading")}</option>
+                  <option value="text">{t("Paragraph")}</option>
+                  <option value="callout">{t("Callout")}</option>
                 </select>
                 <span />
                 <button
                   type="button"
                   className="icon-btn"
-                  aria-label="上移區塊"
+                  aria-label={t("Move block up")}
                   onClick={() => move(i, -1)}
                   disabled={!i}
                 >
@@ -165,7 +172,7 @@ export function CourseEditor({
                 <button
                   type="button"
                   className="icon-btn"
-                  aria-label="下移區塊"
+                  aria-label={t("Move block down")}
                   onClick={() => move(i, 1)}
                   disabled={i === blocks.length - 1}
                 >
@@ -174,14 +181,14 @@ export function CourseEditor({
                 <button
                   type="button"
                   className="icon-btn danger-text"
-                  aria-label="刪除區塊"
+                  aria-label={t("Delete block")}
                   onClick={() => setBlocks(blocks.filter((_, n) => n !== i))}
                 >
                   <Trash2 size={15} />
                 </button>
               </div>
               <textarea
-                aria-label={`區塊 ${i + 1} 內容`}
+                aria-label={t("Block {v0} content", { v0: i + 1 })}
                 value={block.text}
                 rows={block.type === "heading" ? 1 : 3}
                 onChange={(e) =>
@@ -191,7 +198,7 @@ export function CourseEditor({
                     ),
                   )
                 }
-                placeholder="輸入教材內容…"
+                placeholder={t("Enter learning content\u2026")}
               />
             </div>
           ))}
@@ -202,7 +209,7 @@ export function CourseEditor({
           onClick={() => setBlocks([...blocks, { type: "text", text: "" }])}
         >
           <Plus size={16} />
-          新增內容區塊
+          {t("Add content block") + " "}
         </button>
         <label className="checkbox-label">
           <input
@@ -210,22 +217,21 @@ export function CourseEditor({
             checked={published}
             onChange={(e) => setPublished(e.target.checked)}
           />
-          發布課程，讓學員可以開始學習
+          {t("Publish this course so learners can start") + " "}
         </label>
         <ErrorBox message={error} />
         <div className="modal-footer">
           <button className="btn" type="button" onClick={onClose}>
-            取消
+            {t("Cancel") + " "}
           </button>
           <button className="btn primary" disabled={busy}>
-            {busy ? "儲存中…" : "儲存課程"}
+            {busy ? t("Saving\u2026") : t("Save course")}
           </button>
         </div>
       </form>
     </Modal>
   );
 }
-
 export function ScormPlayer({
   course,
   onClose,
@@ -235,26 +241,36 @@ export function ScormPlayer({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  useLocale();
   const [launch, setLaunch] = useState<{
       url: string;
       nonce: string;
       origin: string;
     } | null>(null),
     [error, setError] = useState(""),
-    [status, setStatus] = useState("正在準備教材…");
+    [status, setStatus] = useState("Preparing content\u2026");
   const frame = useRef<HTMLIFrameElement>(null),
     queue = useRef(Promise.resolve());
+  const pendingLaunch = useRef<{
+    packageId: string;
+    promise: Promise<{ url: string; nonce: string; origin: string }>;
+  } | null>(null);
   useEffect(() => {
     let alive = true;
-    api<{ url: string; nonce: string; origin: string }>(
-      `scorm/${course.package!.id}/launch/`,
-      "POST",
-      {},
-    )
+    const packageId = course.package!.id;
+    // StrictMode replays effects. Reuse the launch so a second response cannot
+    // overwrite the session nonce while the first player is already running.
+    if (pendingLaunch.current?.packageId !== packageId) {
+      pendingLaunch.current = {
+        packageId,
+        promise: api(`scorm/${packageId}/launch/`, "POST", {}),
+      };
+    }
+    pendingLaunch.current.promise
       .then((v) => {
         if (alive) {
           setLaunch(v);
-          setStatus("學習進度會自動儲存");
+          setStatus("Your learning progress saves automatically");
         }
       })
       .catch((e) => setError(e.message));
@@ -273,14 +289,15 @@ export function ScormPlayer({
       )
         return;
       const message = e.data;
-      setStatus("正在儲存學習紀錄…");
+      setStatus("Saving learning progress\u2026");
       queue.current = queue.current.then(async () => {
         try {
-          const result = await api<{ completed: boolean }>(
-            `scorm/${course.package!.id}/commit/`,
-            "POST",
-            { nonce: launch.nonce, cmi: message.cmi },
-          );
+          const result = await api<{
+            completed: boolean;
+          }>(`scorm/${course.package!.id}/commit/`, "POST", {
+            nonce: launch.nonce,
+            cmi: message.cmi,
+          });
           frame.current?.contentWindow?.postMessage(
             {
               type: "scorm.ack",
@@ -292,12 +309,14 @@ export function ScormPlayer({
           );
           setError("");
           setStatus(
-            result.completed ? "課程已完成，紀錄已儲存" : "學習紀錄已儲存",
+            result.completed
+              ? "Course completed and progress saved"
+              : "Learning progress saved",
           );
           onSaved();
         } catch (err) {
           setError((err as Error).message);
-          setStatus("儲存失敗，請保持播放器開啟並稍後重試");
+          setStatus("Save failed. Keep the player open and try again shortly.");
           frame.current?.contentWindow?.postMessage(
             {
               type: "scorm.ack",
@@ -317,7 +336,7 @@ export function ScormPlayer({
     <Modal title={course.title} onClose={onClose} wide>
       <div className="player-status">
         <CheckCircle2 size={15} />
-        {status}
+        {t(status)}
       </div>
       <ErrorBox message={error} />
       {launch && (
@@ -325,7 +344,7 @@ export function ScormPlayer({
           ref={frame}
           className="scorm-frame"
           src={launch.url}
-          title="SCORM 課程播放器"
+          title={t("SCORM course player")}
           allow="fullscreen"
           referrerPolicy="no-referrer"
         />
@@ -333,7 +352,6 @@ export function ScormPlayer({
     </Modal>
   );
 }
-
 export default function Courses({
   courses,
   user,
@@ -345,8 +363,9 @@ export default function Courses({
   onSaved: () => void;
   studio?: boolean;
 }) {
+  useLocale();
   const [search, setSearch] = useState(""),
-    [filter, setFilter] = useState("全部課程"),
+    [filter, setFilter] = useState("All courses"),
     [editing, setEditing] = useState<Course | null | undefined>(undefined),
     [viewing, setViewing] = useState<Course | null>(null),
     [uploading, setUploading] = useState<Course | null>(null),
@@ -357,8 +376,8 @@ export default function Courses({
   const filtered = courses.filter(
     (c) =>
       (c.title + c.category).includes(search) &&
-      (filter !== "我的學習" || c.progress !== null) &&
-      (filter !== "草稿" || !c.published),
+      (filter !== "My learning" || c.progress !== null) &&
+      (filter !== "Draft" || !c.published),
   );
   async function upload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files?.[0] || !uploading) return;
@@ -405,19 +424,19 @@ export default function Courses({
       <div className="page-heading">
         <div>
           <div className="eyebrow">
-            {studio ? "CONTENT STUDIO" : "LEARNING LIBRARY"}
+            {studio ? t("CONTENT STUDIO") : t("LEARNING LIBRARY")}
           </div>
-          <h1>{studio ? "教材工作室" : "學習課程"}</h1>
+          <h1>{studio ? t("Authoring studio") : t("Learning courses")}</h1>
           <p>
             {studio
-              ? "從一個想法開始，打造讓知識留下來的學習體驗。"
-              : "在每一次探索中，找到團隊前進的新方向。"}
+              ? t("Turn an idea into a learning experience that lasts.")
+              : t("Discover new ways to move your team forward.")}
           </p>
         </div>
         {manage && (
           <button className="btn primary" onClick={() => setEditing(null)}>
             <Plus size={17} />
-            建立課程
+            {t("Create course") + " "}
           </button>
         )}
       </div>
@@ -427,16 +446,17 @@ export default function Courses({
             <Layers3 size={38} />
           </div>
           <div>
-            <Badge tone="teal">SCORMLY · OPEN SOURCE</Badge>
-            <h2>讓教材，變得更有互動感。</h2>
+            <Badge tone="teal">{t("SCORMLY · OPEN SOURCE")}</Badge>
+            <h2>{t("Bring your learning content to life.")}</h2>
             <p>
-              運用拖曳區塊、影片、情境對話與測驗製作教材，匯出 SCORM 1.2／2004
-              後直接發布到課程。
+              {t(
+                "Build with drag-and-drop blocks, video, scenarios and quizzes. Publish a SCORM package directly to your company course.",
+              ) + " "}
             </p>
             <small>
-              Scormly
-              原版介面提供英文／烏克蘭文；專案保存在您的瀏覽器或本機，可使用
-              Publish to LMS 直接發布，並備份原始專案到公司平台。
+              {t(
+                "Choose English, Traditional Chinese or Spanish. Projects stay in your browser or on your device until you use Publish to LMS, which uploads the package and an editable backup to the company platform.",
+              ) + " "}
             </small>
           </div>
           <a
@@ -445,7 +465,7 @@ export default function Courses({
             target="_blank"
             rel="noreferrer"
           >
-            開啟 Scormly
+            {t("Open Scormly") + " "}
             <ExternalLink size={16} />
           </a>
         </div>
@@ -453,24 +473,26 @@ export default function Courses({
       <ErrorBox message={error} />
       <div className="toolbar">
         <div className="tabs">
-          {["全部課程", "我的學習", ...(manage ? ["草稿"] : [])].map((t) => (
-            <button
-              key={t}
-              className={filter === t ? "active" : ""}
-              onClick={() => setFilter(t)}
-            >
-              {t}
-              {t === "全部課程" && <span>{courses.length}</span>}
-            </button>
-          ))}
+          {["All courses", "My learning", ...(manage ? ["Draft"] : [])].map(
+            (tab) => (
+              <button
+                key={tab}
+                className={filter === tab ? "active" : ""}
+                onClick={() => setFilter(tab)}
+              >
+                {t(tab)}
+                {tab === "All courses" && <span>{courses.length}</span>}
+              </button>
+            ),
+          )}
         </div>
         <div className="search-field">
           <Search size={16} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜尋課程名稱、類別…"
-            aria-label="搜尋課程"
+            placeholder={t("Search course titles and categories\u2026")}
+            aria-label={t("Search courses")}
           />
         </div>
       </div>
@@ -495,28 +517,35 @@ export default function Courses({
                   }
                 </span>
                 <Badge tone={c.published ? "white" : "amber"}>
-                  {c.published ? "已發布" : "草稿"}
+                  {c.published ? t("Published") : t("Draft")}
                 </Badge>
               </div>
               <div className="course-body">
                 <div className="course-meta">
                   <span>{c.category}</span>
                   <span>
-                    {c.package ? "SCORM " + c.package.version : "數位教材"}
+                    {c.package
+                      ? "SCORM " + c.package.version
+                      : t("Digital lesson")}
                   </span>
                 </div>
                 <h2>{c.title}</h2>
                 <p>
-                  {c.description || "為持續成長的團隊，打造實用的學習體驗。"}
+                  {c.description ||
+                    t(
+                      "Practical learning experiences for teams that keep growing.",
+                    )}
                 </p>
                 <div className="course-details">
                   <span>
                     <Clock3 size={14} />
-                    {c.duration_minutes} 分鐘
+                    {c.duration_minutes}
+                    {" " + t("min") + " "}
                   </span>
                   <span>
                     <Users size={14} />
-                    {c.enrolled_count} 人學習中
+                    {c.enrolled_count}
+                    {" " + t("enrolled") + " "}
                   </span>
                 </div>
                 {c.progress !== null && (
@@ -530,10 +559,10 @@ export default function Courses({
                 <div className="course-actions">
                   <button className="text-btn" onClick={() => open(c)}>
                     {c.progress === 100
-                      ? "再次學習"
+                      ? t("Learn again")
                       : c.progress !== null
-                        ? "繼續學習"
-                        : "開始學習"}
+                        ? t("Continue learning")
+                        : t("Start learning")}
                     <ArrowRight size={16} />
                   </button>
                   {manage && (
@@ -542,16 +571,18 @@ export default function Courses({
                         <a
                           className="icon-btn"
                           href={`/api/courses/${c.id}/source/`}
-                          title="下載 Scormly 原始專案"
-                          aria-label="下載 Scormly 原始專案"
+                          title={t("Download Scormly source project")}
+                          aria-label={t("Download Scormly source project")}
                         >
                           <Download size={16} />
                         </a>
                       )}
                       <button
                         className="icon-btn"
-                        title="上傳 SCORM"
-                        aria-label={"上傳 " + c.title + " 的 SCORM"}
+                        title={t("Upload SCORM")}
+                        aria-label={
+                          t("Upload ") + c.title + t(" SCORM package")
+                        }
                         onClick={() => {
                           setError("");
                           setUploading(c);
@@ -561,8 +592,8 @@ export default function Courses({
                       </button>
                       <button
                         className="icon-btn"
-                        title="編輯課程"
-                        aria-label={"編輯 " + c.title}
+                        title={t("Edit course")}
+                        aria-label={t("Edit ") + c.title}
                         onClick={() => setEditing(c)}
                       >
                         <Pencil size={16} />
@@ -576,8 +607,8 @@ export default function Courses({
         </div>
       ) : (
         <Empty
-          title="找不到符合的課程"
-          description="調整搜尋條件，或建立新的課程。"
+          title={t("No matching courses")}
+          description={t("Adjust your search or create a new course.")}
         />
       )}
       {editing !== undefined && (
@@ -588,19 +619,27 @@ export default function Courses({
         />
       )}{" "}
       {uploading && (
-        <Modal title="上傳 SCORM 教材" onClose={() => setUploading(null)}>
+        <Modal
+          title={t("Upload SCORM content")}
+          onClose={() => setUploading(null)}
+        >
           <div className="modal-form">
             <h3>{uploading.title}</h3>
             <p className="muted">
-              支援單一 SCO 的 SCORM 1.2／2004 套件，最多 100
-              MB。新版套件會保留舊版學習紀錄。
+              {t(
+                "Single-SCO SCORM 1.2 / 2004 packages, up to 100 MB. Uploading a new version preserves previous learning records.",
+              ) + " "}
             </p>
             <label className="upload-zone">
               <Upload size={34} />
               <strong>
-                {busy ? "正在驗證與上傳…" : "選擇 SCORM ZIP 套件"}
+                {busy
+                  ? t("Validating and uploading\u2026")
+                  : t("Choose SCORM ZIP package")}
               </strong>
-              <span>由 Scormly 或其他教材工具匯出</span>
+              <span>
+                {t("Exported from Scormly or another authoring tool")}
+              </span>
               <input
                 type="file"
                 accept=".zip"
@@ -617,7 +656,8 @@ export default function Courses({
           <div className="lesson-content">
             <div className="lesson-kicker">
               <FileText size={16} />
-              {viewing.category} · {viewing.duration_minutes} 分鐘
+              {viewing.category} · {viewing.duration_minutes}
+              {" " + t("min") + " "}
             </div>
             {viewing.blocks.length ? (
               viewing.blocks.map((b, i) =>
@@ -634,8 +674,10 @@ export default function Courses({
               )
             ) : (
               <Empty
-                title="教材尚在準備中"
-                description="請稍後回來，或聯絡訓練管理員。"
+                title={t("Content is being prepared")}
+                description={t(
+                  "Please return later or contact your training administrator.",
+                )}
               />
             )}
             <ErrorBox message={error} />
@@ -646,7 +688,9 @@ export default function Courses({
                 onClick={complete}
               >
                 <CheckCircle2 size={16} />
-                {viewing.progress === 100 ? "已完成學習" : "標記為已完成"}
+                {viewing.progress === 100
+                  ? t("Learning completed")
+                  : t("Mark as completed")}
               </button>
             )}
           </div>

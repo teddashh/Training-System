@@ -95,7 +95,8 @@ function addressTable(tr: (t: Text) => string): string {
 
 export function makeSampleCourse(lang: Language): Course {
   seq = 0
-  const tr = (t: Text) => t[lang]
+  // Sample lesson prose is authored content; preserve its original language.
+  const tr = (t: Text) => t[lang === 'uk' ? 'uk' : 'en']
   const p = (t: Text) => `<p>${tr(t)}</p>`
 
   // ── Lesson 1: Welcome ─────────────────────────────────────────────────────

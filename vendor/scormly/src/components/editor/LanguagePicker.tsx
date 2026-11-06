@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLang } from '../../i18n/I18nProvider'
+import { useLang, useT } from '../../i18n/I18nProvider'
 import { LANGUAGES } from '../../i18n/types'
 
-// Interface language switcher (EN / UK).
+// Shares English, Traditional Chinese and Spanish with the company platform.
 export default function LanguagePicker() {
   const { lang, setLang } = useLang()
+  const { t } = useT('common')
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -21,6 +22,8 @@ export default function LanguagePicker() {
     <div ref={rootRef} className="relative">
       <button
         type="button"
+        aria-label={t('interfaceLanguage')}
+        aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium uppercase text-gray-600 hover:bg-gray-100"
       >

@@ -55,6 +55,9 @@ jobs:
       DEBUG: 'true'
       DEMO_MODE: 'true'
       DEMO_PASSWORD: Demo-Training-2026!
+      EMAIL_BACKEND: django.core.mail.backends.filebased.EmailBackend
+      EMAIL_FILE_PATH: /tmp/training-ci-mail
+      TEST_EMAIL_DIR: /tmp/training-ci-mail
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -99,9 +102,38 @@ jobs:
           retention-days: 7
   containers:
     runs-on: ubuntu-latest
+    env:
+      DEBUG: 'true'
+      POSTGRES_PASSWORD: ci-only-container-password
+      SECRET_KEY: ci-only-container-test-key-not-for-deployment
     steps:
       - uses: actions/checkout@v4
       - name: Build deployment images
+        run: docker compose build
+      - name: Verify routing after backend container replacement
         run: |
-          docker build -t training-api:ci .
-          docker build -f Dockerfile.web -t training-web:ci .
+          docker compose up -d --wait
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/auth/session/)" = 200
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8081/launch)" = 403
+          docker compose up -d --no-deps --force-recreate --wait api content
+          python - <<'PY'
+          import time
+          from urllib.request import urlopen
+          from urllib.error import HTTPError, URLError
+          def status(url):
+              try:
+                  with urlopen(url, timeout=3) as response:
+                      return response.status
+              except HTTPError as error:
+                  return error.code
+              except URLError:
+                  return 0
+          for _ in range(20):
+              if status('http://localhost:8080/api/auth/session/') == 200 and status('http://localhost:8081/launch') == 403:
+                  break
+              time.sleep(1)
+          else:
+              raise SystemExit('API/content routing did not recover after container replacement')
+          PY
+      - run: docker compose down
+        if: always()

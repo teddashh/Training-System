@@ -1,20 +1,22 @@
 import os
 import random
 from datetime import timedelta
+
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
+
 from training.models import (
-    User,
+    Attempt,
+    AttemptBudget,
     Course,
     Enrollment,
     Exam,
     Question,
-    Attempt,
-    AttemptBudget,
+    User,
 )
-from training.services import identity_for_user, grade
+from training.services import grade, identity_for_user
 
 
 class Command(BaseCommand):
@@ -35,44 +37,44 @@ class Command(BaseCommand):
             "demo.admin",
             "admin@evitina.example",
             password,
-            display_name="林以安",
-            department="人才發展部",
+            display_name="Alex Morgan",
+            department="People & Development",
             role="admin",
             employee_id="E0001",
         )
         identity_for_user(admin)
         departments = [
-            "產品研發部",
-            "業務行銷部",
-            "營運管理部",
-            "人才發展部",
-            "客戶成功部",
+            "Product & Engineering",
+            "Sales & Marketing",
+            "Operations",
+            "People & Development",
+            "Customer Success",
         ]
         names = [
-            "陳品蓁",
-            "林柏宇",
-            "黃思妤",
-            "張承翰",
-            "李佳穎",
-            "王子豪",
-            "吳宜庭",
-            "劉哲維",
-            "蔡雨彤",
-            "楊家豪",
-            "許雅婷",
-            "鄭冠廷",
-            "謝欣怡",
-            "郭彥廷",
-            "洪詩涵",
-            "曾宥廷",
-            "邱奕辰",
-            "廖婉婷",
-            "賴冠宇",
-            "徐若晴",
-            "周柏安",
-            "葉子涵",
-            "蘇家寧",
-            "潘宇軒",
+            "Jamie Chen",
+            "Taylor Lin",
+            "Sofia Huang",
+            "Jordan Chang",
+            "Emma Lee",
+            "Lucas Wang",
+            "Olivia Wu",
+            "Noah Liu",
+            "Mia Tsai",
+            "Ethan Yang",
+            "Ava Hsu",
+            "Leo Cheng",
+            "Isabella Hsieh",
+            "Daniel Kuo",
+            "Amelia Hung",
+            "Oliver Tseng",
+            "Charlotte Chiu",
+            "Henry Liao",
+            "Harper Lai",
+            "Grace Hsu",
+            "Benjamin Chou",
+            "Ella Yeh",
+            "Emily Su",
+            "William Pan",
         ]
         people = []
         for i, name in enumerate(names):
@@ -90,39 +92,39 @@ class Command(BaseCommand):
         courses = []
         for title, category, description, minutes in [
             (
-                "資訊安全與個人資料保護",
-                "必修通識",
-                "從日常工作出發，建立資訊安全意識，保護企業與個人的重要資料。",
+                "Information security & data privacy",
+                "Core training",
+                "Build practical security awareness and protect company and personal information in your daily work.",
                 45,
             ),
             (
-                "新夥伴入職指南",
-                "新人培訓",
-                "認識團隊文化、工作流程與協作工具，展開您的新旅程。",
+                "Welcome to the team",
+                "Onboarding",
+                "Explore our team culture, workflows and collaboration tools as you start your new role.",
                 30,
             ),
             (
-                "高效溝通與跨部門協作",
-                "職場技能",
-                "練習清晰表達與主動聆聽，讓每一次合作更加順暢。",
+                "Communication & cross-team collaboration",
+                "Workplace skills",
+                "Practice clear communication and active listening to help every collaboration run smoothly.",
                 60,
             ),
             (
-                "Microsoft 365 工作實踐",
-                "數位工具",
-                "掌握 Teams、SharePoint 與文件協作，打造有條理的數位工作方式。",
+                "Microsoft 365 in practice",
+                "Digital tools",
+                "Use Teams, SharePoint and shared documents to organize your digital workspace.",
                 40,
             ),
             (
-                "職場倫理與合規意識",
-                "必修通識",
-                "建立正確的職場判斷，了解保密、利益衝突及通報原則。",
+                "Workplace ethics & compliance",
+                "Core training",
+                "Build sound workplace judgment around confidentiality, conflicts of interest and reporting concerns.",
                 35,
             ),
             (
-                "客戶體驗與服務設計",
-                "專業成長",
-                "站在客戶的角度思考，用具體的服務方法創造更好的體驗。",
+                "Customer experience & service design",
+                "Professional development",
+                "Consider the customer perspective and apply practical service methods to improve their experience.",
                 50,
             ),
         ]:
@@ -135,20 +137,20 @@ class Command(BaseCommand):
                     published=True,
                     owner=admin,
                     blocks=[
-                        {"type": "heading", "text": "從日常工作開始的學習"},
+                        {"type": "heading", "text": "Learning through everyday work"},
                         {
                             "type": "text",
                             "text": description
-                            + "\n\n請先思考自己在工作中遇過的情境，帶著問題開始這次學習。",
+                            + "\n\nThink of a situation from your own work and bring those questions to this lesson.",
                         },
-                        {"type": "heading", "text": "今天的三個行動"},
+                        {"type": "heading", "text": "Three actions for today"},
                         {
                             "type": "text",
-                            "text": "1. 認識公司既有的規範與流程。\n2. 與同事分享一個實際案例。\n3. 訂下可以在本週實踐的小目標。",
+                            "text": "1. Review the company guidelines and processes.\n2. Share a practical example with a colleague.\n3. Set a small goal you can put into practice this week.",
                         },
                         {
                             "type": "callout",
-                            "text": "這是示範教材。正式發布前，請由公司講師補充實際內容與學習標準。",
+                            "text": "This is demonstration content. An instructor should add company-specific material and learning criteria before publication.",
                         },
                     ],
                 )
@@ -167,15 +169,15 @@ class Command(BaseCommand):
         exams = []
         for i, title in enumerate(
             [
-                "資訊安全年度評量",
-                "新人入職知識檢核",
-                "跨部門協作能力評量",
-                "合作夥伴合規測驗",
+                "Annual information security assessment",
+                "New starter knowledge check",
+                "Cross-team collaboration assessment",
+                "Partner compliance assessment",
             ]
         ):
             exam = Exam.objects.create(
                 title=title,
-                description="請閱讀各題情境，選擇最符合公司工作原則的答案。",
+                description="Read each scenario and select the answer that best follows company working practices.",
                 owner=admin,
                 course=courses[0] if i == 0 else None,
                 duration_minutes=30,
@@ -185,12 +187,12 @@ class Command(BaseCommand):
             )
             Question.objects.create(
                 exam=exam,
-                description="收到要求提供公司帳號密碼的不明郵件時，應如何處理？",
+                description="What should you do if an unexpected email asks for your company password?",
                 options=[
-                    "直接回覆郵件",
-                    "依公司流程向資訊窗口回報",
-                    "轉寄給所有同事",
-                    "點擊郵件中的連結確認",
+                    "Reply to the email",
+                    "Report it to IT through the approved process",
+                    "Forward it to everyone",
+                    "Click the link to investigate",
                 ],
                 solution=[1],
                 points=40,
@@ -198,13 +200,13 @@ class Command(BaseCommand):
             )
             Question.objects.create(
                 exam=exam,
-                description="以下哪些行為有助於安全協作？（複選）",
+                description="Which actions support secure collaboration? Select all that apply.",
                 type="multiple",
                 options=[
-                    "使用核准的共享空間",
-                    "僅授權必要的人員",
-                    "將密碼寫在公開文件",
-                    "定期檢查存取權限",
+                    "Use approved shared workspaces",
+                    "Grant access only to the people who need it",
+                    "Write passwords in public documents",
+                    "Review access permissions regularly",
                 ],
                 solution=[0, 1, 3],
                 points=40,
@@ -212,7 +214,7 @@ class Command(BaseCommand):
             )
             Question.objects.create(
                 exam=exam,
-                description="請描述一個您會如何改善團隊溝通的具體做法。",
+                description="Describe one practical way you would improve team communication.",
                 type="essay",
                 points=20,
                 position=2,
@@ -248,14 +250,14 @@ class Command(BaseCommand):
                     str(snapshot[1]["id"]): [0, 1, 3],
                     str(
                         snapshot[2]["id"]
-                    ): "先確認共同目標，再以書面記錄會議結論與分工。",
+                    ): "Agree on shared goals, then document meeting decisions and responsibilities.",
                 },
                 manual_grades={}
                 if i >= 95
                 else {
                     str(snapshot[2]["id"]): {
                         "points": rng.choice([8, 12, 16, 20]),
-                        "feedback": "已提出具體可行的做法。",
+                        "feedback": "You proposed a practical action.",
                     }
                 },
             )

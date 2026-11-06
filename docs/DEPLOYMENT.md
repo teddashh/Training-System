@@ -1,53 +1,77 @@
-# 公司部署、登入與營運
+# Deployment, identity and operations
 
-## 網域與儲存
+## Domains and storage
 
-建議使用 `learn.example.com` 與 `content.example.com`，由 Azure Application Gateway／反向代理提供有效 HTTPS。兩者需要不同 origin，但維持同一 registrable site，以便內容服務使用 SameSite=Lax cookie。不可把 SCORM HTML 直接放到主平台的 `/media/`，也不可讓內容服務暴露 `/api/` 或 `/admin/`。
+Use separate origins such as `learn.example.com` and `content.example.com`, with HTTPS terminated by a trusted reverse proxy or Azure Application Gateway. Keep them on the same registrable site so the content service's SameSite=Lax cookies work. Never serve uploaded SCORM HTML under the application origin or expose `/api/` and `/admin/` through the content origin.
 
-Compose 預設為本機示範。正式環境將 `DEBUG=false`、`DEMO_MODE=false`，設定足夠隨機的 `SECRET_KEY`、資料庫密碼、實際 `ALLOWED_HOSTS`、`APP_ORIGIN` 和 `SCORM_ORIGIN`。只開放 HTTPS，並限制資料庫與內部 API 網路。若 TLS 在最外層代理終止，須由可信代理正確設置 `X-Forwarded-Proto`；部署時同步調整 Nginx，不接受任意來源偽造此 header。
+Compose defaults to a loopback-only environment. For production, set `DEBUG=false`, `DEMO_MODE=false`, a random `SECRET_KEY`, a separate database password, `ALLOWED_HOSTS`, `APP_ORIGIN` and `SCORM_ORIGIN`. Restrict access to the database and internal services. If a proxy terminates TLS, configure Nginx and the trusted proxy to supply the correct `X-Forwarded-Proto`; do not accept a client-supplied value as trusted evidence of HTTPS.
 
-`SECRET_KEY` 用於 Django session 簽署與 SCORM 啟動票證；更換將使舊票證無效。正式 session／CSRF cookie 使用 `__Host-` 前綴、Secure、host-only；session 為 HttpOnly。SCORM 專用內容 cookie 只能讀取授權 package，最長 8 小時。啟動票證有效 120 秒，不記入內容代理 access log。
+Production session and CSRF cookies are Secure, host-only and use `__Host-` names; session cookies are HttpOnly. The signed SCORM launch ticket lasts 120 seconds. Content cookies grant access to one package for up to eight hours. Launch query strings are excluded from the content proxy access log. Rotating `SECRET_KEY` invalidates signed credentials.
 
-資料庫採 PostgreSQL 17；SQLite 僅供開發。SCORM、原始專案儲存在 `media` volume，正式可使用持久化 Azure Files（需驗證寫入／讀取權限與效能）。SQL 資料和 media 必須共同備份，並定期進行還原測試。
+Use PostgreSQL 17 for deployment; SQLite is for development. Uploaded packages and editable project backups live in the `media` volume. Persistent Azure Files can replace that volume after validating permissions and performance. Back up PostgreSQL and media together and rehearse restoration.
+
+The bundled Nginx configuration resolves API/content names through Docker DNS and refreshes them after container replacement. If deploying Nginx outside Docker, set an appropriate trusted resolver. See [Nginx resolver behavior](https://nginx.org/en/docs/http/ngx_http_core_module.html#resolver).
 
 ## Microsoft Entra ID
 
-1. 在公司 tenant 的 App registrations 建立單租用戶應用，平台選 **Web**。
-2. Redirect URI 設為 `https://learn.example.com/api/auth/entra/callback/`。
-3. 設定 `ENTRA_TENANT_ID` 為 tenant GUID、`ENTRA_CLIENT_ID` 為 app GUID。
-4. 以部署環境／Key Vault 提供 `ENTRA_CLIENT_SECRET`，保留到期輪替程序。不需要把 Secret 提供給前端。
-5. 依公司政策啟用 Enterprise application 的使用者指派、MFA／Conditional Access。
-6. 實際測試允許的員工、guest、停用帳號、錯誤 tenant、登出與 session 到期。
+1. Register a single-tenant application in the company tenant, using the **Web** platform.
+2. Set the redirect URI to `https://learn.example.com/api/auth/entra/callback/`.
+3. Set `ENTRA_TENANT_ID` and `ENTRA_CLIENT_ID` to their GUIDs.
+4. Supply `ENTRA_CLIENT_SECRET` through the deployment environment or Key Vault and establish secret rotation. It is never sent to the frontend.
+5. Apply user assignment, MFA and Conditional Access according to company policy.
+6. Test allowed staff, directory guests, deactivated users, the wrong tenant, sign-out and session expiry.
 
-MSAL 管理 authorization-code flow、state、nonce 與 PKCE。回呼額外檢查 tenant，並使用 `tenant-id:object-id` 作為穩定 SSO subject。首次有效 SSO 登入建立 **learner**，不因輸入的 E-mail 或顯示名稱授予管理員。
+MSAL manages the authorization-code flow, state, nonce and PKCE. The callback also validates the tenant and uses `tenant-id:object-id` as the stable subject. A valid new SSO user receives the learner role; email or display name cannot grant administrative rights.
 
-如果 E-mail 已存在於本機帳號，SSO 不會自動依同名 E-mail 綁定。由 Django 管理員確認本人後，將該帳號的 `entra_subject` 設為 `tenant-id:object-id`；再次登入後沿用既有身分和次數。平台新增的 role=admin 不會自動成為 Django superuser；保留少數維運人員作為 superuser。
+An existing local email is not automatically linked to a new Entra subject. After verifying ownership, a Django administrator can set that user's `entra_subject` to `tenant-id:object-id`. The next SSO login preserves the existing identity and attempt budgets. Platform administrators and Django superusers are separate permissions; reserve superuser access for operators.
 
-官方依據：[OIDC](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc)、[Authorization code flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow)。
+References: [Microsoft OIDC documentation](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc) and [authorization-code flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow).
 
-## E-mail 與員工編號
+## Email and employee ID access
 
-管理員先建立帳號。登入識別碼會跨 username、E-mail、employee_id 檢查碰撞。E-mail 僅有一個啟用／停用帳號可以使用；登入識別碼不能透過一般編輯 API 修改，以免次數歸戶錯誤。帳號不用 E-mail 時，可用 username 或 employee_id＋密碼。
+Administrators provision local accounts. Login identifiers are checked for collisions across username, email and employee ID. These identifiers cannot be changed through the general editing API, to protect identity and budget matching. Accounts without email can use a username or employee ID with a password.
 
-E-mail OTP 使用 SMTP TLS，六位數、10 分鐘、最多五次驗證失敗、成功後刪除。未知 E-mail 不建立帳號且回應相同。資料庫持久化登入速率計數跨 Gunicorn worker 生效；DRF 的一般請求節流另為記憶體型。大型部署應把全站節流改為共享 cache，並在入口設 rate limit。
+Email sign-in uses a six-digit code valid for ten minutes, with at most five incorrect entries. Codes are hashed and deleted after successful verification. Unknown email addresses receive the same API response and do not create accounts. SMTP delivery failure also returns the generic sign-in response to avoid account enumeration; add delivery monitoring and operational alerts.
 
-SMTP 失敗不向匿名訪客揭露帳號是否存在，因此 API 仍回傳一般提示；正式環境應另加入郵件投遞監測及維運警報。密碼由 Django PBKDF2 雜湊，建立／更新時套用密碼驗證。已有帳號重設密碼可由受權 Django 管理員處理。
+Set `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS` and `DEFAULT_FROM_EMAIL`. The normal backend is SMTP. The file email backend used in browser tests must not be used for company mail.
 
-## 考試與訪客
+Authentication rate counters are stored in PostgreSQL and apply across API workers. DRF's general API throttles use process-local memory; larger deployments should configure a shared cache and gateway rate limits. Passwords use Django hashing and configured password validation. Authorized Django administrators can reset provisioned users' passwords.
 
-次數上限為該身分對某考試的總額度，優先採個別 override，否則採 exam.max_attempts。邀請另外受到本連結上限約束。開始作答在 PostgreSQL transaction 中鎖定 exam 與 budget，建立新作答才扣一次；重整可返回同一份未到期試卷。未登入訪客的受測者身分已寫在 Invitation，無法由訪客任意替換 key。
+## Exam audiences and budgets
 
-訪客 URL 的隨機 token 放在 fragment，初次交換為受 CSRF 保護的 server session 後清除。DB 只保存 SHA-256；明文連結只在建立時顯示一次。持有者可以作答，因此分享對象應是指定受測者。連結沒有對收件者做第二次 OTP 身分驗證。
+Choose an audience in the exam editor: all accounts, employees, contractors, selected departments, selected people or invitation only. Rules use the current active account's employment type, exact department value or ID. They are enforced when listing exams and starting an attempt. Administrators can manage every exam; instructors can manage their own exams. Learners cannot inspect assignment lists or answer keys.
 
-試卷啟動時保存題目／答案／配分／及格門檻快照；學員和訪客 API 不回傳標準答案。截止後提交的新答案不會計入。`scheduler` 每分鐘執行逾時交卷；讀取結果或該作答也會處理逾時。PostgreSQL row lock 保護交卷與評分的原子性。
+An invitation grants access to its named identity independently of the account audience. Existing attempts remain available if the audience changes; an excluded participant cannot start a new account attempt. Publishing, exam opening/closing times and attempt limits still apply to invitations.
 
-## 發布與營運
+The total identity budget uses an individual override when present, otherwise the exam default. A guest link has an additional cap. Starting locks the exam and budget in a PostgreSQL transaction and consumes one slot only when creating an attempt. Refreshing resumes an unexpired attempt. Multiple links and a linked account share the same identity budget.
 
-1. 執行 CI 與 Docker 建置，套用 migrations。
-2. 部署 API、Web、Content 和單一 scheduler；設定健康檢查及服務監控。
-3. 建立少數 superuser，透過平台分配 admin／instructor／learner。
-4. 設定 SSO 與 SMTP，完成正式環境登入／邀請／SCORM 驗收。
-5. 用公司實際教材驗證格式，用目標同時在線人數測試負載。
-6. 保留 PostgreSQL、media 備份和操作紀錄。稽核表的 API 為唯讀；目前不是防竄改外部日誌儲存，資料庫維運者仍能修改。
+## Guest links and email verification
 
-目前 Docker 綁定本機，GitHub 公開的是程式碼。GitHub Actions 提供 build/test，不會自動把公司資料或網站部署到公網。
+A 256-bit random token is placed in the URL fragment and exchanged for a CSRF-protected server session, then removed from the URL. Only its SHA-256 hash is stored. The full link is returned once at creation. The participant cannot replace the identity key to reset usage.
+
+The organizer form enables **Require recipient email verification** by default. For email keys, delivery uses that address; for known accounts, it uses the account email. For an external account key without a mailbox, the organizer must provide a recipient email. The address is fixed at issue time and guests see only a masked hint.
+
+After opening a protected link, the guest requests a code and verifies it before seeing the invitation details or starting an attempt. Codes are session-bound, hashed, expire after ten minutes and lock after five incorrect entries. Resending invalidates the previous code in that session. Verification consumes no exam attempt. Expired/revoked invitations cannot request or verify a code; revocation also denies later guest access. SMTP failures return a clear delivery error and remove the unusable challenge.
+
+The API defaults `require_email_verification` to `false` for compatibility with existing integrations. API clients should send `true` explicitly for verified access. Existing links remain unchanged. A link with verification disabled is a bearer credential: its holder can act as the named participant.
+
+## Languages and content
+
+English is the initial language even when the browser prefers another language. The interface offers `en`, `zh-TW` and `es`. The choice is stored in that browser's `training-language` localStorage entry and shared between the platform and `/studio/`; it is not a user-profile setting. The `django_language` cookie and API request header select matching server messages (`zh-hant` for Django). Cross-tab changes update open interfaces.
+
+The shared catalog is `shared/locales/messages.json`. Language changes preserve unsaved form values and active answers. Authored content is never automatically translated. New demonstration data is English; existing demo records remain unchanged. Scormly's upstream sample course remains authored English, with its retained Ukrainian source variant. The exported player supports Traditional Chinese in addition to its existing languages and receives the current UI language through the LMS preference fields when automatic language selection is enabled.
+
+## Submission and operations
+
+Starting an exam snapshots questions, solutions, points and the pass threshold. Learner/guest responses never include solution keys. Answers arriving after the deadline are not accepted. The scheduler finalizes expired attempts every minute; reading an attempt or results also finalizes overdue work. PostgreSQL locks protect submission and grading.
+
+Before organizational rollout:
+
+1. Run CI and build deployment images; apply migrations.
+2. Deploy API, web, content and one scheduler with health monitoring.
+3. Provision operators and assign platform roles.
+4. Configure Entra/SMTP and complete real sign-in, verified invitation and SCORM acceptance tests.
+5. Validate company course packages and load-test the expected concurrency.
+6. Maintain backups and retention. The audit API is read-only, but the database audit table is not a tamper-proof external log store.
+
+GitHub Actions builds and tests the code. It does not automatically publish company data or deploy the service to the internet.

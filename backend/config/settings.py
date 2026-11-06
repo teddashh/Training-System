@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
-from django.core.exceptions import ImproperlyConfigured
+
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
@@ -29,6 +30,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -68,7 +70,9 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
-LANGUAGE_CODE = "zh-hant"
+LANGUAGE_CODE = "en"
+LANGUAGES = [("en", "English"), ("zh-hant", "Traditional Chinese"), ("es", "Spanish")]
+LOCALE_ROOT = Path(os.getenv("LOCALE_ROOT", BASE_DIR.parent / "shared" / "locales"))
 TIME_ZONE = "Asia/Taipei"
 USE_I18N = True
 USE_TZ = True
@@ -107,6 +111,7 @@ REST_FRAMEWORK = {
 EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend"
 )
+EMAIL_FILE_PATH = os.getenv("EMAIL_FILE_PATH", str(BASE_DIR / "test-mail"))
 EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true") == "true"

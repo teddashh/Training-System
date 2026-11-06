@@ -1,3 +1,5 @@
+import messages from '../../../../shared/locales/messages.json'
+import type { Language } from './types'
 import common from './locales/common'
 import blocks from './locales/blocks'
 import themes from './locales/themes'
@@ -23,7 +25,7 @@ import explainers from './locales/explainers'
 
 // All translation namespaces. Each lives in its own file (src/i18n/locales/),
 // so they can be worked on in parallel without conflicts.
-export const DICTIONARY = {
+const BASE_DICTIONARY = {
   common,
   blocks,
   themes,
@@ -48,4 +50,15 @@ export const DICTIONARY = {
   explainers,
 }
 
-export type Namespace = keyof typeof DICTIONARY
+export type Namespace = keyof typeof BASE_DICTIONARY
+
+// Keep upstream namespaces and add the company platform's complete locales.
+const catalog = messages as Record<string, Record<'en' | 'zh-TW' | 'es', string>>
+export const DICTIONARY = Object.fromEntries(
+  Object.entries(BASE_DICTIONARY).map(([namespace, table]) => [namespace, {
+    uk: table.uk,
+    ...Object.fromEntries((['en', 'zh-TW', 'es'] as const).map((locale) => [locale,
+      Object.fromEntries(Object.entries(table.en).map(([key, value]) => [key, catalog[`studio.${namespace}.${key}`]?.[locale] ?? catalog[value]?.[locale] ?? value])),
+    ])),
+  }]),
+) as Record<Namespace, Record<Language, Record<string, string>>>
