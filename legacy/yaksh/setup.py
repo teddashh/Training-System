@@ -16,7 +16,7 @@ def get_version():
 
 
 install_requires = [
-    'django==3.1.7',
+    'django==5.2.17',
     'django-taggit==1.2.0',
     'pytz==2019.3',
     'requests-oauthlib>=0.6.1',
@@ -26,7 +26,7 @@ install_requires = [
     'ruamel.yaml==0.15.23',
     'invoke==0.21.0',
     'requests',
-    'markdown==2.6.9',
+    'markdown==3.8.1',
 ]
 
 setup(
