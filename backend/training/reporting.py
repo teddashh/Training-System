@@ -65,11 +65,9 @@ def filtered_attempts(request, exam=None):
         .iterator()
     ):
         with transaction.atomic():
-            finalize(
-                Attempt.objects.select_for_update()
-                .select_related("identity", "exam")
-                .get(pk=pk)
-            )
+            # Lock only the attempt. Joining the exam here would also lock it
+            # on PostgreSQL and compete with the exam-first start workflow.
+            finalize(Attempt.objects.select_for_update().get(pk=pk))
     if values["days"] != "all":
         qs = qs.annotate(report_time=Coalesce("submitted_at", "started_at")).filter(
             report_time__gte=timezone.now() - timedelta(days=int(values["days"]))
