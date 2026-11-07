@@ -14,6 +14,7 @@ export async function api<T>(
   path: string,
   method = "GET",
   data?: unknown,
+  timeoutMs?: number,
 ): Promise<T> {
   const csrf =
     document.cookie
@@ -24,6 +25,7 @@ export async function api<T>(
   const response = await fetch("/api/" + path, {
     method,
     credentials: "same-origin",
+    ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
     headers: {
       "Accept-Language": getLocale() === "zh-TW" ? "zh-hant" : getLocale(),
       ...(!form && data !== undefined

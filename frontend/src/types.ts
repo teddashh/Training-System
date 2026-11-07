@@ -98,6 +98,11 @@ export type Result = {
   submitted_at: string | null;
 };
 export type Invitation = {
+  state:
+    "active" | "resume_only" | "exhausted" | "revoked" | "expired" | "blocked";
+  remaining_new_attempts: number;
+  can_resume: boolean;
+  batch: string | null;
   id: string;
   exam: number;
   exam_title: string;

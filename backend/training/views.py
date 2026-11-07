@@ -28,7 +28,6 @@ from .models import (
 from .serializers import (
     CourseSerializer,
     ExamSerializer,
-    InvitationSerializer,
     UserSerializer,
 )
 from .services import (
@@ -244,102 +243,6 @@ class Exams(viewsets.ModelViewSet):
                 {"limit": limit, "used": budget.used},
             )
         return Response({"limit": limit, "used": budget.used})
-
-
-class Invitations(viewsets.ReadOnlyModelViewSet):
-    serializer_class = InvitationSerializer
-
-    def get_queryset(self):
-        if not manager(self.request.user):
-            raise PermissionDenied()
-        qs = Invitation.objects.select_related("exam", "identity").order_by(
-            "-created_at"
-        )
-        return (
-            qs
-            if self.request.user.role == "admin"
-            else qs.filter(exam__owner=self.request.user)
-        )
-
-    @action(detail=False, methods=["post"])
-    def issue(self, request):
-        exam = get_object_or_404(Exam, pk=request.data.get("exam"))
-        manage_exam(request.user, exam)
-        try:
-            limit, days = (
-                int(request.data.get("max_attempts", 1)),
-                int(request.data.get("days", 7)),
-            )
-        except (TypeError, ValueError):
-            raise ValidationError(
-                translate("Attempts and validity days must be integers.")
-            )
-        if not 1 <= limit <= 100 or not 1 <= days <= 90:
-            raise ValidationError(
-                translate("Attempts must be 1–100 and validity must be 1–90 days.")
-            )
-        required = request.data.get("require_email_verification", False)
-        if type(required) is not bool:
-            raise ValidationError(
-                translate("Email verification must be enabled or disabled.")
-            )
-        token = secrets.token_urlsafe(32)
-        with transaction.atomic():
-            Exam.objects.select_for_update().get(pk=exam.pk)
-            identity = resolve_identity(request.data.get("key", ""))
-            email = ""
-            if required:
-                from django.core.exceptions import ValidationError as InvalidEmail
-                from django.core.validators import validate_email
-
-                email = (
-                    str(request.data.get("verification_email", "")).strip().casefold()
-                )
-                if not email:
-                    email = (
-                        identity.key.removeprefix("email:")
-                        if identity.key.startswith("email:")
-                        else (identity.user.email if identity.user else "")
-                    )
-                try:
-                    validate_email(email)
-                except InvalidEmail:
-                    raise ValidationError(
-                        translate(
-                            "A valid recipient email is required for verification."
-                        )
-                    )
-            inv = Invitation.objects.create(
-                exam=exam,
-                identity=identity,
-                token_hash=hash_token(token),
-                max_attempts=limit,
-                expires_at=timezone.now() + timedelta(days=days),
-                created_by=request.user,
-                require_email_verification=required,
-                verification_email=email,
-            )
-            audit(request.user, "invitation.created", inv.id, {"exam": exam.id})
-        from django.conf import settings
-
-        return Response(
-            {
-                **self.get_serializer(inv).data,
-                "url": settings.APP_ORIGIN + "/invite#" + token,
-                "note": translate(
-                    "This link is also subject to the participant's total attempt limit."
-                ),
-            },
-            status=201,
-        )
-
-    @action(detail=True, methods=["post"])
-    def revoke(self, request, pk=None):
-        inv = self.get_object()
-        inv.revoked = True
-        inv.save(update_fields=["revoked"])
-        audit(request.user, "invitation.revoked", inv.id)
-        return Response({"ok": True})
 
 
 def session_invite(request):

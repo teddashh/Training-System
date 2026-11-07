@@ -60,6 +60,46 @@ Password login and email-code requests/verification share a persistent limit of 
 
 The API uses the direct connection's address, ignoring client-supplied forwarding headers. In the bundled deployment, the Nginx peer is shared by participants, so the network counter is a deployment-wide budget. Size it for scheduled training groups and enforce actual client-IP limits at the trusted outer proxy. General API throttles allow 600 requests per minute for an authenticated user or anonymous direct peer. These are traffic controls, not a concurrency capacity guarantee; validate company usage on Peach1.
 
+## Guest invitation cohorts
+
+Open **Guest exam invitations → Create invitation batch**. Select a published assessment, set the per-link attempt limit (1–100) and validity (1–90 days), then paste or upload UTF-8 CSV. Each batch accepts 1–200 recipients and at most 256 KB. Required header: `key`; optional header: `verification_email`. Header names must be unique and exact. Quote values containing commas or newlines.
+
+```csv
+key,verification_email
+employee-1042,
+partner.sofia@example.com,
+contractor-027,contractor027@example.com
+```
+
+Keys resolve by email, username or employee ID to the same participant identity used by account sign-in. Unknown keys create guest identities, without creating login accounts. Duplicate recipients within a batch are rejected even when different aliases are used. Disabled linked accounts are rejected. **Validate recipients** shows each identity, verification mailbox, remaining new attempts and row errors without persisting identities or links. Issuance revalidates everything and commits all recipients or none. Administrators can issue for any exam; instructors only for their own.
+
+Email verification is enabled by default. Leave `verification_email` empty to use the account's email or the guest's email key. For an account-only key without a mailbox, supply the intended recipient's email. Disabling verification allows anyone holding the link to use its bound identity. The platform does not email the invitation automatically; distribute each personal link through an approved channel. Verification codes are sent only when a recipient requests them.
+
+**Download invitation links CSV** exports the issued links, expiry, per-link limit, remaining attempts and verification settings. The file uses stable English column names, UTF-8 with BOM and spreadsheet formula escaping. Treat it as a credential file. Full links are held in this dialog's memory; history shows metadata. Download before closing. The dialog warns before discarding un-downloaded links. Browser failure or reload loses the in-memory request and links.
+
+If the creation response is lost, keep the dialog open and use **Retry batch request** within ten minutes. The browser reuses the original request UUID and exact payload. The authenticated creator receives the same links without issuing duplicates. Another creator, changed payload, expired recovery window or changed server secret cannot recover that response. Check invitation history before creating another batch after an uncertain result. Reissuing links does not reset the shared participant/exam attempt budget. A participant with no new attempts may still resume an eligible active attempt.
+
+History supports participant/exam search, exam/status filters and pagination. Search includes account email, username, employee ID and display name. **Disable** asks for confirmation and immediately rejects later guest requests, including saves/submission from an active attempt. Account deactivation likewise blocks linked guest identities. Saved answers and used attempts remain recorded.
+
+| Status | Meaning |
+| --- | --- |
+| Active | Link is unrevoked, unexpired and has a new attempt available |
+| Resume only | No new attempts remain, but a timed active attempt exists |
+| No attempts remaining | Neither a new attempt nor a timed active attempt is available |
+| Disabled | An organizer revoked the link |
+| Expired | The link's expiry time has passed |
+| Account disabled | The linked platform account is inactive |
+
+These statuses describe link and budget state. Assessment publication, opening/closing dates and verification still apply when accessing the exam. Remaining counts are current snapshots, not reserved attempts; starting an attempt enforces the budget transactionally.
+
+### Invitation API compatibility
+
+`GET /api/invitations/?page=1&page_size=25` returns `{results,count,page,pages}`. Page size is capped at 100; excessive page numbers resolve to the last page. Optional filters are `search`, `exam` and `status` (`active`, `resume_only`, `exhausted`, `revoked`, `expired`, `blocked`). Omitting `page` preserves the array response, capped at 1,000 records. History never returns full tokens or access URLs.
+
+`POST /api/invitations/bulk/` takes `exam`, `csv`, `max_attempts` (default 1), `days` (default 7), `require_email_verification` (default true), and `apply` (default false). Set `apply: true` and a client-generated UUID `request_id` to issue. A preview or row-validation failure returns `{valid,applied:false,count,rows}`; invalid rows never create a partial batch. Success returns HTTP 201 with `{valid:true,applied:true,replayed:false,count,invitations}`, including personal URLs. Exact retries within ten minutes return HTTP 200 with `replayed:true`. Conflicting/expired request IDs return HTTP 409. Responses containing links have `Cache-Control: no-store`.
+
+The existing `/api/invitations/issue/` endpoint remains available for single recipients and retains its API default of verification disabled; both organizer forms explicitly enable verification by default. Batch and single-link creation audit metadata excludes access tokens. Successful retries do not add issuance audit events.
+
 ## Bulk onboarding
 
 **People & permissions → Import participants** accepts UTF-8 CSV up to 1 MB and 500 rows. Required header: `username`. Optional headers: `email,employee_id,display_name,department,employment`. Use `employee` or `contractor` for employment; an empty value defaults to employee. Quote commas/newlines according to CSV rules.

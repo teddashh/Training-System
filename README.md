@@ -8,11 +8,11 @@ A self-hosted training, course authoring and assessment platform for employees, 
 
 **English is the default.** Switch to Traditional Chinese or Spanish from the sign-in page, workspace, course editor or exam. The platform and authoring studio share the preference, without discarding unsaved edits or exam answers. Authored course content, questions and names keep their original language.
 
-This v1.2 handover release runs with a real database and tested end-to-end workflows. [Peach1 handover](docs/PEACH1-HANDOVER.md) covers deployment, backup/restore, the Graph provisioning contract and company acceptance tests. Live Graph synchronization, Entra/SMTP configuration and infrastructure validation belong to the Peach1 integration stage. The public repository contains no company credentials or live deployment.
+This v1.3 handover release runs with a real database and tested end-to-end workflows. [Peach1 handover](docs/PEACH1-HANDOVER.md) covers deployment, backup/restore, the Graph provisioning contract and company acceptance tests. Live Graph synchronization, Entra/SMTP configuration and infrastructure validation belong to the Peach1 integration stage. The public repository contains no company credentials or live deployment.
 
 ![Dashboard with synthetic demonstration data](docs/screenshots/dashboard.png)
 
-[Learner feedback](docs/screenshots/learner-feedback.png) · [Assessment insights](docs/screenshots/insights.png) · [Required training report](docs/screenshots/assignments.png) · [Question bank](docs/screenshots/question-bank.png)
+[Invitation cohorts](docs/screenshots/invitations.png) · [Learner feedback](docs/screenshots/learner-feedback.png) · [Assessment insights](docs/screenshots/insights.png) · [Required training report](docs/screenshots/assignments.png) · [Question bank](docs/screenshots/question-bank.png)
 
 ## Capabilities
 
@@ -27,7 +27,7 @@ This v1.2 handover release runs with a real database and tested end-to-end workf
 | Exams | Standalone or course-linked; four question types; question banks, random subsets and shuffled options; scheduling, duration and passing score |
 | Audience | All accounts, employees, contractors, selected departments, selected people or invitation only; enforced by the API |
 | Attempts | Default and individual budgets; invitation-specific caps; shared account/guest identity; PostgreSQL locking prevents concurrent overuse |
-| Guest access | Unique expiring/revocable links bound to an email/account key; optional recipient email verification, enabled by default in the organizer form |
+| Guest access | Unique expiring/revocable links bound to an email/account key; CSV batch preview/issuance with retry recovery and link download; searchable, paginated history; recipient email verification enabled by default in organizer forms |
 | Grading | Attempt snapshots, ordered autosave with conflict detection and retry, server timing, idempotent submission, automatic scoring and learner-visible instructor feedback |
 | Reporting | Filtered, paginated results and matching CSV; exam score distributions, department performance and question analysis from frozen attempt snapshots; completion, trends and audit records |
 

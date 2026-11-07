@@ -229,7 +229,23 @@ class AttemptBudget(models.Model):
         ]
 
 
+class InvitationBatch(models.Model):
+    # Client-generated request UUID makes retries atomic across API workers.
+    id = models.UUIDField(primary_key=True, editable=False)
+    created_by = models.ForeignKey(User, on_delete=models.PROTECT)
+    exam = models.ForeignKey(Exam, on_delete=models.PROTECT)
+    fingerprint = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
 class Invitation(models.Model):
+    batch = models.ForeignKey(
+        InvitationBatch,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="invitations",
+    )
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE)
     identity = models.ForeignKey(Identity, on_delete=models.PROTECT)

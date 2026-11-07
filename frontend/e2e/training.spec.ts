@@ -1283,3 +1283,261 @@ test("conflicting tabs require recovery and a failed save retries without losing
   expect(saved.answer_revision).toBe(2);
   await other.close();
 });
+
+test("invitation batches validate aliases, translate, and recover committed links after a lost response", async ({
+  page,
+  browser,
+}) => {
+  await login(page);
+  const title = "=Cohort recovery " + Date.now();
+  const exam = await post<{ id: number }>(page, "exams/", {
+    title,
+    duration_minutes: 5,
+    max_attempts: 1,
+    pass_score: 70,
+    published: true,
+    questions: [
+      {
+        description: "Cohort assessment",
+        type: "single",
+        options: ["Report to IT", "Ignore"],
+        solution: [0],
+        points: 100,
+      },
+    ],
+  });
+  await page
+    .getByRole("link", { name: "Guest exam invitations", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Create invitation batch", exact: true })
+    .click();
+  let modal = page.getByRole("dialog", {
+    name: "Create invitation batch",
+    exact: true,
+  });
+  await modal.getByLabel("Select exam").selectOption(String(exam.id));
+  await expect(
+    modal.getByLabel("Require recipient email verification"),
+  ).toBeChecked();
+  await modal
+    .getByLabel("Recipient CSV")
+    .fill("key\nadmin@evitina.example\nE0001\n");
+  await modal
+    .getByRole("button", { name: "Validate recipients", exact: true })
+    .click();
+  await expect(
+    modal.getByText(
+      "This participant appears more than once, possibly under another sign-in identifier.",
+    ),
+  ).toBeVisible();
+  await expect(
+    modal.getByRole("button", { name: "Create invitation links", exact: true }),
+  ).toBeDisabled();
+  const email = `cohort-${Date.now()}@example.com`;
+  const csv = `key\n${email}\nsecond-${email}\n`;
+  await modal.locator('input[type="file"]').setInputFiles({
+    name: "cohort.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from(csv),
+  });
+  await expect(modal.getByLabel("Recipient CSV")).toHaveValue(csv);
+  await modal
+    .getByRole("combobox", { name: "Interface language" })
+    .selectOption("es");
+  modal = page.getByRole("dialog", {
+    name: "Crear lote de invitaciones",
+    exact: true,
+  });
+  await expect(modal.getByLabel("CSV de destinatarios")).toHaveValue(csv);
+  await modal
+    .getByRole("combobox", { name: "Idioma de la interfaz" })
+    .selectOption("zh-TW");
+  modal = page.getByRole("dialog", { name: "建立批次邀請", exact: true });
+  await expect(modal.getByLabel("收件者 CSV")).toHaveValue(csv);
+  await modal.locator(".language-picker select").selectOption("en");
+  modal = page.getByRole("dialog", {
+    name: "Create invitation batch",
+    exact: true,
+  });
+  await modal.getByLabel("Require recipient email verification").uncheck();
+  await modal
+    .getByRole("button", { name: "Validate recipients", exact: true })
+    .click();
+  await expect(
+    modal.getByText(
+      "All 2 recipients are valid. No links have been created yet.",
+    ),
+  ).toBeVisible();
+  const requests: { request_id: string }[] = [];
+  await page.route("**/api/invitations/bulk/", async (route) => {
+    const payload = route.request().postDataJSON();
+    if (!payload.apply) return route.continue();
+    requests.push(payload);
+    const response = await route.fetch();
+    if (requests.length === 1) {
+      expect(response.status()).toBe(201);
+      await route.abort("connectionfailed");
+    } else {
+      expect(response.status()).toBe(200);
+      expect((await response.json()).replayed).toBe(true);
+      await route.fulfill({ response });
+    }
+  });
+  await modal
+    .getByRole("button", { name: "Create invitation links", exact: true })
+    .click();
+  await expect(
+    modal.getByRole("button", { name: "Retry batch request", exact: true }),
+  ).toBeEnabled();
+  await expect(modal.getByLabel("Recipient CSV")).toBeDisabled();
+  await modal
+    .getByRole("button", { name: "Retry batch request", exact: true })
+    .click();
+  modal = page.getByRole("dialog", {
+    name: "Batch invitations created",
+    exact: true,
+  });
+  await expect(
+    modal.getByText("Created 2 personal invitation links."),
+  ).toBeVisible();
+  expect(requests).toHaveLength(2);
+  expect(requests[0]).toEqual(requests[1]);
+  const url = await modal
+    .getByLabel(`Link for email:${email}`, { exact: true })
+    .inputValue();
+  await modal
+    .getByRole("button", { name: "Close", exact: true })
+    .last()
+    .click();
+  const confirm = page.getByRole("dialog", {
+    name: "Close invitation batch?",
+    exact: true,
+  });
+  await expect(confirm).toBeVisible();
+  await confirm.getByRole("button", { name: "Keep open", exact: true }).click();
+  const downloaded = page.waitForEvent("download");
+  await modal
+    .getByRole("button", { name: "Download invitation links CSV", exact: true })
+    .click();
+  const contents = await downloadText(await downloaded);
+  expect(contents.split("\r\n").filter(Boolean)).toHaveLength(3);
+  expect(contents).toContain(`"'${title}"`);
+  expect(contents).toContain(url);
+  await modal
+    .getByRole("button", { name: "Close", exact: true })
+    .last()
+    .click();
+  await page.getByLabel("Filter by exam").selectOption(String(exam.id));
+  await expect(
+    page.getByText("2 matching invitations", { exact: true }),
+  ).toBeVisible();
+  const history = await (
+    await page.request.get(`/api/invitations/?page=1&exam=${exam.id}`)
+  ).json();
+  expect(
+    new Set(history.results.map((row: { batch: string }) => row.batch)).size,
+  ).toBe(1);
+  expect(JSON.stringify(history)).not.toContain(url.split("#")[1]);
+  const context = await browser.newContext();
+  try {
+    const guest = await context.newPage();
+    await guest.goto(url);
+    await guest
+      .getByRole("button", { name: "Start / resume exam", exact: true })
+      .click();
+    await expect(
+      guest.getByRole("heading", { name: "Cohort assessment" }),
+    ).toBeVisible();
+    await page
+      .getByRole("row")
+      .filter({ has: page.getByText(email, { exact: true }) })
+      .getByRole("button", { name: "Disable", exact: true })
+      .click();
+    await page
+      .getByRole("dialog", { name: "Disable invitation?", exact: true })
+      .getByRole("button", { name: "Disable invitation", exact: true })
+      .click();
+    await guest.reload();
+    await expect(guest.getByRole("alert")).toContainText(/revoked|expired/i);
+  } finally {
+    await context.close();
+  }
+});
+
+test("invitation history pages and filters a cohort and confirms revocation", async ({
+  page,
+}) => {
+  await login(page);
+  const title = "Cohort history " + Date.now();
+  const exam = await post<{ id: number }>(page, "exams/", {
+    title,
+    duration_minutes: 5,
+    max_attempts: 2,
+    published: true,
+    questions: [
+      {
+        description: "History assessment",
+        type: "single",
+        options: ["Safe", "Unsafe"],
+        solution: [0],
+        points: 100,
+      },
+    ],
+  });
+  await post(page, "invitations/bulk/", {
+    exam: exam.id,
+    csv:
+      "key\n" +
+      Array.from(
+        { length: 28 },
+        (_, i) => `history-${exam.id}-${i}@example.com`,
+      ).join("\n"),
+    apply: true,
+    request_id: crypto.randomUUID(),
+    max_attempts: 1,
+    days: 7,
+  });
+  await page
+    .getByRole("link", { name: "Guest exam invitations", exact: true })
+    .click();
+  await page.getByLabel("Search invitations").fill(title);
+  await expect(
+    page.getByText("28 matching invitations", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator("tbody tr")).toHaveCount(25);
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(page.getByText("Page 2 of 2", { exact: true })).toBeVisible();
+  await expect(page.locator("tbody tr")).toHaveCount(3);
+  const row = page.locator("tbody tr").first();
+  const participant = await row.locator("td").first().innerText();
+  await row.getByRole("button", { name: "Disable", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Disable invitation?", exact: true })
+    .getByRole("button", { name: "Keep invitation", exact: true })
+    .click();
+  await expect(
+    row.getByRole("button", { name: "Disable", exact: true }),
+  ).toBeEnabled();
+  await row.getByRole("button", { name: "Disable", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Disable invitation?", exact: true })
+    .getByRole("button", { name: "Disable invitation", exact: true })
+    .click();
+  await page.getByLabel("Invitation status").selectOption("revoked");
+  await expect(
+    page.getByText("1 matching invitations", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await expect(page.locator("tbody")).toContainText(participant);
+  await page.getByLabel("Invitation status").selectOption("active");
+  await expect(
+    page.getByText("27 matching invitations", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Search invitations")
+    .fill("nonexistent-cohort-recipient");
+  await expect(
+    page.getByText("No matching invitations", { exact: true }),
+  ).toBeVisible();
+});

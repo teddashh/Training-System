@@ -27,6 +27,8 @@ docker compose exec api python manage.py shell -c \
 
 ## 公司部署交接
 
+v1.3 加入最多 200 人的 CSV 批次邀請、收件者與登入別名驗證、整批建立，以及回應遺失後十分鐘內的相同請求復原。關閉前可下載個人連結；邀請紀錄支援搜尋、狀態篩選與分頁。停用帳號也會封鎖其既有訪客連結與工作階段，保留已儲存答案和應試次數。請參閱 [v1.2 升級說明](PEACH1-HANDOVER.md#upgrade-from-v12) 與[邀請操作說明](OPERATIONS.md#guest-invitation-cohorts)。公司 Entra／Graph 串接仍留待 Peach1。
+
 v1.2 強化自動儲存順序、斷線重試與多視窗衝突處理，並讓學員查看自己的作答及講師回饋。SCORM 課程關閉前會等待儲存確認，題庫選擇視窗支援鍵盤操作。升級會套用答案版本欄位的資料庫遷移；請參閱 [Peach1 升級說明](PEACH1-HANDOVER.md#upgrade-from-v11)。Entra／Graph 串接仍留待 Peach1。
 
 v1.1 加入伺服器分頁與篩選成績、符合相同篩選條件的 CSV 匯出、評量與題目分析，以及作答前的個人剩餘次數提示。報表採用每次作答保留的題目版本，並依管理員與講師權限限制資料範圍。[評量分析畫面](screenshots/insights.png)。

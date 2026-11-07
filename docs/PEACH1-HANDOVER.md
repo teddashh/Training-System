@@ -11,6 +11,7 @@ This repository contains the company training platform. Peach1 is the target for
 - Required training assignments, deadlines, learner worklists, instructor-scoped completion reports and CSV exports. A passing exam or completed course fulfills the requirement, including prior completion. Reassignment updates the requirement; it does not reset progress or attempt budgets.
 - Independent and course-linked exams, question banks, question/option shuffling, random subsets, audience restrictions, timing, automatic/manual grading and review feedback.
 - Personal guest links with email/account-bound identity, expiry, revocation, optional email verification and per-link plus per-identity attempt limits.
+- CSV invitation cohorts with preview validation, atomic issuance, retry recovery, link download and searchable, paginated history. Disabling a linked account blocks its guest links and active guest attempts.
 - Performance dashboards, filtered results pagination and matching exports, assessment/question insights, individual attempt-budget preflight, audit history, expiry scheduler, Docker deployment and backup/restore tooling.
 
 The system does not yet perform Microsoft Graph directory synchronization. Entra OIDC and Graph provisioning are separate integrations. Company packages, tenant controls, email delivery, infrastructure and expected concurrency need acceptance testing on Peach1.
@@ -26,6 +27,14 @@ The system does not yet perform Microsoft Graph directory synchronization. Entra
 7. Configure SMTP, verify real email-code delivery, and provision local participants through **People & permissions**. CSV headers are documented in [operations](OPERATIONS.md).
 8. Run `docker compose exec api python manage.py check_deployment --strict`. Review **Settings & audit → Deployment readiness**. These checks inspect local configuration; they do not verify DNS, certificates, SMTP delivery, scheduler health or tenant access.
 9. Connect Entra and Graph following the contract below, then complete the acceptance table. Entra configuration can remain deferred during local platform validation.
+
+## Upgrade from v1.2
+
+Back up database and media, then deploy the matching v1.3 frontend and API outside active examination hours. Migration `0006_invitation_batches` creates batch request records and adds a nullable batch reference to invitations. Existing invitation tokens, attempts and budgets remain valid; existing invitations have no batch reference. Compose applies the migration during API startup. Reload open organizer tabs after upgrading.
+
+The new cohort workflow accepts up to 200 CSV recipients, validates aliases and issues all links atomically. The creator can recover a lost response by retrying the identical request within ten minutes. Only token hashes are stored; link recovery derives tokens using the server secret, so changing `SECRET_KEY` prevents recovery of earlier batch responses. Already issued links still validate against their saved hashes. Keep downloaded link files private and follow [invitation operations](OPERATIONS.md#guest-invitation-cohorts).
+
+Account deactivation now also blocks guest access through every identity linked to that account, including existing guest sessions and active attempts. Saved answers and attempt usage remain intact. Re-enabling an account restores eligible links; revoke a link to disable it independently. Rehearse this behavior, CSV errors, response loss, repeated issuance and link downloads before company rollout. No invitation email is sent automatically.
 
 ## Upgrade from v1.1
 
@@ -109,6 +118,7 @@ docker compose --project-name peach1-training up -d --wait
 | Exams | Independent and linked exams, random snapshots, attempt caps, autosave, expiry and manual review work under expected concurrency |
 | Assessment reporting | Filtered totals and CSV agree across pages; only fully graded attempts contribute to question statistics; ownership restrictions apply to reports and exports |
 | Guests | Named recipient verifies email; link expiry/revocation works; reissued links cannot reset the shared identity budget |
+| Invitation cohorts | CSV aliases resolve correctly; one invalid row creates no links; a lost response recovers the same links; pagination/filter counts agree; disabled accounts lose existing guest access |
 | Recovery | Restore a current database/media backup in isolation, compare record counts and launch restored content |
 | Operations | Monitor DB/storage, TLS, SMTP, scheduler, backup age and application errors; define retention and support ownership |
 

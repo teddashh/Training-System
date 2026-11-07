@@ -98,6 +98,8 @@ def hash_token(token):
 
 
 def check_invite(invitation):
+    if invitation.identity.user_id and not invitation.identity.user.is_active:
+        raise PermissionDenied(translate("This participant account is disabled."))
     if invitation.revoked or invitation.expires_at <= timezone.now():
         raise PermissionDenied(translate("This invitation is expired or disabled."))
 

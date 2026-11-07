@@ -1,4 +1,5 @@
 import Readiness from "./Readiness";
+import InvitationBatch from "./InvitationBatch";
 import { PeopleImport, PersonEditor } from "./PeopleTools";
 import { t, useLocale } from "./i18n";
 import { useEffect, useState } from "react";
@@ -29,7 +30,26 @@ import {
   statusLabel,
 } from "./ui";
 export function Invitations({ exams }: { exams: Exam[] }) {
-  useLocale();
+  const locale = useLocale();
+  const [batch, setBatch] = useState(false);
+  const [search, setSearch] = useState(""),
+    [query, setQuery] = useState(""),
+    [state, setState] = useState(""),
+    [filterExam, setFilterExam] = useState("");
+  const [page, setPage] = useState(1),
+    [pages, setPages] = useState(1),
+    [count, setCount] = useState(0),
+    [refresh, setRefresh] = useState(0),
+    [loading, setLoading] = useState(true);
+  const [revoking, setRevoking] = useState<Invitation | null>(null);
+  const states: Record<Invitation["state"], string> = {
+    active: t("Active"),
+    resume_only: t("Resume only"),
+    exhausted: t("No attempts remaining"),
+    revoked: t("Disabled"),
+    expired: t("Expired"),
+    blocked: t("Account disabled"),
+  };
   const [rows, setRows] = useState<Invitation[]>([]),
     [open, setOpen] = useState(false),
     [exam, setExam] = useState(
@@ -44,13 +64,47 @@ export function Invitations({ exams }: { exams: Exam[] }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [copied, setCopied] = useState(false);
-  const load = () =>
-    api<Invitation[]>("invitations/")
-      .then(setRows)
-      .catch((e) => setError(e.message));
+  const load = () => setRefresh((value) => value + 1);
   useEffect(() => {
-    void load();
-  }, []);
+    if (search === query) return;
+    const timer = setTimeout(() => {
+      setQuery(search);
+      setPage(1);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search, query]);
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: "25",
+    search: query,
+    status: state,
+  });
+  if (filterExam) params.set("exam", filterExam);
+  const parameters = params.toString();
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    api<{ results: Invitation[]; count: number; page: number; pages: number }>(
+      "invitations/?" + parameters,
+    )
+      .then((data) => {
+        if (alive) {
+          setRows(data.results);
+          setCount(data.count);
+          setPages(data.pages);
+          setPage(data.page);
+        }
+      })
+      .catch((e) => {
+        if (alive) setError(e.message);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [parameters, locale, refresh]);
   async function issue(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -65,7 +119,7 @@ export function Invitations({ exams }: { exams: Exam[] }) {
         verification_email: recipientEmail,
       });
       setUrl(row.url!);
-      await load();
+      load();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -73,11 +127,16 @@ export function Invitations({ exams }: { exams: Exam[] }) {
     }
   }
   async function revoke(id: string) {
+    setBusy(true);
+    setError("");
     try {
       await api(`invitations/${id}/revoke/`, "POST", {});
-      await load();
+      setRevoking(null);
+      load();
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setBusy(false);
     }
   }
   async function copy() {
@@ -100,18 +159,24 @@ export function Invitations({ exams }: { exams: Exam[] }) {
             )}
           </p>
         </div>
-        <button
-          className="btn primary"
-          onClick={() => {
-            setOpen(true);
-            setUrl("");
-            setCopied(false);
-            setError("");
-          }}
-        >
-          <Plus size={17} />
-          {t("Create personal link") + " "}
-        </button>
+        <div className="heading-actions">
+          <button className="btn" onClick={() => setBatch(true)}>
+            <UsersIcon size={17} />
+            {t("Create invitation batch")}
+          </button>
+          <button
+            className="btn primary"
+            onClick={() => {
+              setOpen(true);
+              setUrl("");
+              setCopied(false);
+              setError("");
+            }}
+          >
+            <Plus size={17} />
+            {t("Create personal link") + " "}
+          </button>
+        </div>
       </div>
       <div className="info-banner">
         <ShieldCheck size={25} />
@@ -125,7 +190,54 @@ export function Invitations({ exams }: { exams: Exam[] }) {
         </div>
       </div>
       <ErrorBox message={error} />
-      <div className="panel table-panel">
+      <div className="report-filters invitation-filters">
+        <label>
+          {t("Search invitations")}
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t("Search participant or exam")}
+          />
+        </label>
+        <label>
+          {t("Filter by exam")}
+          <select
+            value={filterExam}
+            onChange={(e) => {
+              setFilterExam(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">{t("All exams")}</option>
+            {exams
+              .filter((e) => e.can_manage)
+              .map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.title}
+                </option>
+              ))}
+          </select>
+        </label>
+        <label>
+          {t("Invitation status")}
+          <select
+            value={state}
+            onChange={(e) => {
+              setState(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">{t("All statuses")}</option>
+            {Object.entries(states).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <p role="status">{t("{count} matching invitations", { count })}</p>
+      <div className="panel table-panel" aria-busy={loading}>
         <div className="table-scroll">
           <table>
             <thead>
@@ -154,30 +266,37 @@ export function Invitations({ exams }: { exams: Exam[] }) {
                   <td>{row.exam_title}</td>
                   <td>
                     {row.used} / {row.max_attempts}
+                    <small className="cell-note">
+                      {t("{count} new attempts available", {
+                        count: row.remaining_new_attempts,
+                      })}
+                    </small>
                   </td>
                   <td>{date(row.expires_at)}</td>
                   <td>
                     <Badge
                       tone={
-                        row.revoked
-                          ? "neutral"
-                          : new Date(row.expires_at) < new Date()
-                            ? "amber"
-                            : "teal"
+                        row.state === "active" || row.state === "resume_only"
+                          ? "teal"
+                          : "neutral"
                       }
                     >
-                      {row.revoked
-                        ? t("Disabled")
-                        : new Date(row.expires_at) < new Date()
-                          ? t("Expired")
-                          : t("Active")}
+                      {states[row.state]}
                     </Badge>
+                    {row.require_email_verification && (
+                      <small className="cell-note">
+                        {t("Email verification required")}
+                      </small>
+                    )}
                   </td>
                   <td>
                     <button
                       className="text-btn danger-text"
                       disabled={row.revoked}
-                      onClick={() => revoke(row.id)}
+                      onClick={() => {
+                        setError("");
+                        setRevoking(row);
+                      }}
                     >
                       <Ban size={14} />
                       {t("Disable") + " "}
@@ -188,15 +307,83 @@ export function Invitations({ exams }: { exams: Exam[] }) {
             </tbody>
           </table>
         </div>
-        {!rows.length && (
+        {loading && <Spinner />}
+        {!loading && !rows.length && (
           <Empty
-            title={t("No invitations yet")}
+            title={
+              query || state || filterExam
+                ? t("No matching invitations")
+                : t("No invitations yet")
+            }
             description={t(
-              "Create a link and share it with the intended participant.",
+              query || state || filterExam
+                ? "Try another search or change the filters."
+                : "Create a link and share it with the intended participant.",
             )}
           />
         )}
       </div>
+      <div className="pagination">
+        <button
+          className="btn"
+          disabled={loading || page <= 1}
+          onClick={() => setPage(page - 1)}
+        >
+          {t("Previous page")}
+        </button>
+        <span>{t("Page {page} of {pages}", { page, pages })}</span>
+        <button
+          className="btn"
+          disabled={loading || page >= pages}
+          onClick={() => setPage(page + 1)}
+        >
+          {t("Next page")}
+        </button>
+      </div>
+      {batch && (
+        <InvitationBatch
+          exams={exams}
+          onClose={() => setBatch(false)}
+          onSaved={load}
+        />
+      )}
+      {revoking && (
+        <Modal
+          title={t("Disable invitation?")}
+          onClose={() => {
+            if (!busy) setRevoking(null);
+          }}
+        >
+          <div className="modal-form">
+            <p>
+              {revoking.identity_key.replace(/^(email|account):/, "")} ·{" "}
+              {revoking.exam_title}
+            </p>
+            <p>
+              {t(
+                "This link will stop working immediately, including for an active guest attempt. Saved answers and shared attempt usage are retained.",
+              )}
+            </p>
+            <ErrorBox message={error} />
+            <div className="modal-footer">
+              <button
+                className="btn"
+                disabled={busy}
+                onClick={() => setRevoking(null)}
+              >
+                {t("Keep invitation")}
+              </button>
+              <button
+                className="btn primary"
+                disabled={busy}
+                onClick={() => revoke(revoking.id)}
+              >
+                {t("Disable invitation")}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
       {open && (
         <Modal
           title={url ? t("Personal link created") : t("Create exam invitation")}

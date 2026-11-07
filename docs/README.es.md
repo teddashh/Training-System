@@ -27,6 +27,8 @@ Consulte la [guía completa en inglés](../README.md), la [documentación de des
 
 ## Entrega para despliegue corporativo
 
+La versión 1.3 añade lotes de hasta 200 invitaciones desde CSV, validación de destinatarios y alias, creación atómica y recuperación de la misma solicitud durante diez minutos si se pierde la respuesta. Descarga los enlaces antes de cerrar; el historial permite buscar, filtrar y paginar. Desactivar una cuenta también bloquea sus enlaces y sesiones de invitado existentes, sin borrar respuestas ni intentos utilizados. Consulta la [actualización desde v1.2](PEACH1-HANDOVER.md#upgrade-from-v12) y las [operaciones de invitaciones](OPERATIONS.md#guest-invitation-cohorts). La integración corporativa de Entra y Graph sigue reservada para Peach1.
+
 La versión 1.2 incorpora guardado ordenado, reintentos tras fallos de conexión y recuperación de conflictos entre ventanas. Los participantes pueden revisar sus respuestas y los comentarios del instructor. Los cursos SCORM esperan la confirmación del guardado antes de cerrar; el selector de preguntas mejora la navegación por teclado. La actualización incluye una migración de versiones de respuestas: consulta la [guía de actualización](PEACH1-HANDOVER.md#upgrade-from-v11). La integración activa de Entra y Graph sigue pendiente para Peach1.
 
 La versión 1.1 añade resultados paginados con filtros y exportaciones coincidentes, análisis por evaluación y pregunta, y límites individuales visibles antes de comenzar un intento. Los informes analizan las preguntas guardadas en cada intento y respetan los permisos del administrador o instructor. [Vista del análisis](screenshots/insights.png).

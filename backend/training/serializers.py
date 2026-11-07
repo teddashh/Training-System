@@ -401,6 +401,9 @@ class ExamSerializer(serializers.ModelSerializer):
 
 
 class InvitationSerializer(serializers.ModelSerializer):
+    state = serializers.CharField(read_only=True)
+    remaining_new_attempts = serializers.IntegerField(read_only=True)
+    can_resume = serializers.BooleanField(read_only=True)
     identity_key = serializers.CharField(source="identity.key", read_only=True)
     exam_title = serializers.CharField(source="exam.title", read_only=True)
 
@@ -411,6 +414,10 @@ class InvitationSerializer(serializers.ModelSerializer):
             "exam",
             "exam_title",
             "identity_key",
+            "batch",
+            "state",
+            "remaining_new_attempts",
+            "can_resume",
             "max_attempts",
             "used",
             "expires_at",

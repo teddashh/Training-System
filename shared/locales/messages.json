@@ -9083,5 +9083,265 @@
     "en": "Save and close",
     "zh-TW": "儲存並關閉",
     "es": "Guardar y cerrar"
+  },
+  "Created {count} personal invitation links.": {
+    "en": "Created {count} personal invitation links.",
+    "zh-TW": "已建立 {count} 個個人邀請連結。",
+    "es": "Se han creado {count} enlaces de invitación personales."
+  },
+  "Download the links before closing. Invitation history contains metadata, not the full access links.": {
+    "en": "Download the links before closing. Invitation history contains metadata, not the full access links.",
+    "zh-TW": "關閉前請下載連結。邀請紀錄僅保存基本資料，不會顯示完整存取連結。",
+    "es": "Descarga los enlaces antes de cerrar. El historial contiene los datos de las invitaciones, pero no los enlaces de acceso completos."
+  },
+  "Download invitation links CSV": {
+    "en": "Download invitation links CSV",
+    "zh-TW": "下載邀請連結 CSV",
+    "es": "Descargar enlaces de invitación en CSV"
+  },
+  "Link for {participant}": {
+    "en": "Link for {participant}",
+    "zh-TW": "{participant} 的連結",
+    "es": "Enlace para {participant}"
+  },
+  "This download contains access credentials. Share each link only with its intended participant and store the file securely.": {
+    "en": "This download contains access credentials. Share each link only with its intended participant and store the file securely.",
+    "zh-TW": "下載檔案包含存取憑證。請僅將各連結分享給指定參與者，並妥善保管檔案。",
+    "es": "Esta descarga contiene credenciales de acceso. Comparte cada enlace solo con su destinatario y guarda el archivo de forma segura."
+  },
+  "Preview up to 200 recipients, then create one personal link per identity. Existing accounts and attempt budgets are preserved.": {
+    "en": "Preview up to 200 recipients, then create one personal link per identity. Existing accounts and attempt budgets are preserved.",
+    "zh-TW": "預覽最多 200 位收件者，並為每個身分建立個人連結。既有帳號與應試次數額度會保留。",
+    "es": "Revisa hasta 200 destinatarios y crea un enlace personal por identidad. Se conservan las cuentas y los límites de intentos existentes."
+  },
+  "Anyone holding a link can use its bound identity when email verification is disabled.": {
+    "en": "Anyone holding a link can use its bound identity when email verification is disabled.",
+    "zh-TW": "停用電子郵件驗證時，任何持有連結的人都可以使用該連結綁定的身分。",
+    "es": "Si desactivas la verificación por correo, cualquiera que tenga un enlace podrá usar la identidad asociada."
+  },
+  "CSV headers: key,verification_email. The key can be an email, username or employee ID. Leave verification_email blank to use the participant's email.": {
+    "en": "CSV headers: key,verification_email. The key can be an email, username or employee ID. Leave verification_email blank to use the participant's email.",
+    "zh-TW": "CSV 欄位：key,verification_email。key 可填電子郵件、使用者名稱或員工編號。verification_email 留空時會使用參與者的電子郵件。",
+    "es": "Encabezados CSV: key,verification_email. La clave puede ser un correo, nombre de usuario o número de empleado. Deja verification_email vacío para usar el correo del participante."
+  },
+  "The invitation CSV must be 256 KB or smaller.": {
+    "en": "The invitation CSV must be 256 KB or smaller.",
+    "zh-TW": "邀請 CSV 檔案不得超過 256 KB。",
+    "es": "El CSV de invitaciones no puede superar los 256 KB."
+  },
+  "Recipient CSV": {
+    "en": "Recipient CSV",
+    "zh-TW": "收件者 CSV",
+    "es": "CSV de destinatarios"
+  },
+  "All {count} recipients are valid. No links have been created yet.": {
+    "en": "All {count} recipients are valid. No links have been created yet.",
+    "zh-TW": "全部 {count} 位收件者皆有效。目前尚未建立任何連結。",
+    "es": "Los {count} destinatarios son válidos. Aún no se ha creado ningún enlace."
+  },
+  "Fix the recipient errors. No invitations were created.": {
+    "en": "Fix the recipient errors. No invitations were created.",
+    "zh-TW": "請修正收件者錯誤。尚未建立任何邀請。",
+    "es": "Corrige los errores de los destinatarios. No se ha creado ninguna invitación."
+  },
+  "Row": {
+    "en": "Row",
+    "zh-TW": "列",
+    "es": "Fila"
+  },
+  "Verification email": {
+    "en": "Verification email",
+    "zh-TW": "驗證電子郵件",
+    "es": "Correo de verificación"
+  },
+  "Validation": {
+    "en": "Validation",
+    "zh-TW": "驗證結果",
+    "es": "Validación"
+  },
+  "Valid": {
+    "en": "Valid",
+    "zh-TW": "有效",
+    "es": "Válido"
+  },
+  "Some participants have no new attempts remaining. A new link does not reset their budget; an existing attempt may still be resumed.": {
+    "en": "Some participants have no new attempts remaining. A new link does not reset their budget; an existing attempt may still be resumed.",
+    "zh-TW": "部分參與者已無新的應試次數。新連結不會重設次數額度；仍可能可以繼續進行中的考試。",
+    "es": "Algunos participantes no tienen intentos nuevos disponibles. Un enlace nuevo no restablece su límite; aún podrían reanudar un intento en curso."
+  },
+  "The issuance result is uncertain. Keep this dialog open and retry the same request within ten minutes to recover its links without creating duplicates.": {
+    "en": "The issuance result is uncertain. Keep this dialog open and retry the same request within ten minutes to recover its links without creating duplicates.",
+    "zh-TW": "無法確認建立結果。請保持此視窗開啟，並在十分鐘內重試相同請求，即可取回連結且避免重複建立。",
+    "es": "No se puede confirmar el resultado. Mantén este diálogo abierto y reintenta la misma solicitud en un plazo de diez minutos para recuperar los enlaces sin duplicarlos."
+  },
+  "Validate recipients": {
+    "en": "Validate recipients",
+    "zh-TW": "驗證收件者",
+    "es": "Validar destinatarios"
+  },
+  "Retry batch request": {
+    "en": "Retry batch request",
+    "zh-TW": "重試批次請求",
+    "es": "Reintentar solicitud del lote"
+  },
+  "Create invitation links": {
+    "en": "Create invitation links",
+    "zh-TW": "建立邀請連結",
+    "es": "Crear enlaces de invitación"
+  },
+  "Close invitation batch?": {
+    "en": "Close invitation batch?",
+    "zh-TW": "關閉批次邀請？",
+    "es": "¿Cerrar el lote de invitaciones?"
+  },
+  "Closing discards the links or recovery request held in this window. Download successful results first; if creation is uncertain, check invitation history before issuing another batch.": {
+    "en": "Closing discards the links or recovery request held in this window. Download successful results first; if creation is uncertain, check invitation history before issuing another batch.",
+    "zh-TW": "關閉後將捨棄此視窗中的連結或復原請求。請先下載成功建立的結果；若無法確認建立結果，請先查看邀請紀錄再建立另一批邀請。",
+    "es": "Al cerrar se descartan los enlaces o la solicitud de recuperación de esta ventana. Descarga primero los resultados; si no sabes si se crearon, revisa el historial antes de emitir otro lote."
+  },
+  "Keep open": {
+    "en": "Keep open",
+    "zh-TW": "保持開啟",
+    "es": "Mantener abierto"
+  },
+  "Close without download": {
+    "en": "Close without download",
+    "zh-TW": "不下載並關閉",
+    "es": "Cerrar sin descargar"
+  },
+  "Resume only": {
+    "en": "Resume only",
+    "zh-TW": "僅可繼續考試",
+    "es": "Solo reanudar"
+  },
+  "No attempts remaining": {
+    "en": "No attempts remaining",
+    "zh-TW": "已無應試次數",
+    "es": "Sin intentos disponibles"
+  },
+  "Account disabled": {
+    "en": "Account disabled",
+    "zh-TW": "帳號已停用",
+    "es": "Cuenta desactivada"
+  },
+  "Create invitation batch": {
+    "en": "Create invitation batch",
+    "zh-TW": "建立批次邀請",
+    "es": "Crear lote de invitaciones"
+  },
+  "Batch invitations created": {
+    "en": "Batch invitations created",
+    "zh-TW": "已建立批次邀請",
+    "es": "Lote de invitaciones creado"
+  },
+  "Search invitations": {
+    "en": "Search invitations",
+    "zh-TW": "搜尋邀請",
+    "es": "Buscar invitaciones"
+  },
+  "Search participant or exam": {
+    "en": "Search participant or exam",
+    "zh-TW": "搜尋參與者或考試",
+    "es": "Buscar participante o examen"
+  },
+  "Invitation status": {
+    "en": "Invitation status",
+    "zh-TW": "邀請狀態",
+    "es": "Estado de la invitación"
+  },
+  "{count} matching invitations": {
+    "en": "{count} matching invitations",
+    "zh-TW": "共 {count} 筆符合條件的邀請",
+    "es": "{count} invitaciones coincidentes"
+  },
+  "{count} new attempts available": {
+    "en": "{count} new attempts available",
+    "zh-TW": "可新增應試 {count} 次",
+    "es": "{count} intentos nuevos disponibles"
+  },
+  "Email verification required": {
+    "en": "Email verification required",
+    "zh-TW": "需要電子郵件驗證",
+    "es": "Verificación por correo obligatoria"
+  },
+  "Page {page} of {pages}": {
+    "en": "Page {page} of {pages}",
+    "zh-TW": "第 {page} 頁，共 {pages} 頁",
+    "es": "Página {page} de {pages}"
+  },
+  "Disable invitation?": {
+    "en": "Disable invitation?",
+    "zh-TW": "停用邀請？",
+    "es": "¿Desactivar invitación?"
+  },
+  "This link will stop working immediately, including for an active guest attempt. Saved answers and shared attempt usage are retained.": {
+    "en": "This link will stop working immediately, including for an active guest attempt. Saved answers and shared attempt usage are retained.",
+    "zh-TW": "此連結將立即失效，包括進行中的訪客考試。已儲存的答案與共用應試次數紀錄仍會保留。",
+    "es": "Este enlace dejará de funcionar de inmediato, incluso durante un intento activo de un invitado. Se conservarán las respuestas guardadas y los intentos utilizados."
+  },
+  "Keep invitation": {
+    "en": "Keep invitation",
+    "zh-TW": "保留邀請",
+    "es": "Conservar invitación"
+  },
+  "Disable invitation": {
+    "en": "Disable invitation",
+    "zh-TW": "停用邀請",
+    "es": "Desactivar invitación"
+  },
+  "A request ID is required to issue a batch.": {
+    "en": "A request ID is required to issue a batch.",
+    "zh-TW": "建立批次邀請需要請求識別碼。",
+    "es": "Se necesita un identificador de solicitud para emitir un lote."
+  },
+  "This participant account is disabled.": {
+    "en": "This participant account is disabled.",
+    "zh-TW": "此參與者帳號已停用。",
+    "es": "La cuenta de este participante está desactivada."
+  },
+  "Use key and optional verification_email as unique CSV headers.": {
+    "en": "Use key and optional verification_email as unique CSV headers.",
+    "zh-TW": "CSV 欄位名稱須包含 key，可另加 verification_email，且不得重複。",
+    "es": "Usa key y, de forma opcional, verification_email como encabezados CSV únicos."
+  },
+  "Issue invitations for 1 to 200 participants at a time.": {
+    "en": "Issue invitations for 1 to 200 participants at a time.",
+    "zh-TW": "每批邀請須包含 1 至 200 位參與者。",
+    "es": "Emite invitaciones para entre 1 y 200 participantes a la vez."
+  },
+  "The batch can no longer be recovered. Review invitation history before issuing new links.": {
+    "en": "The batch can no longer be recovered. Review invitation history before issuing new links.",
+    "zh-TW": "已無法取回此批連結。請先查看邀請紀錄，再建立新連結。",
+    "es": "Ya no se puede recuperar el lote. Revisa el historial de invitaciones antes de emitir enlaces nuevos."
+  },
+  "Publish the exam before issuing a batch.": {
+    "en": "Publish the exam before issuing a batch.",
+    "zh-TW": "建立批次邀請前請先發布考試。",
+    "es": "Publica el examen antes de emitir un lote."
+  },
+  "This request ID was already used or its recovery window has expired. Review invitation history before issuing new links.": {
+    "en": "This request ID was already used or its recovery window has expired. Review invitation history before issuing new links.",
+    "zh-TW": "此請求識別碼已使用，或已超過可復原時間。請先查看邀請紀錄，再建立新連結。",
+    "es": "Este identificador de solicitud ya se utilizó o su plazo de recuperación ha caducado. Revisa el historial antes de emitir enlaces nuevos."
+  },
+  "This participant appears more than once, possibly under another sign-in identifier.": {
+    "en": "This participant appears more than once, possibly under another sign-in identifier.",
+    "zh-TW": "此參與者重複出現，可能使用了不同的登入識別資料。",
+    "es": "Este participante aparece más de una vez, posiblemente con otro identificador de inicio de sesión."
+  },
+  "No matching invitations": {
+    "en": "No matching invitations",
+    "zh-TW": "沒有符合條件的邀請",
+    "es": "No hay invitaciones coincidentes"
+  },
+  "Try another search or change the filters.": {
+    "en": "Try another search or change the filters.",
+    "zh-TW": "請嘗試其他搜尋條件或調整篩選。",
+    "es": "Prueba otra búsqueda o cambia los filtros."
+  },
+  "Validating…": {
+    "en": "Validating…",
+    "zh-TW": "驗證中…",
+    "es": "Validando…"
   }
 }

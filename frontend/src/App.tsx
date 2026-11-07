@@ -299,7 +299,7 @@ export default function App() {
             {demo
               ? t("Demo environment \u00B7 Synthetic data")
               : t("Enterprise training workspace")}
-            <span>v1.2</span>
+            <span>v1.3</span>
           </div>
         </div>
       </aside>
