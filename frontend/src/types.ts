@@ -54,6 +54,9 @@ export type Exam = {
   questions?: Question[];
   question_count: number;
   attempts_used: number;
+  effective_attempt_limit: number;
+  attempts_remaining: number;
+  active_attempt_id: string | null;
   audience:
     | "all"
     | "employees"
@@ -137,4 +140,47 @@ export type GuestChallenge = {
   verification_required: true;
   email_hint: string;
   title: string;
+};
+export type ResultSummary = {
+  total: number;
+  graded: number;
+  pending: number;
+  in_progress: number;
+  passed: number;
+  average_score: number | null;
+  pass_rate: number | null;
+  participants: number;
+};
+export type ResultsPage = {
+  results: Result[];
+  count: number;
+  page: number;
+  pages: number;
+  page_size: number;
+  summary: ResultSummary;
+};
+export type ExamInsights = {
+  exam: { id: number; title: string };
+  summary: ResultSummary;
+  distribution: { band: string; count: number }[];
+  departments: {
+    department: string | null;
+    attempts: number;
+    graded: number;
+    passed: number;
+    average: number | null;
+  }[];
+  questions: {
+    variant: string;
+    question_id: number;
+    description: string;
+    type: Question["type"];
+    points: number;
+    responses: number;
+    answered: number;
+    full_credit: number;
+    average_points: number;
+    full_credit_rate: number;
+    answer_rate: number;
+  }[];
 };

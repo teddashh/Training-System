@@ -27,4 +27,6 @@ docker compose exec api python manage.py shell -c \
 
 ## 公司部署交接
 
+v1.1 加入伺服器分頁與篩選成績、符合相同篩選條件的 CSV 匯出、評量與題目分析，以及作答前的個人剩餘次數提示。報表採用每次作答保留的題目版本，並依管理員與講師權限限制資料範圍。[評量分析畫面](screenshots/insights.png)。
+
 v1.0 加入必修訓練指派、截止日期、完成報表、可重複使用的題庫、隨機考題與選項、CSV 人員匯入及密碼管理。介面預設英文，亦提供繁體中文與西班牙文。請參閱 [Peach1 交接指南](PEACH1-HANDOVER.md) 與 [操作說明](OPERATIONS.md)。公司 Entra、Graph 同步及郵件連線於 Peach1 階段完成驗收。

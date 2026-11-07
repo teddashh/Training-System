@@ -8818,5 +8818,215 @@
     "en": "MAKE AN IMPACT",
     "zh-TW": "創造正向影響",
     "es": "MARCA LA DIFERENCIA"
+  },
+  "Assessment insights": {
+    "en": "Assessment insights",
+    "zh-TW": "評量分析",
+    "es": "Análisis de evaluaciones"
+  },
+  "{remaining} new attempts remaining": {
+    "en": "{remaining} new attempts remaining",
+    "zh-TW": "剩餘 {remaining} 次新作答機會",
+    "es": "Quedan {remaining} intentos nuevos"
+  },
+  "{used} of {limit} attempts used": {
+    "en": "{used} of {limit} attempts used",
+    "zh-TW": "已使用 {used} 次，共可作答 {limit} 次",
+    "es": "{used} de {limit} intentos utilizados"
+  },
+  "You have an active attempt. Resuming it does not use another attempt.": {
+    "en": "You have an active attempt. Resuming it does not use another attempt.",
+    "zh-TW": "您有尚未完成的作答。繼續作答不會扣除新的次數。",
+    "es": "Tienes un intento en curso. Reanudarlo no consume otro intento."
+  },
+  "Opens at": {
+    "en": "Opens at",
+    "zh-TW": "開放時間",
+    "es": "Apertura"
+  },
+  "Closes at": {
+    "en": "Closes at",
+    "zh-TW": "截止時間",
+    "es": "Cierre"
+  },
+  "Your limit": {
+    "en": "Your limit",
+    "zh-TW": "您的作答上限",
+    "es": "Tu límite"
+  },
+  "ASSESSMENT INTELLIGENCE": {
+    "en": "ASSESSMENT INTELLIGENCE",
+    "zh-TW": "評量洞察",
+    "es": "ANÁLISIS DE EVALUACIONES"
+  },
+  "Find learning gaps and review question performance using actual assessment evidence.": {
+    "en": "Find learning gaps and review question performance using actual assessment evidence.",
+    "zh-TW": "依據實際評量紀錄，找出學習落差並檢視各題表現。",
+    "es": "Identifica brechas de aprendizaje y revisa el desempeño por pregunta con datos reales de evaluación."
+  },
+  "Export question analysis": {
+    "en": "Export question analysis",
+    "zh-TW": "匯出題目分析",
+    "es": "Exportar análisis de preguntas"
+  },
+  "Select assessment": {
+    "en": "Select assessment",
+    "zh-TW": "選擇評量",
+    "es": "Seleccionar evaluación"
+  },
+  "All time": {
+    "en": "All time",
+    "zh-TW": "所有時間",
+    "es": "Todo el historial"
+  },
+  "Last {days} days": {
+    "en": "Last {days} days",
+    "zh-TW": "最近 {days} 天",
+    "es": "Últimos {days} días"
+  },
+  "Participants": {
+    "en": "Participants",
+    "zh-TW": "參與者",
+    "es": "Participantes"
+  },
+  "Attempt pass rate": {
+    "en": "Attempt pass rate",
+    "zh-TW": "作答通過率",
+    "es": "Tasa de aprobación por intento"
+  },
+  "{count} awaiting review": {
+    "en": "{count} awaiting review",
+    "zh-TW": "{count} 筆待評分",
+    "es": "{count} pendientes de revisión"
+  },
+  "{count} in progress": {
+    "en": "{count} in progress",
+    "zh-TW": "{count} 筆作答中",
+    "es": "{count} en curso"
+  },
+  "Graded attempts by score band": {
+    "en": "Graded attempts by score band",
+    "zh-TW": "已評分作答的分數分布",
+    "es": "Intentos calificados por intervalo de puntuación"
+  },
+  "No graded attempts yet": {
+    "en": "No graded attempts yet",
+    "zh-TW": "尚無已評分的作答",
+    "es": "Aún no hay intentos calificados"
+  },
+  "Completed grading will populate the score and question analysis.": {
+    "en": "Completed grading will populate the score and question analysis.",
+    "zh-TW": "完成評分後，即會顯示分數與題目分析。",
+    "es": "Al completar la calificación, se mostrarán los análisis de puntuaciones y preguntas."
+  },
+  "Department performance": {
+    "en": "Department performance",
+    "zh-TW": "部門表現",
+    "es": "Desempeño por departamento"
+  },
+  "Attempt pass rate within each department": {
+    "en": "Attempt pass rate within each department",
+    "zh-TW": "各部門的作答通過率",
+    "es": "Tasa de aprobación por intento en cada departamento"
+  },
+  "{graded} graded · {total} total attempts": {
+    "en": "{graded} graded · {total} total attempts",
+    "zh-TW": "{graded} 筆已評分 · 共 {total} 筆作答",
+    "es": "{graded} calificados · {total} intentos en total"
+  },
+  "Question performance": {
+    "en": "Question performance",
+    "zh-TW": "題目表現",
+    "es": "Desempeño por pregunta"
+  },
+  "Sorted by full-credit rate, lowest first": {
+    "en": "Sorted by full-credit rate, lowest first",
+    "zh-TW": "依滿分比例由低至高排序",
+    "es": "Ordenado por tasa de puntuación completa, de menor a mayor"
+  },
+  "Search question analysis": {
+    "en": "Search question analysis",
+    "zh-TW": "搜尋題目分析",
+    "es": "Buscar en el análisis de preguntas"
+  },
+  "Each saved question version is analyzed separately. Shuffled options are normalized; sampled questions count only when presented. Repeated attempts count separately. Only fully graded attempts contribute to score and question statistics.": {
+    "en": "Each saved question version is analyzed separately. Shuffled options are normalized; sampled questions count only when presented. Repeated attempts count separately. Only fully graded attempts contribute to score and question statistics.",
+    "zh-TW": "各次儲存的題目版本會分別分析。選項隨機排序會統一對照；抽題僅計入實際出現的題目。重複作答分別計算。分數與題目統計僅納入已完成所有評分的作答。",
+    "es": "Cada versión guardada de una pregunta se analiza por separado. Se normaliza el orden aleatorio de las opciones; las preguntas seleccionadas al azar solo cuentan cuando se presentan. Los intentos repetidos se cuentan por separado. Las estadísticas de puntuaciones y preguntas solo incluyen intentos completamente calificados."
+  },
+  "Graded responses": {
+    "en": "Graded responses",
+    "zh-TW": "已評分回答數",
+    "es": "Respuestas calificadas"
+  },
+  "Answer rate": {
+    "en": "Answer rate",
+    "zh-TW": "回答率",
+    "es": "Tasa de respuesta"
+  },
+  "Full-credit rate": {
+    "en": "Full-credit rate",
+    "zh-TW": "滿分比例",
+    "es": "Tasa de puntuación completa"
+  },
+  "Average points": {
+    "en": "Average points",
+    "zh-TW": "平均得分",
+    "es": "Puntos promedio"
+  },
+  "Question version": {
+    "en": "Question version",
+    "zh-TW": "題目版本",
+    "es": "Versión de la pregunta"
+  },
+  "No question analysis to show": {
+    "en": "No question analysis to show",
+    "zh-TW": "沒有可顯示的題目分析",
+    "es": "No hay análisis de preguntas para mostrar"
+  },
+  "Select an assessment to view its insights": {
+    "en": "Select an assessment to view its insights",
+    "zh-TW": "選擇評量以檢視分析",
+    "es": "Selecciona una evaluación para ver su análisis"
+  },
+  "Instructors can analyze their own assessments. Administrators can analyze all assessments.": {
+    "en": "Instructors can analyze their own assessments. Administrators can analyze all assessments.",
+    "zh-TW": "講師可分析自己建立的評量；管理員可分析所有評量。",
+    "es": "Los instructores pueden analizar sus propias evaluaciones. Los administradores pueden analizar todas las evaluaciones."
+  },
+  "Filter by exam": {
+    "en": "Filter by exam",
+    "zh-TW": "依考試篩選",
+    "es": "Filtrar por examen"
+  },
+  "Outcome": {
+    "en": "Outcome",
+    "zh-TW": "結果",
+    "es": "Resultado"
+  },
+  "All outcomes": {
+    "en": "All outcomes",
+    "zh-TW": "所有結果",
+    "es": "Todos los resultados"
+  },
+  "Totals and CSV exports cover every matching attempt. Date filters use submission time, or start time for active attempts.": {
+    "en": "Totals and CSV exports cover every matching attempt. Date filters use submission time, or start time for active attempts.",
+    "zh-TW": "統計與 CSV 匯出涵蓋所有符合篩選條件的作答。日期篩選採用提交時間；尚在進行中的作答採用開始時間。",
+    "es": "Los totales y las exportaciones CSV incluyen todos los intentos coincidentes. Los filtros de fecha usan la hora de entrega o la de inicio para los intentos en curso."
+  },
+  "Loading…": {
+    "en": "Loading…",
+    "zh-TW": "載入中…",
+    "es": "Cargando…"
+  },
+  "Full-credit responses": {
+    "en": "Full-credit responses",
+    "zh-TW": "滿分回答數",
+    "es": "Respuestas con puntuación completa"
+  },
+  "Full-credit rate (%)": {
+    "en": "Full-credit rate (%)",
+    "zh-TW": "滿分比例 (%)",
+    "es": "Tasa de puntuación completa (%)"
   }
 }

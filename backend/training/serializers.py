@@ -211,6 +211,9 @@ class ExamSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, required=False)
     question_count = serializers.SerializerMethodField()
     attempts_used = serializers.SerializerMethodField()
+    effective_attempt_limit = serializers.SerializerMethodField()
+    attempts_remaining = serializers.SerializerMethodField()
+    active_attempt_id = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
 
     class Meta:
@@ -229,6 +232,9 @@ class ExamSerializer(serializers.ModelSerializer):
             "questions",
             "question_count",
             "attempts_used",
+            "effective_attempt_limit",
+            "attempts_remaining",
+            "active_attempt_id",
             "audience",
             "allowed_users",
             "allowed_departments",
@@ -247,13 +253,49 @@ class ExamSerializer(serializers.ModelSerializer):
     def get_question_count(self, obj):
         return obj.questions_per_attempt or obj.questions.count()
 
-    def get_attempts_used(self, obj):
+    def get_budget(self, obj):
         from .models import AttemptBudget
 
-        row = AttemptBudget.objects.filter(
-            exam=obj, identity__user=self.context["request"].user
-        ).first()
+        cache = self.context.setdefault("attempt_budgets", {})
+        if obj.pk not in cache:
+            if hasattr(obj, "user_budgets"):
+                cache[obj.pk] = obj.user_budgets[0] if obj.user_budgets else None
+            else:
+                cache[obj.pk] = AttemptBudget.objects.filter(
+                    exam=obj, identity__user=self.context["request"].user
+                ).first()
+        return cache[obj.pk]
+
+    def get_attempts_used(self, obj):
+        row = self.get_budget(obj)
         return row.used if row else 0
+
+    def get_effective_attempt_limit(self, obj):
+        row = self.get_budget(obj)
+        return (row.limit_override if row else None) or obj.max_attempts
+
+    def get_attempts_remaining(self, obj):
+        return max(
+            0, self.get_effective_attempt_limit(obj) - self.get_attempts_used(obj)
+        )
+
+    def get_active_attempt_id(self, obj):
+        from django.utils import timezone
+        from .models import Attempt
+
+        if hasattr(obj, "active_user_attempts"):
+            return (
+                str(obj.active_user_attempts[0].pk)
+                if obj.active_user_attempts
+                else None
+            )
+        row = Attempt.objects.filter(
+            exam=obj,
+            identity__user=self.context["request"].user,
+            status="in_progress",
+            deadline__gt=timezone.now(),
+        ).first()
+        return str(row.pk) if row else None
 
     def validate(self, data):
         departments = data.get(

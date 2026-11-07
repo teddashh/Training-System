@@ -1,12 +1,9 @@
-import csv
-import io
 import secrets
 from datetime import timedelta
 
 from django.db import transaction
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Prefetch, Q
 from django.db.models.functions import TruncDate
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
@@ -149,7 +146,23 @@ class Exams(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "head", "options"]
 
     def get_queryset(self):
-        qs = Exam.objects.prefetch_related("allowed_users").order_by("-created_at")
+        qs = Exam.objects.prefetch_related(
+            "allowed_users",
+            Prefetch(
+                "attemptbudget_set",
+                queryset=AttemptBudget.objects.filter(identity__user=self.request.user),
+                to_attr="user_budgets",
+            ),
+            Prefetch(
+                "attempt_set",
+                queryset=Attempt.objects.filter(
+                    identity__user=self.request.user,
+                    status="in_progress",
+                    deadline__gt=timezone.now(),
+                ),
+                to_attr="active_user_attempts",
+            ),
+        ).order_by("-created_at")
         if self.request.user.role == "admin":
             return qs
         permitted = [
@@ -557,34 +570,6 @@ def scoped_attempts(user):
     return qs.filter(identity__user=user)
 
 
-@api_view(["GET"])
-def results(request):
-    # Expired attempts are finalized on reads, as well as by expire_attempts cron.
-    qs = scoped_attempts(request.user)
-    for row in qs.filter(status="in_progress", deadline__lte=timezone.now()):
-        with transaction.atomic():
-            finalize(Attempt.objects.select_for_update().get(pk=row.pk))
-    return Response(
-        [
-            {
-                "id": str(a.id),
-                "exam": a.exam.title,
-                "exam_id": a.exam_id,
-                "person": a.identity.label,
-                "department": a.identity.user.department
-                if a.identity.user
-                else translate("External participant"),
-                "number": a.number,
-                "status": a.status,
-                "score": a.score if a.status == "graded" else None,
-                "passed": a.passed,
-                "submitted_at": a.submitted_at,
-            }
-            for a in qs[:1000]
-        ]
-    )
-
-
 @api_view(["GET", "POST"])
 def review(request, pk):
     with transaction.atomic():
@@ -694,48 +679,6 @@ def dashboard(request):
             "days": days,
         }
     )
-
-
-@api_view(["GET"])
-def export_results(request):
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(
-        [
-            translate("Exam"),
-            translate("Participant"),
-            translate("Attempts"),
-            translate("Status"),
-            translate("Score"),
-            translate("Passed"),
-            translate("Submitted at"),
-        ]
-    )
-
-    def safe(value):
-        s = str(value) if value is not None else ""
-        return "'" + s if s.startswith(("=", "+", "-", "@", "\t", "\r")) else s
-
-    for a in scoped_attempts(request.user):
-        writer.writerow(
-            [
-                safe(v)
-                for v in [
-                    a.exam.title,
-                    a.identity.label,
-                    a.number,
-                    a.status,
-                    a.score if a.status == "graded" else None,
-                    a.passed,
-                    a.submitted_at,
-                ]
-            ]
-        )
-    response = HttpResponse(
-        "\ufeff" + output.getvalue(), content_type="text/csv; charset=utf-8"
-    )
-    response["Content-Disposition"] = 'attachment; filename="training-results.csv"'
-    return response
 
 
 @api_view(["GET"])

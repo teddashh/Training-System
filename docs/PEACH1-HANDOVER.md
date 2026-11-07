@@ -11,7 +11,7 @@ This repository contains the company training platform. Peach1 is the target for
 - Required training assignments, deadlines, learner worklists, instructor-scoped completion reports and CSV exports. A passing exam or completed course fulfills the requirement, including prior completion. Reassignment updates the requirement; it does not reset progress or attempt budgets.
 - Independent and course-linked exams, question banks, question/option shuffling, random subsets, audience restrictions, timing, automatic/manual grading and review feedback.
 - Personal guest links with email/account-bound identity, expiry, revocation, optional email verification and per-link plus per-identity attempt limits.
-- Performance dashboards, results exports, audit history, expiry scheduler, Docker deployment and backup/restore tooling.
+- Performance dashboards, filtered results pagination and matching exports, assessment/question insights, individual attempt-budget preflight, audit history, expiry scheduler, Docker deployment and backup/restore tooling.
 
 The system does not yet perform Microsoft Graph directory synchronization. Entra OIDC and Graph provisioning are separate integrations. Company packages, tenant controls, email delivery, infrastructure and expected concurrency need acceptance testing on Peach1.
 
@@ -99,6 +99,7 @@ docker compose --project-name peach1-training up -d --wait
 | Required training | Assignment appears only for intended people; course completion or passing grade updates the report; CSV matches records |
 | Authoring / SCORM | Create, publish, launch, commit, close/reopen and download editable source using representative company packages |
 | Exams | Independent and linked exams, random snapshots, attempt caps, autosave, expiry and manual review work under expected concurrency |
+| Assessment reporting | Filtered totals and CSV agree across pages; only fully graded attempts contribute to question statistics; ownership restrictions apply to reports and exports |
 | Guests | Named recipient verifies email; link expiry/revocation works; reissued links cannot reset the shared identity budget |
 | Recovery | Restore a current database/media backup in isolation, compare record counts and launch restored content |
 | Operations | Monitor DB/storage, TLS, SMTP, scheduler, backup age and application errors; define retention and support ownership |

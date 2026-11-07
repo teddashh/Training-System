@@ -32,6 +32,7 @@ import { Invitations, People, Results, Settings } from "./Management";
 import { Modal, ErrorBox, Spinner } from "./ui";
 import Assignments from "./Assignments";
 import QuestionBank from "./QuestionBank";
+import Insights from "./Insights";
 import { PasswordDialog } from "./PeopleTools";
 const getNav = () => [
   {
@@ -44,6 +45,12 @@ const getNav = () => [
   { path: "/assignments", label: t("Assigned training"), icon: ClipboardList },
   { path: "/exams", label: t("Exams & assessments"), icon: ClipboardCheck },
   { path: "/results", label: t("Results & reviews"), icon: BarChart3 },
+  {
+    path: "/insights",
+    label: t("Assessment insights"),
+    icon: BarChart3,
+    manage: true,
+  },
   {
     path: "/authoring",
     label: t("Authoring studio"),
@@ -123,21 +130,32 @@ export default function App() {
     return () => window.removeEventListener("popstate", pop);
   }, []);
   useEffect(() => {
-    if (!user) return;
+    if (!user || path.startsWith("/attempt/")) return;
+    let alive = true;
     setLoading(true);
     Promise.all([api<Course[]>("courses/"), api<Exam[]>("exams/")])
       .then(([c, e]) => {
+        if (!alive) return;
         setCourses(c);
         setExams(e);
         setError("");
       })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [user, refreshKey]);
+      .catch((e) => {
+        if (alive) setError(e.message);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [user, refreshKey, path]);
   async function signOut() {
     try {
       await api("auth/logout/", "POST", {});
       setUser(null);
+      setCourses([]);
+      setExams([]);
       setProfile(false);
       go("/");
     } catch (e) {
@@ -278,7 +296,7 @@ export default function App() {
             {demo
               ? t("Demo environment \u00B7 Synthetic data")
               : t("Enterprise training workspace")}
-            <span>v1.0</span>
+            <span>v1.1</span>
           </div>
         </div>
       </aside>
@@ -406,6 +424,8 @@ export default function App() {
             />
           ) : path === "/question-bank" ? (
             <QuestionBank />
+          ) : path === "/insights" ? (
+            <Insights exams={exams} />
           ) : path === "/authoring" ? (
             <Courses courses={courses} user={user} onSaved={refresh} studio />
           ) : path === "/exams" ? (
@@ -421,6 +441,7 @@ export default function App() {
           ) : path === "/results" ? (
             <Results
               user={user}
+              exams={exams}
               refreshKey={refreshKey}
               onSaved={refresh}
               go={go}

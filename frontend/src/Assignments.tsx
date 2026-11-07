@@ -1,3 +1,4 @@
+import ExamBudget from "./ExamBudget";
 import { useEffect, useState } from "react";
 import {
   ClipboardList,
@@ -123,6 +124,7 @@ export default function Assignments({
       setBusy(false);
     }
   }
+  const startingExam = exams.find((exam) => exam.id === starting?.target_id);
   const active = rows.filter((r) => r.status !== "cancelled");
   return (
     <>
@@ -377,6 +379,15 @@ export default function Assignments({
         <Modal title={t("Open assessment")} onClose={() => setStarting(null)}>
           <div className="modal-form">
             <h3>{starting.title}</h3>
+            {startingExam && (
+              <>
+                <p>
+                  {startingExam.duration_minutes} {t("min")} ·{" "}
+                  {t("Passing score")}: {startingExam.pass_score}
+                </p>
+                <ExamBudget exam={startingExam} />
+              </>
+            )}
             <p>
               {t(
                 "Starting a new attempt uses one attempt and starts the exam timer. An active attempt resumes with its remaining time.",
@@ -387,7 +398,18 @@ export default function Assignments({
               <button className="btn" onClick={() => setStarting(null)}>
                 {t("Cancel")}
               </button>
-              <button className="btn primary" disabled={busy} onClick={start}>
+              <button
+                className="btn primary"
+                disabled={
+                  busy ||
+                  !!(
+                    startingExam &&
+                    startingExam.attempts_remaining === 0 &&
+                    !startingExam.active_attempt_id
+                  )
+                }
+                onClick={start}
+              >
                 {t("Start / resume exam")}
               </button>
             </div>

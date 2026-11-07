@@ -222,32 +222,42 @@ def start_attempt(exam_id, identity, invitation=None):
     return attempt
 
 
+def question_points(question, answer, manual_grade=None):
+    """One grading rule shared by attempt scoring and reporting."""
+    if question["type"] == "essay":
+        return None if manual_grade is None else manual_grade["points"]
+    if question["type"] in ("single", "multiple"):
+        submitted = (
+            answer
+            if isinstance(answer, list)
+            else [answer]
+            if answer is not None
+            else []
+        )
+        if set(str(value) for value in submitted) == set(
+            str(value) for value in question["solution"]
+        ):
+            return question["points"]
+    elif question["type"] == "short" and isinstance(answer, str):
+        if answer.strip().casefold() in [
+            str(value).strip().casefold() for value in question["solution"]
+        ]:
+            return question["points"]
+    return 0
+
+
 def grade(attempt):
     earned, total, pending = 0, 0, False
-    for q in attempt.snapshot:
-        total += q["points"]
-        answer = attempt.answers.get(str(q["id"]))
-        if q["type"] == "essay":
-            mark = attempt.manual_grades.get(str(q["id"]))
-            if mark is None:
-                pending = True
-            else:
-                earned += mark["points"]
-        elif q["type"] in ("single", "multiple"):
-            submitted = (
-                answer
-                if isinstance(answer, list)
-                else [answer]
-                if answer is not None
-                else []
-            )
-            if set(str(v) for v in submitted) == set(str(v) for v in q["solution"]):
-                earned += q["points"]
-        elif q["type"] == "short" and isinstance(answer, str):
-            if answer.strip().casefold() in [
-                str(v).strip().casefold() for v in q["solution"]
-            ]:
-                earned += q["points"]
+    for question in attempt.snapshot:
+        total += question["points"]
+        key = str(question["id"])
+        points = question_points(
+            question, attempt.answers.get(key), attempt.manual_grades.get(key)
+        )
+        if points is None:
+            pending = True
+        else:
+            earned += points
     attempt.score = round(earned / total * 100, 2) if total else 0
     attempt.status = "pending_review" if pending else "graded"
     attempt.passed = None if pending else attempt.score >= attempt.pass_score

@@ -1,3 +1,4 @@
+import ExamBudget from "./ExamBudget";
 import { t, useLocale } from "./i18n";
 import { useEffect, useState } from "react";
 import {
@@ -673,8 +674,8 @@ export default function Exams({
                       {" " + t("points")}
                     </span>
                     <span>
-                      {t("Default") + " "}
-                      {exam.max_attempts}
+                      {t("Your limit") + " "}
+                      {exam.effective_attempt_limit}
                       {" " + t("attempts")}
                     </span>
                     <span>
@@ -687,7 +688,10 @@ export default function Exams({
                 <div className="exam-actions">
                   <button
                     className="btn primary-soft"
-                    disabled={!exam.published}
+                    disabled={
+                      !exam.published ||
+                      (exam.attempts_remaining === 0 && !exam.active_attempt_id)
+                    }
                     onClick={() => {
                       setError("");
                       setStarting(exam);
@@ -774,6 +778,7 @@ export default function Exams({
                 <span>{t("Total questions")}</span>
               </div>
             </div>
+            <ExamBudget exam={starting} />
             <p className="notice">
               {t(
                 "Starting uses one attempt. Refreshing or returning resumes an active attempt. The timer does not pause; saved answers are submitted when time runs out.",
@@ -784,7 +789,15 @@ export default function Exams({
               <button className="btn" onClick={() => setStarting(null)}>
                 {t("Take it later") + " "}
               </button>
-              <button className="btn primary" disabled={busy} onClick={start}>
+              <button
+                className="btn primary"
+                disabled={
+                  busy ||
+                  (starting.attempts_remaining === 0 &&
+                    !starting.active_attempt_id)
+                }
+                onClick={start}
+              >
                 {busy ? t("Preparing\u2026") : t("Start / resume attempt")}
                 <ArrowRight size={16} />
               </button>

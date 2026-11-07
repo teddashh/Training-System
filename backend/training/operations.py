@@ -165,6 +165,8 @@ class AssignmentInput(serializers.Serializer):
 
 
 class Assignments(viewsets.ViewSet):
+    lookup_value_regex = r"\d+"
+
     def list(self, request):
         report = request.query_params.get("report") == "1"
         return Response(assignment_rows(assignment_scope(request.user, report)))

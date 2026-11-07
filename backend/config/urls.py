@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from training import auth_views as auth
-from training import operations, scorm, views
+from training import operations, reporting, scorm, views
 
 router = DefaultRouter()
 router.register("users", views.Users)
@@ -29,10 +29,11 @@ urlpatterns = [
     path("api/guest/email/request/", views.guest_email_request),
     path("api/guest/email/verify/", views.guest_email_verify),
     path("api/attempts/<uuid:pk>/", views.attempt_detail),
-    path("api/results/", views.results),
+    path("api/results/", reporting.results),
     path("api/results/<uuid:pk>/review/", views.review),
-    path("api/results/export/", views.export_results),
+    path("api/results/export/", reporting.export_results),
     path("api/dashboard/", views.dashboard),
+    path("api/exams/<int:pk>/insights/", reporting.exam_insights),
     path("api/audit/", views.audit_log),
     path("api/readiness/", operations.readiness),
     path("api/courses/<int:course_id>/upload/", scorm.upload_package),

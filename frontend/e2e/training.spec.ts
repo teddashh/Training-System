@@ -1,5 +1,15 @@
 import { test, expect, type Page } from "@playwright/test";
 
+async function downloadText(download: import("@playwright/test").Download) {
+  const stream = await download.createReadStream();
+  if (!stream) throw new Error("Download stream is unavailable");
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks)
+    .toString("utf8")
+    .replace(/^\uFEFF/, "");
+}
+
 async function login(page: Page) {
   await page.goto("/");
   await page
@@ -37,6 +47,190 @@ async function post<T>(page: Page, path: string, data: unknown): Promise<T> {
     { path, data },
   );
 }
+
+test("paginated results, matching exports and multilingual assessment insights", async ({
+  page,
+}) => {
+  test.setTimeout(90000);
+  await login(page);
+  const title = "Reporting evidence " + Date.now();
+  const question = "Which action protects company accounts?";
+  const exam = await post<{ id: number }>(page, "exams/", {
+    title,
+    published: true,
+    max_attempts: 30,
+    questions: [
+      {
+        description: question,
+        type: "single",
+        options: ["Enable MFA", "Share passwords"],
+        solution: [0],
+        points: 100,
+      },
+    ],
+  });
+  for (let index = 0; index < 26; index++) {
+    const attempt = await post<{ id: string; questions: { id: number }[] }>(
+      page,
+      `exams/${exam.id}/start/`,
+      {},
+    );
+    await post(page, `attempts/${attempt.id}/`, {
+      answers: { [attempt.questions[0].id]: index % 2 },
+    });
+  }
+  await page.goto("/results");
+  await page.getByLabel("Filter by exam").selectOption(String(exam.id));
+  await expect(page.locator(".table-footer")).toContainText("Total 26 records");
+  await expect(page.locator("tbody tr")).toHaveCount(25);
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await expect(page.locator(".table-footer")).toContainText("2 / 2");
+  let downloaded = page.waitForEvent("download");
+  await page
+    .getByRole("link", { name: "Export results CSV", exact: true })
+    .click();
+  const allRows = await downloadText(await downloaded);
+  expect(allRows.trim().split(/\r?\n/)).toHaveLength(27);
+  expect(allRows.split(title)).toHaveLength(27);
+  await page
+    .getByRole("combobox", { name: "Outcome", exact: true })
+    .selectOption("not_passed");
+  await expect(page.locator(".table-footer")).toContainText("Total 13 records");
+  await expect(page.locator("tbody tr")).toHaveCount(13);
+  await expect(
+    page.locator(".summary-strip").getByText("0", { exact: true }).first(),
+  ).toBeVisible();
+  downloaded = page.waitForEvent("download");
+  await page
+    .getByRole("link", { name: "Export results CSV", exact: true })
+    .click();
+  const failedRows = await downloadText(await downloaded);
+  expect(failedRows.trim().split(/\r?\n/)).toHaveLength(14);
+  expect(failedRows).not.toContain(",True,");
+  await page
+    .getByRole("button", { name: "Assessment insights", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Assessment insights", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Select assessment")).toHaveValue(
+    String(exam.id),
+  );
+  await expect(page.locator(".assignment-metrics")).toContainText("26");
+  await expect(page.locator(".assignment-metrics")).toContainText("50%");
+  const questionRow = page.getByRole("row").filter({ hasText: question });
+  await expect(questionRow).toContainText("13 / 26");
+  await expect(questionRow).toContainText("50 / 100");
+  downloaded = page.waitForEvent("download");
+  await page
+    .getByRole("link", { name: "Export question analysis", exact: true })
+    .click();
+  const analysis = await downloadText(await downloaded);
+  expect(analysis).toContain(question);
+  expect(analysis.trim().split(/\r?\n/)).toHaveLength(2);
+  await page.locator(".language-picker select").first().selectOption("zh-TW");
+  await expect(
+    page.getByRole("heading", { name: "評量分析", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("columnheader", { name: "滿分比例", exact: true }),
+  ).toBeVisible();
+  await page.locator(".language-picker select").first().selectOption("es");
+  await expect(
+    page.getByRole("heading", {
+      name: "Análisis de evaluaciones",
+      exact: true,
+    }),
+  ).toBeVisible();
+  downloaded = page.waitForEvent("download");
+  await page
+    .getByRole("link", { name: "Exportar análisis de preguntas", exact: true })
+    .click();
+  expect(await downloadText(await downloaded)).toContain(
+    "Respuestas calificadas",
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+  await expect(questionRow).toContainText("13 / 26");
+});
+
+test("individual attempt limit is visible and a final active attempt can resume", async ({
+  page,
+}) => {
+  await login(page);
+  const title = "Individual budget " + Date.now();
+  const exam = await post<{ id: number }>(page, "exams/", {
+    title,
+    published: true,
+    max_attempts: 3,
+    questions: [
+      {
+        description: "Choose the safe action",
+        type: "single",
+        options: ["Report the issue", "Ignore the issue"],
+        solution: [0],
+        points: 100,
+      },
+    ],
+  });
+  await post(page, `exams/${exam.id}/budget/`, {
+    key: "admin@evitina.example",
+    limit: 1,
+  });
+  await page.goto("/exams");
+  const card = page
+    .locator("article")
+    .filter({ has: page.getByRole("heading", { name: title, exact: true }) });
+  await expect(card).toContainText("Your limit 1 attempts");
+  await card
+    .getByRole("button", { name: "Start / resume", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", {
+    name: "Ready to start?",
+    exact: true,
+  });
+  await expect(dialog).toContainText("1 new attempts remaining");
+  await dialog
+    .getByRole("button", { name: "Start / resume attempt", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/attempt\//);
+  const attemptUrl = page.url();
+  await page.goto("/exams");
+  await card
+    .getByRole("button", { name: "Start / resume", exact: true })
+    .click();
+  await expect(dialog).toContainText("0 new attempts remaining");
+  await expect(dialog).toContainText(
+    "Resuming it does not use another attempt.",
+  );
+  await dialog
+    .getByRole("button", { name: "Start / resume attempt", exact: true })
+    .click();
+  await expect(page).toHaveURL(attemptUrl);
+  await page.getByRole("radio", { name: /Report the issue/ }).check();
+  await page
+    .getByRole("button", { name: "Finish and submit", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Confirm submission", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Congratulations, you passed",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.goto("/exams");
+  await expect(
+    card.getByRole("button", { name: "Start / resume", exact: true }),
+  ).toBeDisabled();
+  await expect(card).toContainText("Used 1 attempts");
+});
 
 test("dashboard, responsive navigation, library and persisted course editor", async ({
   page,

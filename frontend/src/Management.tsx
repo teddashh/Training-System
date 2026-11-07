@@ -18,7 +18,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { api } from "./api";
-import type { User, Exam, Invitation, Result, Attempt } from "./types";
+import type { User, Exam, Invitation, ResultsPage, Attempt } from "./types";
 import {
   Modal,
   Badge,
@@ -470,36 +470,65 @@ function ReviewModal({
 }
 export function Results({
   user,
+  exams,
   refreshKey,
   onSaved,
   go,
 }: {
   user: User;
+  exams: Exam[];
   refreshKey: number;
   onSaved: () => void;
   go: (p: string) => void;
 }) {
   useLocale();
-  const [rows, setRows] = useState<Result[]>([]),
+  const [data, setData] = useState<ResultsPage | null>(null),
     [search, setSearch] = useState(""),
+    [query, setQuery] = useState(""),
     [status, setStatus] = useState(""),
+    [exam, setExam] = useState(""),
+    [outcome, setOutcome] = useState(""),
+    [days, setDays] = useState("all"),
     [error, setError] = useState(""),
+    [loading, setLoading] = useState(false),
     [review, setReview] = useState(""),
-    [page, setPage] = useState(0);
+    [page, setPage] = useState(1);
   useEffect(() => {
-    api<Result[]>("results/")
-      .then(setRows)
-      .catch((e) => setError(e.message));
-  }, [refreshKey]);
-  const filtered = rows.filter(
-    (r) =>
-      (r.exam + r.person + r.department).includes(search) &&
-      (!status || r.status === status),
-  );
-  const scored = rows.filter((r) => r.score !== null),
-    average = scored.length
-      ? Math.round(scored.reduce((s, r) => s + r.score!, 0) / scored.length)
-      : 0;
+    const timer = window.setTimeout(() => {
+      setQuery(search);
+      setPage(1);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+  const params = new URLSearchParams({
+    search: query,
+    status,
+    outcome,
+    days,
+    page: String(page),
+    page_size: "25",
+  });
+  if (exam) params.set("exam", exam);
+  const parameters = params.toString();
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setError("");
+    api<ResultsPage>("results/?" + parameters)
+      .then((result) => {
+        if (alive) setData(result);
+      })
+      .catch((e) => {
+        if (alive) setError(e.message);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [refreshKey, parameters]);
+  const rows = data?.results || [];
   return (
     <>
       <div className="page-heading">
@@ -508,7 +537,7 @@ export function Results({
           <h1>{t("Results & reviews")}</h1>
           <p>{t("Use each assessment to guide the next improvement.")}</p>
         </div>
-        <a className="btn" href="/api/results/export/">
+        <a className="btn" href={"/api/results/export/?" + parameters}>
           <Download size={17} />
           {t("Export results CSV") + " "}
         </a>
@@ -516,19 +545,17 @@ export function Results({
       <div className="summary-strip">
         <div>
           <FileCheck2 size={23} />
-          <strong>{rows.length}</strong>
+          <strong>{data?.count ?? "—"}</strong>
           <span>{t("attempt records")}</span>
         </div>
         <div>
           <Check size={23} />
-          <strong>{average}</strong>
+          <strong>{data?.summary.average_score ?? "—"}</strong>
           <span>{t("Average score")}</span>
         </div>
         <div>
           <ClockIcon />
-          <strong>
-            {rows.filter((r) => r.status === "pending_review").length}
-          </strong>
+          <strong>{data?.summary.pending ?? "—"}</strong>
           <span>{t("awaiting review")}</span>
         </div>
       </div>
@@ -545,7 +572,7 @@ export function Results({
               key={value}
               onClick={() => {
                 setStatus(value);
-                setPage(0);
+                setPage(1);
               }}
             >
               {label}
@@ -560,13 +587,77 @@ export function Results({
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
-              setPage(0);
+              setPage(1);
             }}
           />
         </div>
       </div>
+      <div className="report-filters">
+        <label>
+          {t("Exam")}
+          <select
+            aria-label={t("Filter by exam")}
+            value={exam}
+            onChange={(e) => {
+              setExam(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">{t("All exams")}</option>
+            {exams.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.title}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          {t("Outcome")}
+          <select
+            value={outcome}
+            onChange={(e) => {
+              setOutcome(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">{t("All outcomes")}</option>
+            <option value="passed">{t("Passed")}</option>
+            <option value="not_passed">{t("Not passed")}</option>
+          </select>
+        </label>
+        <label>
+          {t("Reporting period")}
+          <select
+            value={days}
+            onChange={(e) => {
+              setDays(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="all">{t("All time")}</option>
+            {[7, 30, 90, 365].map((value) => (
+              <option key={value} value={value}>
+                {t("Last {days} days", { days: value })}
+              </option>
+            ))}
+          </select>
+        </label>
+        {user.role !== "learner" && (
+          <button
+            className="btn"
+            onClick={() => go("/insights" + (exam ? "?exam=" + exam : ""))}
+          >
+            {t("Assessment insights")}
+          </button>
+        )}
+      </div>
+      <p className="notice">
+        {t(
+          "Totals and CSV exports cover every matching attempt. Date filters use submission time, or start time for active attempts.",
+        )}
+      </p>
       <ErrorBox message={error} />
-      <div className="panel table-panel">
+      <div className="panel table-panel" aria-busy={loading}>
         <div className="table-scroll">
           <table>
             <thead>
@@ -581,7 +672,7 @@ export function Results({
               </tr>
             </thead>
             <tbody>
-              {filtered.slice(page * 12, (page + 1) * 12).map((r) => (
+              {rows.map((r) => (
                 <tr key={r.id}>
                   <td>
                     <div className="cell-person">
@@ -650,33 +741,31 @@ export function Results({
             </tbody>
           </table>
         </div>
-        {!filtered.length && (
+        {!loading && !rows.length && (
           <Empty title={t("No matching assessment records")} />
         )}
         <div className="table-footer">
           <span>
             {t("Total") + " "}
-            {filtered.length}
+            {data?.count ?? 0}
             {" " + t("records") + " "}
-            {rows.length === 1000
-              ? t("(Showing the latest 1,000; export for the full history)")
-              : ""}
+            {loading && t("Loading…")}
           </span>
           <div>
             <button
               className="btn small"
-              disabled={!page}
-              onClick={() => setPage(page - 1)}
+              disabled={loading || !data || data.page <= 1}
+              onClick={() => setPage((data?.page || 1) - 1)}
             >
               {t("Previous page") + " "}
             </button>
             <span>
-              {page + 1} / {Math.max(1, Math.ceil(filtered.length / 12))}
+              {data?.page || 1} / {data?.pages || 1}
             </span>
             <button
               className="btn small"
-              disabled={(page + 1) * 12 >= filtered.length}
-              onClick={() => setPage(page + 1)}
+              disabled={loading || !data || data.page >= data.pages}
+              onClick={() => setPage((data?.page || 1) + 1)}
             >
               {t("Next page") + " "}
             </button>
