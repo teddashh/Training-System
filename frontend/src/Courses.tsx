@@ -373,6 +373,17 @@ export default function Courses({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const manage = user.role !== "learner";
+  const openedLink = useRef(false);
+  useEffect(() => {
+    const id = Number(
+      new URLSearchParams(window.location.search).get("course"),
+    );
+    const target = courses.find((course) => course.id === id);
+    if (target && !openedLink.current) {
+      openedLink.current = true;
+      void open(target);
+    }
+  }, [courses]);
   const filtered = courses.filter(
     (c) =>
       (c.title + c.category).includes(search) &&
@@ -507,14 +518,14 @@ export default function Courses({
                   {i % 2 ? <Layers3 size={47} /> : <BookOpen size={47} />}
                 </span>
                 <span className="cover-caption">
-                  {
+                  {t(
                     [
                       "BUILD YOUR FOUNDATION",
                       "KEEP EXPLORING",
                       "GROW TOGETHER",
                       "MAKE AN IMPACT",
-                    ][i % 4]
-                  }
+                    ][i % 4],
+                  )}
                 </span>
                 <Badge tone={c.published ? "white" : "amber"}>
                   {c.published ? t("Published") : t("Draft")}
@@ -565,7 +576,7 @@ export default function Courses({
                         : t("Start learning")}
                     <ArrowRight size={16} />
                   </button>
-                  {manage && (
+                  {c.can_manage && (
                     <div>
                       {c.package?.has_source && (
                         <a

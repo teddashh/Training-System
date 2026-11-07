@@ -590,7 +590,8 @@ test("guest email verification unlocks the invitation without consuming an attem
           "utf8",
         );
         if (text.includes("To: " + recipient))
-          code = text.match(/\b\d{6}\b/)?.[0] || "";
+          // Message-ID headers may also contain six-digit numbers.
+          code = text.match(/^Your verification code: (\d{6})\s*$/m)?.[1] || "";
       }
       return code.length;
     })
@@ -623,4 +624,182 @@ test("guest email verification unlocks the invitation without consuming an attem
   ).json();
   expect(after.used).toBe(1);
   await context.close();
+});
+
+test("assign required training, complete from worklist, and export evidence", async ({
+  page,
+}) => {
+  await login(page);
+  const title = "Required learning " + Date.now();
+  const course = await post<{ id: number }>(page, "courses/", {
+    title,
+    published: true,
+    blocks: [{ type: "text", text: "Read and complete the assigned lesson." }],
+  });
+  await page.goto("/assignments");
+  await page
+    .getByRole("button", { name: "Assign training", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "Assign training" });
+  await dialog
+    .getByLabel("Training", { exact: true })
+    .selectOption(String(course.id));
+  await dialog.getByLabel("Alex Morgan", { exact: false }).check();
+  await dialog.getByLabel("Due date (optional)").fill("2020-01-01T09:00");
+  await dialog
+    .getByLabel("Instructions for participants")
+    .fill("Required onboarding exercise.");
+  await dialog
+    .getByRole("button", { name: "Assign training", exact: true })
+    .click();
+  const row = page.getByRole("row").filter({ hasText: title });
+  await expect(row).toContainText("Overdue");
+  await page.getByRole("button", { name: "My worklist", exact: true }).click();
+  await row.getByRole("button", { name: "Open course" }).click();
+  await expect(page.getByRole("dialog", { name: title })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Mark as completed", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Assigned training", exact: true })
+    .click();
+  await expect(row).toContainText("Completed");
+  await expect(row).not.toContainText("Overdue");
+  await page.getByRole("button", { name: "Completion report" }).click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Export CSV" }).click();
+  expect((await download).suggestedFilename()).toBe("training-completion.csv");
+  await row.getByRole("button", { name: "Cancel assignment" }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Cancel assignment", exact: true })
+    .click();
+  await expect(row).toContainText("Cancelled");
+});
+
+test("question bank creates reusable questions and randomized exam settings persist", async ({
+  page,
+}) => {
+  await login(page);
+  const question = "Reusable security question " + Date.now();
+  await page.getByRole("link", { name: "Question bank", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Create question", exact: true })
+    .click();
+  await page.getByLabel("Category", { exact: true }).fill("Security");
+  await page.getByLabel("Question text", { exact: true }).fill(question);
+  await page.getByLabel("Option 1", { exact: true }).fill("Report to IT");
+  await page.getByLabel("Option 2", { exact: true }).fill("Share the password");
+  await page
+    .getByRole("button", { name: "Save question", exact: true })
+    .click();
+  await expect(
+    page.getByRole("cell", { name: question, exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("link", { name: "Exams & assessments", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Create exam", exact: true }).click();
+  const title = "Randomized bank exam " + Date.now();
+  await page.getByLabel("Exam title", { exact: true }).fill(title);
+  await page.getByRole("button", { name: "Add from question bank" }).click();
+  await page.getByLabel("Search question bank").fill(question);
+  await page.getByRole("checkbox", { name: new RegExp(question) }).check();
+  await page.getByRole("button", { name: /Add selected questions/ }).click();
+  await page.getByLabel("Shuffle question order").check();
+  await page.getByLabel("Shuffle answer options").check();
+  await page.getByLabel("Questions per attempt (blank uses all)").fill("1");
+  await page.getByLabel("Publish exam", { exact: true }).check();
+  await page.getByRole("button", { name: "Save exam", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: title, exact: true }),
+  ).toBeVisible();
+  const exam = await page.evaluate(
+    async (title) =>
+      (await (await fetch("/api/exams/")).json()).find(
+        (e: { title: string }) => e.title === title,
+      ),
+    title,
+  );
+  expect(exam.shuffle_questions).toBe(true);
+  expect(exam.shuffle_options).toBe(true);
+  expect(exam.questions_per_attempt).toBe(1);
+  expect(exam.questions[0].description).toBe(question);
+  const attempt = await post<{ id: string }>(
+    page,
+    `exams/${exam.id}/start/`,
+    {},
+  );
+  await page.goto("/attempt/" + attempt.id);
+  await page.getByRole("radio", { name: /Report to IT/ }).check();
+  await page
+    .getByRole("button", { name: "Finish and submit", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Confirm submission", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Congratulations, you passed" }),
+  ).toBeVisible();
+});
+
+test("CSV preview imports learners, profile edits persist, and new pages translate", async ({
+  page,
+}) => {
+  await login(page);
+  const username = "csvuser" + Date.now();
+  await page
+    .getByRole("link", { name: "People & permissions", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Import participants" }).click();
+  await page
+    .getByLabel("CSV content")
+    .fill(
+      `username,email,display_name,department,employment\n${username},${username}@example.com,CSV Participant,Operations,contractor\n`,
+    );
+  await expect(
+    page.getByRole("button", { name: "Create learner accounts" }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Validate preview" }).click();
+  await expect(
+    page.getByText("All 1 rows are valid. Ready to import."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Create learner accounts" }).click();
+  await expect(page.getByText("Created 1 learner accounts.")).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Close", exact: true })
+    .last()
+    .click();
+  const row = page.getByRole("row").filter({ hasText: username });
+  await row.getByRole("button", { name: "Edit person" }).click();
+  await page
+    .getByLabel("Display name", { exact: true })
+    .fill("Updated Participant");
+  await page.getByLabel("Department", { exact: true }).fill("Quality");
+  await page.getByRole("button", { name: "Save person" }).click();
+  await expect(row).toContainText("Updated Participant");
+  await expect(row).toContainText("Quality");
+  await page
+    .getByRole("link", { name: "Assigned training", exact: true })
+    .click();
+  await page.locator(".language-picker select").first().selectOption("es");
+  await expect(
+    page.getByRole("heading", { name: "Formación asignada", exact: true }),
+  ).toBeVisible();
+  await page.locator(".language-picker select").first().selectOption("zh-TW");
+  await expect(
+    page.getByRole("heading", { name: "指派訓練", exact: true }),
+  ).toBeVisible();
+  await page.locator(".language-picker select").first().selectOption("en");
+  await page
+    .getByRole("link", { name: "Settings & audit", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Deployment readiness" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Connect on Peach1", { exact: true }),
+  ).toBeVisible();
 });

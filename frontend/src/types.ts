@@ -11,6 +11,7 @@ export type User = {
 };
 export type Block = { type: "heading" | "text" | "callout"; text: string };
 export type Course = {
+  can_manage: boolean;
   id: number;
   title: string;
   description: string;
@@ -37,6 +38,9 @@ export type Question = {
   position?: number;
 };
 export type Exam = {
+  shuffle_questions: boolean;
+  shuffle_options: boolean;
+  questions_per_attempt: number | null;
   id: number;
   title: string;
   description: string;

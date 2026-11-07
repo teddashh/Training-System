@@ -1,4 +1,5 @@
 import hashlib
+import secrets
 from datetime import timedelta
 
 from django.db import transaction
@@ -7,7 +8,16 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from .i18n import translate
-from .models import Attempt, AttemptBudget, AuditEvent, Exam, Identity, Invitation, User
+from .models import (
+    Attempt,
+    AttemptBudget,
+    AuditEvent,
+    Exam,
+    Identity,
+    Invitation,
+    LearningAssignment,
+    User,
+)
 
 
 def audit(actor, action, target, detail=None):
@@ -106,6 +116,10 @@ def in_exam_audience(exam, user):
     """Audience rules govern account starts; an invitation is an explicit grant."""
     if not user or not user.is_active:
         return False
+    if LearningAssignment.objects.filter(
+        exam=exam, user=user, cancelled_at=None
+    ).exists():
+        return True
     if exam.audience == "all":
         return True
     if exam.audience == "employees":
@@ -163,6 +177,25 @@ def start_attempt(exam_id, identity, invitation=None):
     )
     if not questions:
         raise ValidationError(translate("This exam has no questions yet."))
+    random = secrets.SystemRandom()
+    if exam.questions_per_attempt is not None:
+        if not 1 <= exam.questions_per_attempt <= len(questions):
+            raise ValidationError(
+                translate(
+                    "Questions per attempt must be between 1 and the question pool size."
+                )
+            )
+        selected = set(random.sample(range(len(questions)), exam.questions_per_attempt))
+        questions = [q for index, q in enumerate(questions) if index in selected]
+    if exam.shuffle_questions:
+        random.shuffle(questions)
+    if exam.shuffle_options:
+        for question in questions:
+            if question["type"] in ("single", "multiple"):
+                order = list(range(len(question["options"])))
+                random.shuffle(order)
+                question["options"] = [question["options"][i] for i in order]
+                question["solution"] = [order.index(i) for i in question["solution"]]
     deadline = now + timedelta(minutes=exam.duration_minutes)
     if exam.ends_at:
         deadline = min(deadline, exam.ends_at)

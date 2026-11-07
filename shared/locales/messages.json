@@ -8183,5 +8183,640 @@
     "en": "GROWTH",
     "zh-TW": "成長",
     "es": "CRECIMIENTO"
+  },
+  "Assigned training": {
+    "en": "Assigned training",
+    "zh-TW": "指派訓練",
+    "es": "Formación asignada"
+  },
+  "Question bank": {
+    "en": "Question bank",
+    "zh-TW": "題庫",
+    "es": "Banco de preguntas"
+  },
+  "Change password": {
+    "en": "Change password",
+    "zh-TW": "變更密碼",
+    "es": "Cambiar contraseña"
+  },
+  "Not started": {
+    "en": "Not started",
+    "zh-TW": "尚未開始",
+    "es": "Sin iniciar"
+  },
+  "Pending review": {
+    "en": "Pending review",
+    "zh-TW": "待評閱",
+    "es": "Pendiente de revisión"
+  },
+  "Completed": {
+    "en": "Completed",
+    "zh-TW": "已完成",
+    "es": "Completado"
+  },
+  "Cancelled": {
+    "en": "Cancelled",
+    "zh-TW": "已取消",
+    "es": "Cancelado"
+  },
+  "YOUR NEXT STEP": {
+    "en": "YOUR NEXT STEP",
+    "zh-TW": "下一個學習目標",
+    "es": "TU PRÓXIMO PASO"
+  },
+  "Keep required learning and assessments on track, with clear deadlines and completion records.": {
+    "en": "Keep required learning and assessments on track, with clear deadlines and completion records.",
+    "zh-TW": "透過明確的期限與完成紀錄，掌握必修課程及考核進度。",
+    "es": "Mantén al día la formación y las evaluaciones obligatorias, con plazos claros y registros de finalización."
+  },
+  "Assign training": {
+    "en": "Assign training",
+    "zh-TW": "指派訓練",
+    "es": "Asignar formación"
+  },
+  "Assigned": {
+    "en": "Assigned",
+    "zh-TW": "已指派",
+    "es": "Asignadas"
+  },
+  "Overdue": {
+    "en": "Overdue",
+    "zh-TW": "已逾期",
+    "es": "Vencidas"
+  },
+  "My worklist": {
+    "en": "My worklist",
+    "zh-TW": "我的待辦訓練",
+    "es": "Mis tareas"
+  },
+  "Completion report": {
+    "en": "Completion report",
+    "zh-TW": "完成狀況報表",
+    "es": "Informe de finalización"
+  },
+  "Export CSV": {
+    "en": "Export CSV",
+    "zh-TW": "匯出 CSV",
+    "es": "Exportar CSV"
+  },
+  "Search assignments": {
+    "en": "Search assignments",
+    "zh-TW": "搜尋指派訓練",
+    "es": "Buscar asignaciones"
+  },
+  "Assignment status": {
+    "en": "Assignment status",
+    "zh-TW": "指派狀態",
+    "es": "Estado de asignación"
+  },
+  "All statuses": {
+    "en": "All statuses",
+    "zh-TW": "所有狀態",
+    "es": "Todos los estados"
+  },
+  "Training": {
+    "en": "Training",
+    "zh-TW": "訓練項目",
+    "es": "Formación"
+  },
+  "Due date": {
+    "en": "Due date",
+    "zh-TW": "截止日期",
+    "es": "Fecha límite"
+  },
+  "Completion evidence": {
+    "en": "Completion evidence",
+    "zh-TW": "完成依據",
+    "es": "Evidencia de finalización"
+  },
+  "No deadline": {
+    "en": "No deadline",
+    "zh-TW": "無截止日期",
+    "es": "Sin fecha límite"
+  },
+  "Cancel assignment": {
+    "en": "Cancel assignment",
+    "zh-TW": "取消指派",
+    "es": "Cancelar asignación"
+  },
+  "Open course": {
+    "en": "Open course",
+    "zh-TW": "開啟課程",
+    "es": "Abrir curso"
+  },
+  "Open assessment": {
+    "en": "Open assessment",
+    "zh-TW": "開啟考核",
+    "es": "Abrir evaluación"
+  },
+  "Unavailable": {
+    "en": "Unavailable",
+    "zh-TW": "暫不開放",
+    "es": "No disponible"
+  },
+  "No assignments to show": {
+    "en": "No assignments to show",
+    "zh-TW": "目前沒有指派訓練",
+    "es": "No hay asignaciones que mostrar"
+  },
+  "Assign published courses or exams to start tracking required training.": {
+    "en": "Assign published courses or exams to start tracking required training.",
+    "zh-TW": "指派已發布的課程或考試，即可追蹤必修訓練。",
+    "es": "Asigna cursos o exámenes publicados para hacer seguimiento de la formación obligatoria."
+  },
+  "Your assigned training will appear here.": {
+    "en": "Your assigned training will appear here.",
+    "zh-TW": "您被指派的訓練將顯示在這裡。",
+    "es": "Tu formación asignada aparecerá aquí."
+  },
+  "Course completion or a passing exam result fulfills an assignment. Existing completion counts. Due dates track timeliness; exam opening times and attempt limits still apply.": {
+    "en": "Course completion or a passing exam result fulfills an assignment. Existing completion counts. Due dates track timeliness; exam opening times and attempt limits still apply.",
+    "zh-TW": "完成課程或通過考試即可完成指派，先前的完成紀錄亦計入。截止日期用於追蹤時效；考試開放時間及次數限制仍然適用。",
+    "es": "Completar el curso o aprobar el examen cumple la asignación. Las finalizaciones previas cuentan. Las fechas límite permiten controlar los plazos; siguen vigentes los horarios y límites de intentos del examen."
+  },
+  "Starting a new attempt uses one attempt and starts the exam timer. An active attempt resumes with its remaining time.": {
+    "en": "Starting a new attempt uses one attempt and starts the exam timer. An active attempt resumes with its remaining time.",
+    "zh-TW": "開始新作答會使用一次考試機會並啟動計時。尚在進行的作答會以剩餘時間繼續。",
+    "es": "Iniciar un intento nuevo consume un intento y activa el temporizador. Un intento activo se reanuda con el tiempo restante."
+  },
+  "Remove this requirement from the learner worklist? Learning progress and assessment results are retained.": {
+    "en": "Remove this requirement from the learner worklist? Learning progress and assessment results are retained.",
+    "zh-TW": "要將此項要求從學員待辦清單中移除嗎？學習進度與考核結果仍會保留。",
+    "es": "¿Eliminar este requisito de las tareas del participante? Se conservarán el progreso y los resultados."
+  },
+  "Keep assignment": {
+    "en": "Keep assignment",
+    "zh-TW": "保留指派",
+    "es": "Conservar asignación"
+  },
+  "Training type": {
+    "en": "Training type",
+    "zh-TW": "訓練類型",
+    "es": "Tipo de formación"
+  },
+  "Select published training": {
+    "en": "Select published training",
+    "zh-TW": "選擇已發布的訓練",
+    "es": "Seleccionar formación publicada"
+  },
+  "Assign to": {
+    "en": "Assign to",
+    "zh-TW": "指派對象",
+    "es": "Asignar a"
+  },
+  "Due date (optional)": {
+    "en": "Due date (optional)",
+    "zh-TW": "截止日期（選填）",
+    "es": "Fecha límite (opcional)"
+  },
+  "Instructions for participants": {
+    "en": "Instructions for participants",
+    "zh-TW": "給參與者的說明",
+    "es": "Instrucciones para participantes"
+  },
+  "Assignments grant exam access. Assigning the same training again updates its deadline and notes; it does not reset progress or attempt limits. Maximum 500 active participants per batch.": {
+    "en": "Assignments grant exam access. Assigning the same training again updates its deadline and notes; it does not reset progress or attempt limits. Maximum 500 active participants per batch.",
+    "zh-TW": "指派會授予考試存取權。再次指派相同訓練會更新期限與備註，不會重設進度或考試次數。每批最多 500 位啟用中的參與者。",
+    "es": "Las asignaciones conceden acceso al examen. Reasignar la misma formación actualiza el plazo y las notas; no reinicia el progreso ni los intentos. Máximo 500 participantes activos por lote."
+  },
+  "Exam variation": {
+    "en": "Exam variation",
+    "zh-TW": "考卷變化設定",
+    "es": "Variación del examen"
+  },
+  "Shuffle question order": {
+    "en": "Shuffle question order",
+    "zh-TW": "隨機排列題目",
+    "es": "Mezclar el orden de las preguntas"
+  },
+  "Shuffle answer options": {
+    "en": "Shuffle answer options",
+    "zh-TW": "隨機排列選項",
+    "es": "Mezclar las opciones de respuesta"
+  },
+  "Questions per attempt (blank uses all)": {
+    "en": "Questions per attempt (blank uses all)",
+    "zh-TW": "每次考試題數（留白使用全部）",
+    "es": "Preguntas por intento (en blanco: todas)"
+  },
+  "A random subset is selected when an attempt starts. Its questions and option order stay fixed when resumed.": {
+    "en": "A random subset is selected when an attempt starts. Its questions and option order stay fixed when resumed.",
+    "zh-TW": "開始作答時隨機抽取題目；恢復作答時題目與選項順序維持不變。",
+    "es": "Al iniciar se selecciona un subconjunto aleatorio. Las preguntas y el orden de las opciones se mantienen al reanudar."
+  },
+  "Import participants": {
+    "en": "Import participants",
+    "zh-TW": "匯入參與者",
+    "es": "Importar participantes"
+  },
+  "Edit person": {
+    "en": "Edit person",
+    "zh-TW": "編輯人員",
+    "es": "Editar persona"
+  },
+  "Create up to 500 learner accounts from CSV. Preview checks every row and existing sign-in identifiers before any accounts are saved.": {
+    "en": "Create up to 500 learner accounts from CSV. Preview checks every row and existing sign-in identifiers before any accounts are saved.",
+    "zh-TW": "使用 CSV 一次建立最多 500 個學員帳號。預覽會在儲存前檢查每列資料及既有登入識別碼。",
+    "es": "Crea hasta 500 cuentas de participantes desde CSV. La vista previa comprueba cada fila y los identificadores existentes antes de guardar las cuentas."
+  },
+  "Supported columns: username, email, employee_id, display_name, department, employment. Use employee or contractor for employment. Passwords and administrator roles cannot be imported.": {
+    "en": "Supported columns: username, email, employee_id, display_name, department, employment. Use employee or contractor for employment. Passwords and administrator roles cannot be imported.",
+    "zh-TW": "支援欄位：username、email、employee_id、display_name、department、employment。employment 使用 employee 或 contractor。不支援匯入密碼及管理員角色。",
+    "es": "Columnas admitidas: username, email, employee_id, display_name, department, employment. Usa employee o contractor para employment. No se pueden importar contraseñas ni roles de administrador."
+  },
+  "Choose CSV file": {
+    "en": "Choose CSV file",
+    "zh-TW": "選擇 CSV 檔案",
+    "es": "Elegir archivo CSV"
+  },
+  "The CSV file must be smaller than 1 MB.": {
+    "en": "The CSV file must be smaller than 1 MB.",
+    "zh-TW": "CSV 檔案必須小於 1 MB。",
+    "es": "El archivo CSV debe ser menor de 1 MB."
+  },
+  "The CSV file could not be read.": {
+    "en": "The CSV file could not be read.",
+    "zh-TW": "無法讀取 CSV 檔案。",
+    "es": "No se pudo leer el archivo CSV."
+  },
+  "Use sample template": {
+    "en": "Use sample template",
+    "zh-TW": "使用範本",
+    "es": "Usar plantilla de ejemplo"
+  },
+  "CSV content": {
+    "en": "CSV content",
+    "zh-TW": "CSV 內容",
+    "es": "Contenido CSV"
+  },
+  "Created {count} learner accounts.": {
+    "en": "Created {count} learner accounts.",
+    "zh-TW": "已建立 {count} 個學員帳號。",
+    "es": "Se crearon {count} cuentas de participantes."
+  },
+  "All {count} rows are valid. Ready to import.": {
+    "en": "All {count} rows are valid. Ready to import.",
+    "zh-TW": "全部 {count} 列皆有效，可以匯入。",
+    "es": "Las {count} filas son válidas. Listo para importar."
+  },
+  "Fix the errors below. No accounts were created.": {
+    "en": "Fix the errors below. No accounts were created.",
+    "zh-TW": "請修正下列錯誤，尚未建立任何帳號。",
+    "es": "Corrige los siguientes errores. No se creó ninguna cuenta."
+  },
+  "Row {number}": {
+    "en": "Row {number}",
+    "zh-TW": "第 {number} 列",
+    "es": "Fila {number}"
+  },
+  "New accounts can use email codes when email delivery is configured. For employee-ID-only accounts, set an initial password in Edit person. Existing accounts are never overwritten.": {
+    "en": "New accounts can use email codes when email delivery is configured. For employee-ID-only accounts, set an initial password in Edit person. Existing accounts are never overwritten.",
+    "zh-TW": "設定郵件服務後，新帳號即可使用電子郵件驗證碼登入。僅有員工編號的帳號，請至「編輯人員」設定初始密碼。既有帳號不會被覆寫。",
+    "es": "Las cuentas nuevas pueden usar códigos por correo cuando se configure el envío. Para cuentas con solo ID de empleado, establece una contraseña inicial en Editar persona. Las cuentas existentes nunca se sobrescriben."
+  },
+  "Validate preview": {
+    "en": "Validate preview",
+    "zh-TW": "驗證預覽",
+    "es": "Validar vista previa"
+  },
+  "Create learner accounts": {
+    "en": "Create learner accounts",
+    "zh-TW": "建立學員帳號",
+    "es": "Crear cuentas de participantes"
+  },
+  "Sign-in identifiers stay fixed to preserve assessment ownership.": {
+    "en": "Sign-in identifiers stay fixed to preserve assessment ownership.",
+    "zh-TW": "登入識別碼維持固定，以保留考核紀錄的歸屬。",
+    "es": "Los identificadores de acceso permanecen fijos para conservar la titularidad de las evaluaciones."
+  },
+  "New password (leave blank to keep current)": {
+    "en": "New password (leave blank to keep current)",
+    "zh-TW": "新密碼（留白以保留目前密碼）",
+    "es": "Nueva contraseña (en blanco para conservar la actual)"
+  },
+  "Save person": {
+    "en": "Save person",
+    "zh-TW": "儲存人員",
+    "es": "Guardar persona"
+  },
+  "The new passwords do not match.": {
+    "en": "The new passwords do not match.",
+    "zh-TW": "兩次輸入的新密碼不一致。",
+    "es": "Las nuevas contraseñas no coinciden."
+  },
+  "Password changed. You remain signed in on this browser.": {
+    "en": "Password changed. You remain signed in on this browser.",
+    "zh-TW": "密碼已變更。此瀏覽器仍保持登入。",
+    "es": "Contraseña cambiada. La sesión sigue abierta en este navegador."
+  },
+  "This changes your local platform password. Manage your Microsoft password through your organization. If you have no local password, ask an administrator to set one.": {
+    "en": "This changes your local platform password. Manage your Microsoft password through your organization. If you have no local password, ask an administrator to set one.",
+    "zh-TW": "此操作會變更本平台的密碼。Microsoft 密碼請透過公司管理。如尚未設定本地密碼，請聯絡管理員。",
+    "es": "Esto cambia tu contraseña local de la plataforma. Gestiona tu contraseña de Microsoft a través de tu organización. Si no tienes contraseña local, pide a un administrador que la establezca."
+  },
+  "Current password": {
+    "en": "Current password",
+    "zh-TW": "目前密碼",
+    "es": "Contraseña actual"
+  },
+  "New password": {
+    "en": "New password",
+    "zh-TW": "新密碼",
+    "es": "Nueva contraseña"
+  },
+  "Confirm new password": {
+    "en": "Confirm new password",
+    "zh-TW": "確認新密碼",
+    "es": "Confirmar nueva contraseña"
+  },
+  "Add from question bank": {
+    "en": "Add from question bank",
+    "zh-TW": "從題庫加入",
+    "es": "Añadir desde el banco de preguntas"
+  },
+  "Search question bank": {
+    "en": "Search question bank",
+    "zh-TW": "搜尋題庫",
+    "es": "Buscar en el banco de preguntas"
+  },
+  "Create reusable questions in the question bank first.": {
+    "en": "Create reusable questions in the question bank first.",
+    "zh-TW": "請先在題庫建立可重複使用的題目。",
+    "es": "Primero crea preguntas reutilizables en el banco de preguntas."
+  },
+  "Add selected questions": {
+    "en": "Add selected questions",
+    "zh-TW": "加入所選題目",
+    "es": "Añadir preguntas seleccionadas"
+  },
+  "Questions are copied into this exam. Later bank edits do not change existing exams or attempts.": {
+    "en": "Questions are copied into this exam. Later bank edits do not change existing exams or attempts.",
+    "zh-TW": "題目會複製到此考試中。之後修改題庫不會影響既有考試或作答。",
+    "es": "Las preguntas se copian en este examen. Los cambios posteriores en el banco no modifican exámenes ni intentos existentes."
+  },
+  "ASSESSMENT LIBRARY": {
+    "en": "ASSESSMENT LIBRARY",
+    "zh-TW": "考核資源庫",
+    "es": "BIBLIOTECA DE EVALUACIÓN"
+  },
+  "Build a reusable library of reviewed questions for consistent assessments.": {
+    "en": "Build a reusable library of reviewed questions for consistent assessments.",
+    "zh-TW": "建立可重複使用的審核題庫，讓考核品質保持一致。",
+    "es": "Crea una biblioteca reutilizable de preguntas revisadas para evaluaciones coherentes."
+  },
+  "Create question": {
+    "en": "Create question",
+    "zh-TW": "建立題目",
+    "es": "Crear pregunta"
+  },
+  "Active questions": {
+    "en": "Active questions",
+    "zh-TW": "使用中的題目",
+    "es": "Preguntas activas"
+  },
+  "Archived": {
+    "en": "Archived",
+    "zh-TW": "已封存",
+    "es": "Archivadas"
+  },
+  "Category": {
+    "en": "Category",
+    "zh-TW": "分類",
+    "es": "Categoría"
+  },
+  "Edit": {
+    "en": "Edit",
+    "zh-TW": "編輯",
+    "es": "Editar"
+  },
+  "No questions to show": {
+    "en": "No questions to show",
+    "zh-TW": "目前沒有題目",
+    "es": "No hay preguntas que mostrar"
+  },
+  "Create questions here, then add them to any exam you manage.": {
+    "en": "Create questions here, then add them to any exam you manage.",
+    "zh-TW": "在此建立題目，再加入您管理的任一考試。",
+    "es": "Crea preguntas aquí y añádelas a cualquier examen que gestiones."
+  },
+  "Edit question": {
+    "en": "Edit question",
+    "zh-TW": "編輯題目",
+    "es": "Editar pregunta"
+  },
+  "Question text": {
+    "en": "Question text",
+    "zh-TW": "題目內容",
+    "es": "Texto de la pregunta"
+  },
+  "Select the correct answer or answers.": {
+    "en": "Select the correct answer or answers.",
+    "zh-TW": "請選擇正確答案。",
+    "es": "Selecciona la respuesta o las respuestas correctas."
+  },
+  "Correct option {number}": {
+    "en": "Correct option {number}",
+    "zh-TW": "正確選項 {number}",
+    "es": "Opción correcta {number}"
+  },
+  "Option {number}": {
+    "en": "Option {number}",
+    "zh-TW": "選項 {number}",
+    "es": "Opción {number}"
+  },
+  "Archive this question": {
+    "en": "Archive this question",
+    "zh-TW": "封存此題目",
+    "es": "Archivar esta pregunta"
+  },
+  "Save question": {
+    "en": "Save question",
+    "zh-TW": "儲存題目",
+    "es": "Guardar pregunta"
+  },
+  "Questions per attempt must be between 1 and the question pool size.": {
+    "en": "Questions per attempt must be between 1 and the question pool size.",
+    "zh-TW": "每次考試題數必須介於 1 與題目總數之間。",
+    "es": "Las preguntas por intento deben estar entre 1 y el tamaño del conjunto de preguntas."
+  },
+  "Publish the course or exam before assigning it.": {
+    "en": "Publish the course or exam before assigning it.",
+    "zh-TW": "請先發布課程或考試，再進行指派。",
+    "es": "Publica el curso o examen antes de asignarlo."
+  },
+  "Select active participants.": {
+    "en": "Select active participants.",
+    "zh-TW": "請選擇啟用中的參與者。",
+    "es": "Selecciona participantes activos."
+  },
+  "Assign between 1 and 500 active participants at a time.": {
+    "en": "Assign between 1 and 500 active participants at a time.",
+    "zh-TW": "每次請指派 1 至 500 位啟用中的參與者。",
+    "es": "Asigna entre 1 y 500 participantes activos a la vez."
+  },
+  "CSV needs a username column and only the supported participant columns.": {
+    "en": "CSV needs a username column and only the supported participant columns.",
+    "zh-TW": "CSV 必須包含 username 欄位，且僅能使用支援的參與者欄位。",
+    "es": "El CSV necesita una columna username y solo las columnas de participante admitidas."
+  },
+  "The CSV file is malformed.": {
+    "en": "The CSV file is malformed.",
+    "zh-TW": "CSV 檔案格式錯誤。",
+    "es": "El formato del archivo CSV es incorrecto."
+  },
+  "Import between 1 and 500 participants at a time.": {
+    "en": "Import between 1 and 500 participants at a time.",
+    "zh-TW": "每次請匯入 1 至 500 位參與者。",
+    "es": "Importa entre 1 y 500 participantes a la vez."
+  },
+  "The number of CSV values does not match the header.": {
+    "en": "The number of CSV values does not match the header.",
+    "zh-TW": "CSV 資料欄數與標題列不符。",
+    "es": "El número de valores CSV no coincide con la cabecera."
+  },
+  "The current password is incorrect.": {
+    "en": "The current password is incorrect.",
+    "zh-TW": "目前密碼不正確。",
+    "es": "La contraseña actual es incorrecta."
+  },
+  "Deployment readiness": {
+    "en": "Deployment readiness",
+    "zh-TW": "部署準備狀態",
+    "es": "Preparación del despliegue"
+  },
+  "Local configuration checks for the Peach1 handover. Company sign-in, email delivery and Graph connectivity need acceptance testing on the target machine.": {
+    "en": "Local configuration checks for the Peach1 handover. Company sign-in, email delivery and Graph connectivity need acceptance testing on the target machine.",
+    "zh-TW": "Peach1 交接所需的本地設定檢查。公司登入、郵件寄送及 Graph 連線仍須在目標主機驗收。",
+    "es": "Comprobaciones locales para la entrega a Peach1. El acceso corporativo, el envío de correo y la conectividad con Graph requieren pruebas de aceptación en el equipo de destino."
+  },
+  "Ready": {
+    "en": "Ready",
+    "zh-TW": "已就緒",
+    "es": "Listo"
+  },
+  "Action required": {
+    "en": "Action required",
+    "zh-TW": "需要處理",
+    "es": "Acción necesaria"
+  },
+  "Configured": {
+    "en": "Configured",
+    "zh-TW": "已設定",
+    "es": "Configurado"
+  },
+  "Connect on Peach1": {
+    "en": "Connect on Peach1",
+    "zh-TW": "於 Peach1 串接",
+    "es": "Conectar en Peach1"
+  },
+  "Production configuration": {
+    "en": "Production configuration",
+    "zh-TW": "正式環境設定",
+    "es": "Configuración de producción"
+  },
+  "Set DEBUG=false and DEMO_MODE=false for company deployment.": {
+    "en": "Set DEBUG=false and DEMO_MODE=false for company deployment.",
+    "zh-TW": "公司部署請設定 DEBUG=false 與 DEMO_MODE=false。",
+    "es": "Establece DEBUG=false y DEMO_MODE=false para el despliegue corporativo."
+  },
+  "HTTPS and isolated course content": {
+    "en": "HTTPS and isolated course content",
+    "zh-TW": "HTTPS 與隔離課程內容",
+    "es": "HTTPS y contenido de cursos aislado"
+  },
+  "Use separate HTTPS origins on the same registrable site; verify the reverse proxy and browser cookies.": {
+    "en": "Use separate HTTPS origins on the same registrable site; verify the reverse proxy and browser cookies.",
+    "zh-TW": "請在同一可註冊網域使用不同的 HTTPS 來源，並檢查反向代理與瀏覽器 Cookie。",
+    "es": "Usa orígenes HTTPS separados en el mismo dominio registrable; verifica el proxy inverso y las cookies del navegador."
+  },
+  "PostgreSQL database": {
+    "en": "PostgreSQL database",
+    "zh-TW": "PostgreSQL 資料庫",
+    "es": "Base de datos PostgreSQL"
+  },
+  "PostgreSQL is required for concurrent attempt protection in deployment.": {
+    "en": "PostgreSQL is required for concurrent attempt protection in deployment.",
+    "zh-TW": "部署時須使用 PostgreSQL，才能保護同時開始的考試作答。",
+    "es": "Se requiere PostgreSQL para proteger los intentos simultáneos en el despliegue."
+  },
+  "Database migrations": {
+    "en": "Database migrations",
+    "zh-TW": "資料庫遷移",
+    "es": "Migraciones de base de datos"
+  },
+  "Apply all database migrations before accepting traffic.": {
+    "en": "Apply all database migrations before accepting traffic.",
+    "zh-TW": "開放服務前請套用所有資料庫遷移。",
+    "es": "Aplica todas las migraciones antes de aceptar tráfico."
+  },
+  "Active platform administrator": {
+    "en": "Active platform administrator",
+    "zh-TW": "啟用中的平台管理員",
+    "es": "Administrador de plataforma activo"
+  },
+  "Provision at least one administrator and a separate operator recovery account.": {
+    "en": "Provision at least one administrator and a separate operator recovery account.",
+    "zh-TW": "請建立至少一位管理員及獨立的維運復原帳號。",
+    "es": "Crea al menos un administrador y una cuenta de recuperación independiente para operadores."
+  },
+  "Database checks failed. Check database connectivity and run migrations.": {
+    "en": "Database checks failed. Check database connectivity and run migrations.",
+    "zh-TW": "資料庫檢查失敗，請確認連線並執行遷移。",
+    "es": "Fallaron las comprobaciones. Revisa la conexión a la base de datos y ejecuta las migraciones."
+  },
+  "Writable course storage": {
+    "en": "Writable course storage",
+    "zh-TW": "可寫入的課程儲存空間",
+    "es": "Almacenamiento de cursos con escritura"
+  },
+  "Course storage must be writable with more than 1 GiB available. Monitor capacity separately.": {
+    "en": "Course storage must be writable with more than 1 GiB available. Monitor capacity separately.",
+    "zh-TW": "課程儲存空間須可寫入，且可用容量超過 1 GiB。請另外監控容量。",
+    "es": "El almacenamiento de cursos debe permitir escritura y tener más de 1 GiB disponible. Supervisa la capacidad por separado."
+  },
+  "Create and mount writable persistent media storage for the API.": {
+    "en": "Create and mount writable persistent media storage for the API.",
+    "zh-TW": "請為 API 建立並掛載可寫入的持久媒體儲存空間。",
+    "es": "Crea y monta almacenamiento multimedia persistente con escritura para la API."
+  },
+  "Company email configuration": {
+    "en": "Company email configuration",
+    "zh-TW": "公司郵件設定",
+    "es": "Configuración de correo corporativo"
+  },
+  "Configuration check only. Test a real sign-in code and a verified guest invitation after deployment.": {
+    "en": "Configuration check only. Test a real sign-in code and a verified guest invitation after deployment.",
+    "zh-TW": "此項僅檢查設定。部署後請測試實際登入驗證碼及訪客驗證邀請。",
+    "es": "Solo se comprueba la configuración. Prueba un código de acceso real y una invitación verificada tras el despliegue."
+  },
+  "Microsoft Entra configuration": {
+    "en": "Microsoft Entra configuration",
+    "zh-TW": "Microsoft Entra 設定",
+    "es": "Configuración de Microsoft Entra"
+  },
+  "Tenant connectivity, consent and Graph synchronization must be verified on Peach1. No tenant API was called.": {
+    "en": "Tenant connectivity, consent and Graph synchronization must be verified on Peach1. No tenant API was called.",
+    "zh-TW": "租用戶連線、授權同意及 Graph 同步須在 Peach1 驗證。本檢查未呼叫租用戶 API。",
+    "es": "La conectividad, el consentimiento y la sincronización de Graph deben verificarse en Peach1. No se llamó a ninguna API del tenant."
+  },
+  "BUILD YOUR FOUNDATION": {
+    "en": "BUILD YOUR FOUNDATION",
+    "zh-TW": "建立穩固基礎",
+    "es": "CONSTRUYE TU BASE"
+  },
+  "KEEP EXPLORING": {
+    "en": "KEEP EXPLORING",
+    "zh-TW": "持續探索學習",
+    "es": "SIGUE EXPLORANDO"
+  },
+  "GROW TOGETHER": {
+    "en": "GROW TOGETHER",
+    "zh-TW": "一起成長進步",
+    "es": "CRECEMOS JUNTOS"
+  },
+  "MAKE AN IMPACT": {
+    "en": "MAKE AN IMPACT",
+    "zh-TW": "創造正向影響",
+    "es": "MARCA LA DIFERENCIA"
   }
 }

@@ -10,9 +10,11 @@ from django.utils import timezone
 from training.models import (
     Attempt,
     AttemptBudget,
+    BankQuestion,
     Course,
     Enrollment,
     Exam,
+    LearningAssignment,
     Question,
     User,
 )
@@ -264,6 +266,33 @@ class Command(BaseCommand):
             grade(attempt)
             attempt.save()
             Attempt.objects.filter(pk=attempt.pk).update(started_at=when)
+        for index, person in enumerate([admin] + people):
+            for offset in range(2):
+                LearningAssignment.objects.create(
+                    user=person,
+                    course=courses[(index + offset) % len(courses)],
+                    created_by=admin,
+                    due_at=timezone.now()
+                    + timedelta(days=-3 if index % 4 == 0 else 14),
+                    notes="Complete this required training and discuss any questions with your team lead.",
+                )
+            LearningAssignment.objects.create(
+                user=person,
+                exam=exams[index % len(exams)],
+                created_by=admin,
+                due_at=timezone.now() + timedelta(days=7),
+                notes="Achieve the passing score to fulfill this assessment requirement.",
+            )
+        for question in exams[0].questions.all():
+            BankQuestion.objects.create(
+                owner=admin,
+                category="Security & collaboration",
+                description=question.description,
+                type=question.type,
+                options=question.options,
+                solution=question.solution,
+                points=question.points,
+            )
         self.stdout.write(
             "Synthetic demo ready. Admin: admin@evitina.example; learner: learner1@evitina.example. Password comes from DEMO_PASSWORD."
         )

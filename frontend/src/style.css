@@ -3625,3 +3625,169 @@ form > label {
 .nav-item {
   white-space: normal;
 }
+
+/* Required training and assessment library */
+.assignment-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin: 24px 0;
+}
+.assignment-metric {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 23px;
+  color: #1468ab;
+}
+.assignment-metric.teal {
+  color: #168b79;
+}
+.assignment-metric.amber {
+  color: #ba7722;
+}
+.assignment-metric.purple {
+  color: #785bb9;
+}
+.assignment-metric span {
+  display: block;
+  font-size: 13px;
+  color: #63748a;
+}
+.assignment-metric strong {
+  display: block;
+  font-size: 29px;
+  line-height: 1.4;
+  color: #24364b;
+}
+.cell-note {
+  display: block;
+  color: #708096;
+  font-size: 12px;
+  margin-top: 6px;
+}
+.assignment-note {
+  max-width: 360px;
+  white-space: pre-wrap;
+}
+.bank-description {
+  max-width: 520px;
+  white-space: pre-wrap;
+}
+.bank-picker,
+.exam-randomization {
+  border: 1px solid #dfe8f1;
+  border-radius: 12px;
+  padding: 18px;
+  background: #f7fafc;
+}
+.bank-picker-body {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.bank-picker-list {
+  max-height: 280px;
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+}
+.bank-picker-list label {
+  align-items: start;
+  padding: 10px;
+  background: white;
+  border-radius: 8px;
+}
+.exam-randomization {
+  display: grid;
+  gap: 14px;
+}
+.bank-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.bank-option input[type="radio"],
+.bank-option input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}
+.bank-option input:not([type="radio"]):not([type="checkbox"]) {
+  flex: 1;
+  min-width: 0;
+}
+.csv-input {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  white-space: pre;
+}
+.import-error {
+  display: flex;
+  align-items: start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  color: #a13232;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.import-error strong {
+  flex: 0 0 65px;
+}
+@media (max-width: 760px) {
+  .assignment-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .assignment-metric {
+    padding: 16px;
+    gap: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+.readiness-panel {
+  margin: 24px 0;
+  padding: 24px;
+}
+.readiness-panel > p {
+  color: #6c7c8f;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+.readiness-check {
+  padding: 16px;
+  border: 1px solid #e1e8ef;
+  border-radius: 10px;
+}
+.readiness-check > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.readiness-check p {
+  color: #6c7c8f;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 0;
+}
+@media (max-width: 760px) {
+  .readiness-grid {
+    grid-template-columns: 1fr;
+  }
+}

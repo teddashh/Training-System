@@ -18,6 +18,8 @@ import {
   ArrowUpRight,
   ShieldCheck,
   RefreshCw,
+  ClipboardList,
+  LibraryBig,
 } from "lucide-react";
 import { api } from "./api";
 import type { Course, Exam, User } from "./types";
@@ -28,6 +30,9 @@ import Exams from "./Exams";
 import Attempt, { GuestExam } from "./Attempt";
 import { Invitations, People, Results, Settings } from "./Management";
 import { Modal, ErrorBox, Spinner } from "./ui";
+import Assignments from "./Assignments";
+import QuestionBank from "./QuestionBank";
+import { PasswordDialog } from "./PeopleTools";
 const getNav = () => [
   {
     path: "/",
@@ -36,6 +41,7 @@ const getNav = () => [
     group: t("Workspace"),
   },
   { path: "/courses", label: t("Learning courses"), icon: BookOpen },
+  { path: "/assignments", label: t("Assigned training"), icon: ClipboardList },
   { path: "/exams", label: t("Exams & assessments"), icon: ClipboardCheck },
   { path: "/results", label: t("Results & reviews"), icon: BarChart3 },
   {
@@ -49,6 +55,12 @@ const getNav = () => [
     path: "/invitations",
     label: t("Guest exam invitations"),
     icon: Link2,
+    manage: true,
+  },
+  {
+    path: "/question-bank",
+    label: t("Question bank"),
+    icon: LibraryBig,
     manage: true,
   },
   {
@@ -80,10 +92,11 @@ export default function App() {
     [query, setQuery] = useState(""),
     [help, setHelp] = useState(false),
     [profile, setProfile] = useState(false),
+    [password, setPassword] = useState(false),
     [loading, setLoading] = useState(false);
   const go = useCallback((next: string) => {
     history.pushState({}, "", next);
-    setPath(next);
+    setPath(new URL(next, window.location.origin).pathname);
     setMobile(false);
     setQuery("");
     window.scrollTo(0, 0);
@@ -265,7 +278,7 @@ export default function App() {
             {demo
               ? t("Demo environment \u00B7 Synthetic data")
               : t("Enterprise training workspace")}
-            <span>v0.2</span>
+            <span>v1.0</span>
           </div>
         </div>
       </aside>
@@ -345,6 +358,14 @@ export default function App() {
                 <div className="profile-menu">
                   <strong>{user.email || user.username}</strong>
                   <span>{user.department || t("No department assigned")}</span>
+                  <button
+                    onClick={() => {
+                      setProfile(false);
+                      setPassword(true);
+                    }}
+                  >
+                    {t("Change password")}
+                  </button>
                   <button onClick={signOut}>
                     <LogOut size={15} />
                     {t("Sign out") + " "}
@@ -375,6 +396,16 @@ export default function App() {
             />
           ) : path === "/courses" ? (
             <Courses courses={courses} user={user} onSaved={refresh} />
+          ) : path === "/assignments" ? (
+            <Assignments
+              user={user}
+              courses={courses}
+              exams={exams}
+              go={go}
+              onSaved={refresh}
+            />
+          ) : path === "/question-bank" ? (
+            <QuestionBank />
           ) : path === "/authoring" ? (
             <Courses courses={courses} user={user} onSaved={refresh} studio />
           ) : path === "/exams" ? (
@@ -412,6 +443,7 @@ export default function App() {
           </footer>
         </main>
       </div>
+      {password && <PasswordDialog onClose={() => setPassword(false)} />}
       {help && (
         <Modal
           title={t("Welcome to Evitina Learn")}

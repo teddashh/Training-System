@@ -100,7 +100,9 @@ class Courses(viewsets.ModelViewSet):
         qs = Course.objects.all().order_by("-created_at")
         if self.request.user.role == "admin":
             return qs
-        return qs.filter(Q(published=True) | Q(owner=self.request.user))
+        if self.request.user.role == "instructor":
+            return qs.filter(Q(published=True) | Q(owner=self.request.user))
+        return qs.filter(published=True)
 
     def perform_create(self, serializer):
         if not manager(self.request.user):

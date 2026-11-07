@@ -17,3 +17,6 @@ playwright-report/
 backend/test-mail/
 *.tsbuildinfo
 .openai/
+backups/
+*.dump
+media.tar.gz

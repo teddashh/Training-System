@@ -1,0 +1,106 @@
+# Peach1 handover
+
+This repository contains the company training platform. Peach1 is the target for company infrastructure configuration and Microsoft Entra / Graph integration. No tenant credentials, live directory data or email passwords belong in this public repository.
+
+## What is ready in the application
+
+- English-default interface, with Traditional Chinese and Spanish throughout the workspace and authoring studio.
+- Employee/contractor accounts, administrator/instructor/learner permissions, email codes, local passwords and employee ID sign-in. CSV onboarding previews all rows and imports atomically; profile and password changes are available in the UI.
+- Single-tenant Entra OIDC sign-in, with stable `tenant-id:object-id` subjects and explicit linking for existing local accounts.
+- Courses, block lessons, Scormly authoring, SCORM import/publication, isolated course execution, saved progress and editable authoring source downloads.
+- Required training assignments, deadlines, learner worklists, instructor-scoped completion reports and CSV exports. A passing exam or completed course fulfills the requirement, including prior completion. Reassignment updates the requirement; it does not reset progress or attempt budgets.
+- Independent and course-linked exams, question banks, question/option shuffling, random subsets, audience restrictions, timing, automatic/manual grading and review feedback.
+- Personal guest links with email/account-bound identity, expiry, revocation, optional email verification and per-link plus per-identity attempt limits.
+- Performance dashboards, results exports, audit history, expiry scheduler, Docker deployment and backup/restore tooling.
+
+The system does not yet perform Microsoft Graph directory synchronization. Entra OIDC and Graph provisioning are separate integrations. Company packages, tenant controls, email delivery, infrastructure and expected concurrency need acceptance testing on Peach1.
+
+## Deploy a clean company workspace
+
+1. Clone `https://github.com/teddashh/Training-System.git` and record the tested commit or release tag. Install Docker Engine, Compose v2 and Python 3.11+ for the backup tool.
+2. Copy `.env.example` to `.env`, set long random secrets, `DEBUG=false`, `DEMO_MODE=false`, production `ALLOWED_HOSTS`, and two HTTPS origins such as `learn.company.example` and `content.company.example`. Keep the origins within the same registrable site. Store secrets locally or in a secret manager.
+3. Route the two domains through a trusted TLS reverse proxy to loopback ports 8080 and 8081. Follow [deployment details](DEPLOYMENT.md), including forwarding HTTPS information correctly. The content origin must not expose application APIs or administration.
+4. Run `docker compose up --build -d --wait`. Database migrations run before the API becomes healthy.
+5. Run `docker compose exec api python manage.py createsuperuser` to create an operator. In Django administration, set the intended application administrator's **Enterprise → role** to **Administrator**. Django superuser privileges and platform roles are separate. Keep a tested local recovery account.
+6. Do **not** run `seed_demo` on a company installation. If moving a real existing workspace, use the restore procedure below. Existing demo installations do not become clean company workspaces by changing `DEMO_MODE`.
+7. Configure SMTP, verify real email-code delivery, and provision local participants through **People & permissions**. CSV headers are documented in [operations](OPERATIONS.md).
+8. Run `docker compose exec api python manage.py check_deployment --strict`. Review **Settings & audit → Deployment readiness**. These checks inspect local configuration; they do not verify DNS, certificates, SMTP delivery, scheduler health or tenant access.
+9. Connect Entra and Graph following the contract below, then complete the acceptance table. Entra configuration can remain deferred during local platform validation.
+
+## Entra sign-in contract
+
+Register a single-tenant **Web** application. Configure the redirect URI as `APP_ORIGIN/api/auth/entra/callback/` and set `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, and `ENTRA_CLIENT_SECRET` on the backend. Apply the company's assignment, MFA and Conditional Access policies in Entra.
+
+The durable key is `User.entra_subject = tenant_id + ':' + object_id`. A new valid OIDC subject creates a learner; email, display name or group name must never grant administration. A disabled platform account remains disabled. Verify an existing local account's ownership before assigning its subject through Django administration; do not silently attach directory accounts by matching email or employee ID.
+
+The platform's `Identity` links account and invitation assessment history. Preserve that identity, historical attempts and budgets during provisioning changes. The normal participant API intentionally keeps username, email and employee ID immutable after creation. For email changes or merges, design an audited operator migration rather than bypassing these protections with bulk updates.
+
+## Graph provisioning contract for Peach1
+
+Use a separate daemon application/credential where practical, so Graph directory permissions are independent of interactive sign-in. Reading users through application permissions requires at least `User.Read.All` with tenant admin consent. Additional features, such as group synchronization, need their own reviewed permissions; this platform does not require directory write permissions. See [Microsoft: list users](https://learn.microsoft.com/en-us/graph/api/user-list?view=graph-rest-1.0).
+
+A user import should select only required properties, for example:
+
+```http
+GET https://graph.microsoft.com/v1.0/users?$select=id,displayName,mail,userPrincipalName,employeeId,department,employeeType,accountEnabled,userType
+```
+
+| Directory field | Platform mapping | Required behavior |
+| --- | --- | --- |
+| Tenant ID + `id` | `entra_subject` | Stable unique key; validate the configured tenant |
+| `displayName` | `display_name` | Update display values; enforce field length |
+| `department` | `department` | Use a documented company department mapping |
+| `employeeId` | `employee_id` | Check collisions against all existing login identifiers |
+| `mail` / approved UPN | `email` at provisioning | Use a verified deliverable address; UPN is not always a mailbox |
+| `employeeType` | `employment` | Explicit company mapping to `employee` or `contractor` |
+| `userType` | Directory metadata | `Guest` is a directory classification, not an employment classification |
+| `accountEnabled` | `is_active` | Deactivation preserves attempts, enrollments and audit history |
+| Groups / app roles | Separate authorization mapping | Default to learner; never infer platform administration from a display name |
+
+This is the intended adapter contract, not an active synchronization service. Build a dry-run plan before applying changes, show collisions and ambiguous links, and record audit events without tokens or unnecessary personal data. Treat local recovery/operator accounts as separately managed. Preserve deliberate local deactivation instead of blindly re-enabling accounts on each sync.
+
+For full synchronization, follow every opaque `@odata.nextLink`. Never deactivate users merely because they are absent from a partial or failed page. For incremental synchronization, store the completed `@odata.deltaLink`, process changed/deleted objects, and checkpoint only after the batch commits. Keep query selection consistent, handle retries/backoff and token expiry, and surface failures to an operator. See [Microsoft: users delta query](https://learn.microsoft.com/en-us/graph/delta-query-users) and the [user resource](https://learn.microsoft.com/en-us/graph/api/resources/user?view=graph-rest-1.0).
+
+Before enabling scheduled sync, test: create, duplicate email/employee ID, explicit link to a local account, renamed user, department move, contractor mapping, disable/delete, pagination failure, rate limiting, duplicate delivery and operator recovery. Role changes and identity linking need audit records. Do not delete historical training records when someone leaves.
+
+## Backup and transfer
+
+Use [the backup tool](../scripts/backup.py) with a trusted backup directory outside Git:
+
+```bash
+# Consistent backup: briefly stops API/web/content/scheduler, then restarts them.
+python3 scripts/backup.py create /secure/backups/training-2026-11-06
+python3 scripts/backup.py verify /secure/backups/training-2026-11-06
+
+# On Peach1: choose a NEW project name with no existing containers or volumes.
+python3 scripts/backup.py restore /secure/backups/training-2026-11-06 --project peach1-training
+```
+
+The tool checks SHA-256 digests and media paths. It restores PostgreSQL and course/source files into an isolated Compose project, applies migrations and runs Django checks. It refuses to overwrite an existing destination. API, web, content and scheduler stay stopped after restore; inspect the restored records and media before starting them. PostgreSQL dumps contain executable SQL: use only trusted operator backups.
+
+Supply `.env`/secret-manager values separately. The backup does not include secrets, TLS certificates, reverse-proxy settings or external directory configuration. Transfer these through company-approved channels. Protect and encrypt backups because they contain participant records, grading data, password hashes and course material. Keep the original `SECRET_KEY` only if session continuity is intended; rotating it invalidates existing signed sessions/tickets.
+
+After reviewing the restored project:
+
+```bash
+docker compose --project-name peach1-training run --rm --no-deps api python manage.py check_deployment --strict
+# Ensure ports 8080/8081 are available before starting this project.
+docker compose --project-name peach1-training up -d --wait
+```
+
+## Acceptance on Peach1
+
+| Workflow | Pass condition |
+| --- | --- |
+| Three languages | English on first visit; all three selections persist; unsaved editor/exam input survives switching |
+| Access | Employee, contractor, local email and employee ID can use their intended sign-in methods |
+| Entra | Correct tenant/MFA/assignment policy works; wrong tenant, disabled user and unapproved link are rejected |
+| Graph | Dry-run reconciliation matches expectations; repeat sync is idempotent; failed pagination never deactivates unrelated people |
+| Required training | Assignment appears only for intended people; course completion or passing grade updates the report; CSV matches records |
+| Authoring / SCORM | Create, publish, launch, commit, close/reopen and download editable source using representative company packages |
+| Exams | Independent and linked exams, random snapshots, attempt caps, autosave, expiry and manual review work under expected concurrency |
+| Guests | Named recipient verifies email; link expiry/revocation works; reissued links cannot reset the shared identity budget |
+| Recovery | Restore a current database/media backup in isolation, compare record counts and launch restored content |
+| Operations | Monitor DB/storage, TLS, SMTP, scheduler, backup age and application errors; define retention and support ownership |
+
+SCORM support is the documented single-SCO 1.2/2004 subset, not full SCORM 2004 sequencing certification. Required training uses current completion evidence; recurring recertification cycles and certificate issuance are not part of this release. The audit log is application history, not an immutable external compliance archive. Validate company acceptance criteria before declaring an organizational rollout complete.

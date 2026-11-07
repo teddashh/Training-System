@@ -24,3 +24,7 @@ Abra <http://localhost:8080>. Entra ID y SMTP requieren la configuración de su 
 Consulte la [guía completa en inglés](../README.md), la [documentación de despliegue](DEPLOYMENT.md) y las [integraciones](INTEGRATIONS.md) para conocer los comandos, pruebas y límites.
 
 ![Interfaz en español con datos de demostración](screenshots/dashboard-es.png)
+
+## Entrega para despliegue corporativo
+
+La versión 1.0 añade formación obligatoria con plazos, informes de finalización, banco de preguntas, exámenes aleatorios, importación CSV y gestión de contraseñas. El idioma inicial sigue siendo inglés, con chino tradicional y español disponibles. Consulta la [entrega a Peach1](PEACH1-HANDOVER.md) y las [operaciones](OPERATIONS.md). La conexión corporativa de Entra, la sincronización de Graph y el correo se validarán en Peach1.

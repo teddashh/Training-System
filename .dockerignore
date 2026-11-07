@@ -13,3 +13,6 @@ legacy
 test-results
 frontend/test-results
 docs/screenshots
+backups
+**/*.dump
+**/media.tar.gz

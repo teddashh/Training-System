@@ -125,6 +125,10 @@ class Exam(models.Model):
     ends_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    shuffle_questions = models.BooleanField(default=False)
+    shuffle_options = models.BooleanField(default=False)
+    questions_per_attempt = models.PositiveSmallIntegerField(null=True, blank=True)
+
     class Meta:
         constraints = [
             models.CheckConstraint(
@@ -157,6 +161,53 @@ class Question(models.Model):
 
     class Meta:
         ordering = ["position", "id"]
+
+
+class BankQuestion(models.Model):
+    """Reusable source material; exams copy questions and attempts freeze them."""
+
+    owner = models.ForeignKey(User, on_delete=models.PROTECT)
+    category = models.CharField(max_length=100, default="General training")
+    description = models.TextField()
+    type = models.CharField(
+        max_length=20, choices=Question._meta.get_field("type").choices
+    )
+    options = models.JSONField(default=list, blank=True)
+    solution = models.JSONField(default=list, blank=True)
+    points = models.PositiveIntegerField(default=10)
+    archived = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class LearningAssignment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.PROTECT)
+    course = models.ForeignKey(Course, null=True, blank=True, on_delete=models.PROTECT)
+    exam = models.ForeignKey(Exam, null=True, blank=True, on_delete=models.PROTECT)
+    created_by = models.ForeignKey(
+        User, related_name="issued_assignments", on_delete=models.PROTECT
+    )
+    due_at = models.DateTimeField(null=True, blank=True)
+    notes = models.CharField(max_length=1000, blank=True)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(course__isnull=False, exam__isnull=True)
+                    | models.Q(course__isnull=True, exam__isnull=False)
+                ),
+                name="assignment_has_one_target",
+            ),
+            models.UniqueConstraint(
+                fields=["user", "course"], name="unique_course_assignment"
+            ),
+            models.UniqueConstraint(
+                fields=["user", "exam"], name="unique_exam_assignment"
+            ),
+        ]
 
 
 class AttemptBudget(models.Model):

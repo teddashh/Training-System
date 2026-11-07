@@ -1,3 +1,5 @@
+import Readiness from "./Readiness";
+import { PeopleImport, PersonEditor } from "./PeopleTools";
 import { t, useLocale } from "./i18n";
 import { useEffect, useState } from "react";
 import {
@@ -698,6 +700,8 @@ function ClockIcon() {
 export function People() {
   useLocale();
   const [users, setUsers] = useState<User[]>([]),
+    [editingPerson, setEditingPerson] = useState<User | null>(null),
+    [importing, setImporting] = useState(false),
     [search, setSearch] = useState(""),
     [open, setOpen] = useState(false),
     [error, setError] = useState(""),
@@ -742,6 +746,9 @@ export function People() {
             {t("Connect employees and partners in a shared learning space.")}
           </p>
         </div>
+        <button className="btn" onClick={() => setImporting(true)}>
+          {t("Import participants")}
+        </button>
         <button
           className="btn primary"
           onClick={() => {
@@ -827,6 +834,12 @@ export function People() {
                       </Badge>
                     </td>
                     <td>
+                      <button
+                        className="text-btn"
+                        onClick={() => setEditingPerson(u)}
+                      >
+                        {t("Edit person")}
+                      </button>
                       <button className="text-btn" onClick={() => toggle(u)}>
                         {u.is_active ? t("Disable") : t("Enable")}
                       </button>
@@ -837,6 +850,16 @@ export function People() {
           </table>
         </div>
       </div>
+      {editingPerson && (
+        <PersonEditor
+          user={editingPerson}
+          onClose={() => setEditingPerson(null)}
+          onSaved={load}
+        />
+      )}
+      {importing && (
+        <PeopleImport onClose={() => setImporting(false)} onSaved={load} />
+      )}
       {open && (
         <Modal
           title={t("Add training participant")}
@@ -968,6 +991,7 @@ export function Settings({ entra }: { entra: boolean }) {
           );
         })}
       </div>
+      <Readiness />
       <div className="toolbar">
         <h2>{t("Recent activity")}</h2>
         <Badge tone="neutral">{t("Latest 200 entries")}</Badge>

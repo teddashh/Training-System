@@ -14,6 +14,7 @@ import {
 import { api } from "./api";
 import type { Exam, Course, Question, User, Attempt } from "./types";
 import { Modal, Badge, ErrorBox, Empty } from "./ui";
+import { BankPicker } from "./QuestionBank";
 function ExamEditor({
   exam,
   courses,
@@ -33,6 +34,15 @@ function ExamEditor({
     exam?.allowed_departments || [],
   );
   const [people, setPeople] = useState<number[]>(exam?.allowed_users || []);
+  const [shuffleQuestions, setShuffleQuestions] = useState(
+    exam?.shuffle_questions || false,
+  );
+  const [shuffleOptions, setShuffleOptions] = useState(
+    exam?.shuffle_options || false,
+  );
+  const [sample, setSample] = useState(
+    exam?.questions_per_attempt?.toString() || "",
+  );
   const [options, setOptions] = useState<{
     departments: string[];
     people: Pick<User, "id" | "display_name" | "username" | "department">[];
@@ -104,6 +114,9 @@ function ExamEditor({
           audience,
           allowed_departments: departments,
           allowed_users: people,
+          shuffle_questions: shuffleQuestions,
+          shuffle_options: shuffleOptions,
+          questions_per_attempt: sample ? Number(sample) : null,
           starts_at: start ? new Date(start).toISOString() : null,
           ends_at: end ? new Date(end).toISOString() : null,
           questions: questions.map((q, i) => ({
@@ -152,11 +165,13 @@ function ExamEditor({
             {t("Linked course") + " "}
             <select value={course} onChange={(e) => setCourse(e.target.value)}>
               <option value="">{t("Standalone exam (no course)")}</option>
-              {courses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title}
-                </option>
-              ))}
+              {courses
+                .filter((c) => c.can_manage)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title}
+                  </option>
+                ))}
             </select>
           </label>
           <label>
@@ -301,6 +316,49 @@ function ExamEditor({
           <p>
             {t(
               "Choice and short-answer questions are graded automatically. Written responses are reviewed by an instructor.",
+            )}
+          </p>
+        </div>
+        <BankPicker
+          onAdd={(items) =>
+            setQuestions((current) =>
+              current.length === 1 && !current[0].description
+                ? items
+                : [...current, ...items],
+            )
+          }
+        />
+        <div className="exam-randomization">
+          <h3>{t("Exam variation")}</h3>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={shuffleQuestions}
+              onChange={(e) => setShuffleQuestions(e.target.checked)}
+            />
+            {t("Shuffle question order")}
+          </label>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={shuffleOptions}
+              onChange={(e) => setShuffleOptions(e.target.checked)}
+            />
+            {t("Shuffle answer options")}
+          </label>
+          <label>
+            {t("Questions per attempt (blank uses all)")}
+            <input
+              type="number"
+              min={1}
+              max={questions.length}
+              value={sample}
+              onChange={(e) => setSample(e.target.value)}
+            />
+          </label>
+          <p className="notice">
+            {t(
+              "A random subset is selected when an attempt starts. Its questions and option order stay fixed when resumed.",
             )}
           </p>
         </div>

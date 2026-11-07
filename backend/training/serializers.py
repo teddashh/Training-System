@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from .i18n import translate
-from .models import Course, Exam, Invitation, Question, User
+from .models import BankQuestion, Course, Exam, Invitation, Question, User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -78,6 +78,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(serializers.ModelSerializer):
+    can_manage = serializers.SerializerMethodField()
     package = serializers.SerializerMethodField()
     progress = serializers.SerializerMethodField()
     enrolled_count = serializers.IntegerField(
@@ -98,7 +99,14 @@ class CourseSerializer(serializers.ModelSerializer):
             "progress",
             "enrolled_count",
             "created_at",
+            "can_manage",
         ]
+
+    def get_can_manage(self, obj):
+        user = self.context["request"].user
+        return user.role == "admin" or (
+            user.role == "instructor" and obj.owner_id == user.id
+        )
 
     def get_package(self, obj):
         package = obj.packages.order_by("-created_at").first()
@@ -149,8 +157,9 @@ class QuestionSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, data):
-        kind = data.get("type", "single")
-        options, solution = data.get("options", []), data.get("solution", [])
+        kind = data.get("type", getattr(self.instance, "type", "single"))
+        options = data.get("options", getattr(self.instance, "options", []))
+        solution = data.get("solution", getattr(self.instance, "solution", []))
         if not isinstance(options, list) or not all(
             isinstance(v, str) and len(v) <= 4000 for v in options
         ):
@@ -181,9 +190,26 @@ class QuestionSerializer(serializers.ModelSerializer):
         return data
 
 
+class BankQuestionSerializer(QuestionSerializer):
+    class Meta:
+        model = BankQuestion
+        fields = [
+            "id",
+            "description",
+            "type",
+            "options",
+            "solution",
+            "points",
+            "category",
+            "archived",
+            "updated_at",
+        ]
+        read_only_fields = ["updated_at"]
+
+
 class ExamSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, required=False)
-    question_count = serializers.IntegerField(source="questions.count", read_only=True)
+    question_count = serializers.SerializerMethodField()
     attempts_used = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
 
@@ -207,6 +233,9 @@ class ExamSerializer(serializers.ModelSerializer):
             "allowed_users",
             "allowed_departments",
             "can_manage",
+            "shuffle_questions",
+            "shuffle_options",
+            "questions_per_attempt",
         ]
 
     def get_can_manage(self, obj):
@@ -214,6 +243,9 @@ class ExamSerializer(serializers.ModelSerializer):
         return user.role == "admin" or (
             user.role == "instructor" and obj.owner_id == user.id
         )
+
+    def get_question_count(self, obj):
+        return obj.questions_per_attempt or obj.questions.count()
 
     def get_attempts_used(self, obj):
         from .models import AttemptBudget
@@ -265,6 +297,21 @@ class ExamSerializer(serializers.ModelSerializer):
                 translate("The closing time must be after the opening time.")
             )
         questions = data.get("questions")
+        pool_size = (
+            len(questions)
+            if questions is not None
+            else (self.instance.questions.count() if self.instance else 0)
+        )
+        selected = data.get(
+            "questions_per_attempt",
+            getattr(self.instance, "questions_per_attempt", None),
+        )
+        if selected is not None and not 1 <= selected <= pool_size:
+            raise serializers.ValidationError(
+                translate(
+                    "Questions per attempt must be between 1 and the question pool size."
+                )
+            )
         if questions is not None and len(questions) > 200:
             raise serializers.ValidationError(
                 translate("An exam can contain at most 200 questions.")

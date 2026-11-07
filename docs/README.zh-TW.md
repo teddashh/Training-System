@@ -24,3 +24,7 @@ docker compose exec api python manage.py shell -c \
 完整建置、測試與範圍請參閱 [英文說明](../README.md)、[部署文件](DEPLOYMENT.md) 與[整合文件](INTEGRATIONS.md)。
 
 ![繁體中文介面與合成示範資料](screenshots/dashboard-zh-TW.png)
+
+## 公司部署交接
+
+v1.0 加入必修訓練指派、截止日期、完成報表、可重複使用的題庫、隨機考題與選項、CSV 人員匯入及密碼管理。介面預設英文，亦提供繁體中文與西班牙文。請參閱 [Peach1 交接指南](PEACH1-HANDOVER.md) 與 [操作說明](OPERATIONS.md)。公司 Entra、Graph 同步及郵件連線於 Peach1 階段完成驗收。

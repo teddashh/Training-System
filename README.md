@@ -8,20 +8,23 @@ A self-hosted training, course authoring and assessment platform for employees, 
 
 **English is the default.** Switch to Traditional Chinese or Spanish from the sign-in page, workspace, course editor or exam. The platform and authoring studio share the preference, without discarding unsaved edits or exam answers. Authored course content, questions and names keep their original language.
 
-This v0.2 implementation runs with a real database and tested end-to-end workflows. Company Entra ID and SMTP configuration are required before organizational use; the public repository does not include a live company deployment.
+This v1.0 handover release runs with a real database and tested end-to-end workflows. [Peach1 handover](docs/PEACH1-HANDOVER.md) covers deployment, backup/restore, the Graph provisioning contract and company acceptance tests. Live Graph synchronization, Entra/SMTP configuration and infrastructure validation belong to the Peach1 integration stage. The public repository contains no company credentials or live deployment.
 
 ![Dashboard with synthetic demonstration data](docs/screenshots/dashboard.png)
+
+[Required training report](docs/screenshots/assignments.png) · [Question bank](docs/screenshots/question-bank.png)
 
 ## Capabilities
 
 | Area | Implemented behavior |
 | --- | --- |
 | Authentication | Microsoft Entra single-tenant OIDC/MSAL; email, username or employee ID with password; email sign-in codes for provisioned accounts |
-| People | Administrator, instructor and learner roles; employees/contractors; departments; account deactivation; unique login identifiers |
-| Learning | Course creation, editing, publication, block lessons, self-enrollment and completion records |
+| People | Roles, employment types and departments; CSV preview/atomic onboarding; profile editing, password changes and account deactivation |
+| Learning | Course creation, publication, block lessons, self-enrollment and completion records |
+| Required training | Assign courses or exams to people, departments or employment groups; due dates, learner worklists, completion/overdue reports and CSV |
 | SCORM | ZIP validation/import, isolated content origin, SCORM 1.2/2004 single-SCO runtime subset, progress and suspend-data persistence |
 | Authoring | Integrated Scormly with English, Traditional Chinese and Spanish; **Publish to LMS** uploads SCORM 1.2 and an editable project backup |
-| Exams | Standalone or course-linked; single/multiple choice, short answers and written responses; opening/closing times, duration and pass score |
+| Exams | Standalone or course-linked; four question types; question banks, random subsets and shuffled options; scheduling, duration and passing score |
 | Audience | All accounts, employees, contractors, selected departments, selected people or invitation only; enforced by the API |
 | Attempts | Default and individual budgets; invitation-specific caps; shared account/guest identity; PostgreSQL locking prevents concurrent overuse |
 | Guest access | Unique expiring/revocable links bound to an email/account key; optional recipient email verification, enabled by default in the organizer form |
@@ -126,8 +129,12 @@ Yaksh Git history and its original source remain in `legacy/yaksh/`. The support
 
 - SCORM supports a single-SCO runtime subset, without full certification, multi-SCO sequencing or a cmi5/xAPI LRS. Scormly can export cmi5, but this LMS does not accept it.
 - A link issued with email verification disabled is a bearer credential. Verified links require the configured recipient mailbox before guest access. Neither mode provides exam proctoring.
-- Multiple choice is all-or-nothing; short answers ignore surrounding whitespace and case; written responses require instructor review. Question randomization and assignment uploads are not implemented.
-- This is a single-company workspace. Courses support self-enrollment; exam audience rules govern new account attempts, while existing attempts remain accessible and invitations grant separate access.
+- Multiple choice is all-or-nothing; short answers ignore surrounding whitespace and case; written responses require instructor review. Question order, choice options and question subsets can be randomized. File-upload assessment responses are not implemented.
+- This is a single-company workspace. Courses support self-enrollment and required training assignments. Audience rules, explicit assignments and invitations govern new exam access; existing attempts remain accessible.
 - Production rollout still requires company Entra/SMTP acceptance, data migration, backup restoration and load testing with the expected participant count.
 
 ![Mobile workspace](docs/screenshots/mobile.png)
+
+## Company operations
+
+See [training operations](docs/OPERATIONS.md) for assignments, reusable questions, onboarding and passwords; [Peach1 handover](docs/PEACH1-HANDOVER.md) for deployment and the later Entra/Graph connection. Run `python3 scripts/backup.py --help` for consistent PostgreSQL/media backups and restoration into a fresh isolated project.

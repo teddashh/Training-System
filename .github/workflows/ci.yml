@@ -48,6 +48,7 @@ jobs:
       - run: pip install -r backend/requirements.txt
       - run: python backend/manage.py makemigrations --check --dry-run
       - run: python backend/manage.py check
+      - run: python scripts/test_backup.py
       - run: python backend/manage.py test training --verbosity 2
   browser:
     runs-on: ubuntu-latest
@@ -135,5 +136,7 @@ jobs:
           else:
               raise SystemExit('API/content routing did not recover after container replacement')
           PY
+      - name: Rehearse isolated database and media recovery
+        run: python3 scripts/rehearse_backup.py
       - run: docker compose down
         if: always()

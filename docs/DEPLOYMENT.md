@@ -75,3 +75,11 @@ Before organizational rollout:
 6. Maintain backups and retention. The audit API is read-only, but the database audit table is not a tamper-proof external log store.
 
 GitHub Actions builds and tests the code. It does not automatically publish company data or deploy the service to the internet.
+
+## Required training and question banks
+
+The v1.0 migration adds required training assignments and reusable question banks. Active assignments grant their participants exam access in addition to the exam audience. Instructor reports and question banks are scoped to owned content; administrator reports span the workspace. Read [training operations](OPERATIONS.md) for deadline semantics, cancellation, question copying and random exam snapshots.
+
+The participant import creates new learner accounts atomically and never overwrites existing people. Profile editing and local password changes are available in the workspace. Existing Entra identities and attempt budgets remain unchanged by these additions.
+
+For company rollout, use the [Peach1 handover](PEACH1-HANDOVER.md). `scripts/backup.py` creates a consistent database/media backup and only restores into a fresh isolated Compose project. The CI container job rehearses restoration and checks that an existing destination cannot be overwritten. `check_deployment --strict` checks local prerequisites without contacting Microsoft Graph or the tenant.
