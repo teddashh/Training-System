@@ -494,12 +494,13 @@ export function Results({
     [review, setReview] = useState(""),
     [page, setPage] = useState(1);
   useEffect(() => {
+    if (search === query) return;
     const timer = window.setTimeout(() => {
       setQuery(search);
       setPage(1);
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [search]);
+  }, [search, query]);
   const params = new URLSearchParams({
     search: query,
     status,

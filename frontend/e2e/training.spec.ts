@@ -11,7 +11,29 @@ async function downloadText(download: import("@playwright/test").Download) {
 }
 
 async function login(page: Page) {
-  await page.goto("/");
+  // This suite creates many independent browser sessions behind one IP.
+  // Honor the application's Retry-After response instead of disabling limits.
+  for (let retry = 0; retry < 3; retry++) {
+    const session = page.waitForResponse(
+      (response) => new URL(response.url()).pathname === "/api/auth/session/",
+    );
+    await page.goto("/");
+    const response = await session;
+    if (response.status() !== 429) {
+      expect(response.status()).toBe(200);
+      break;
+    }
+    const seconds = Number(response.headers()["retry-after"]);
+    expect(seconds).toBeGreaterThan(0);
+    expect(seconds).toBeLessThanOrEqual(60);
+    expect(
+      retry,
+      "Session remained throttled after bounded retries",
+    ).toBeLessThan(2);
+    const delay = (seconds + 1) * 1000;
+    test.setTimeout(test.info().timeout + delay);
+    await page.waitForTimeout(delay);
+  }
   await page
     .getByLabel("Email, username or employee ID")
     .fill("admin@evitina.example");
