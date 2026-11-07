@@ -543,17 +543,34 @@ def accessible_attempt(request, attempt):
 def attempt_detail(request, pk):
     with transaction.atomic():
         attempt = get_object_or_404(
-            Attempt.objects.select_for_update().select_related("identity", "exam"),
+            Attempt.objects.select_for_update(of=("self",)).select_related(
+                "identity", "exam"
+            ),
             pk=pk,
         )
         accessible_attempt(request, attempt)
         if attempt.status == "in_progress" and attempt.deadline <= timezone.now():
             finalize(attempt)
         if request.method != "GET" and attempt.status == "in_progress":
+            revision = request.data.get("answer_revision")
+            if revision is not None:
+                if type(revision) is not int or revision < 0:
+                    raise ValidationError(translate("Invalid answer revision."))
+                if revision != attempt.answer_revision:
+                    return Response(
+                        {
+                            "detail": translate(
+                                "This attempt was updated in another window. Reload saved answers before continuing."
+                            ),
+                            "code": "answer_conflict",
+                        },
+                        status=409,
+                    )
             attempt.answers = validate_answers(
                 request.data.get("answers", attempt.answers), attempt.snapshot
             )
-            attempt.save(update_fields=["answers"])
+            attempt.answer_revision += 1
+            attempt.save(update_fields=["answers", "answer_revision"])
             if request.method == "POST":
                 finalize(attempt)
         return Response(public_attempt(attempt))

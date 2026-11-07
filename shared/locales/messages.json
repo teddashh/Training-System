@@ -9028,5 +9028,60 @@
     "en": "Full-credit rate (%)",
     "zh-TW": "滿分比例 (%)",
     "es": "Tasa de puntuación completa (%)"
+  },
+  "Invalid answer revision.": {
+    "en": "Invalid answer revision.",
+    "zh-TW": "答案版本無效。",
+    "es": "La versión de las respuestas no es válida."
+  },
+  "This attempt was updated in another window. Reload saved answers before continuing.": {
+    "en": "This attempt was updated in another window. Reload saved answers before continuing.",
+    "zh-TW": "此作答已在另一個視窗更新。請重新載入已儲存的答案再繼續。",
+    "es": "Este intento se actualizó en otra ventana. Vuelve a cargar las respuestas guardadas antes de continuar."
+  },
+  "Reload saved answers": {
+    "en": "Reload saved answers",
+    "zh-TW": "重新載入已儲存的答案",
+    "es": "Volver a cargar respuestas guardadas"
+  },
+  "Your responses and feedback": {
+    "en": "Your responses and feedback",
+    "zh-TW": "您的作答與回饋",
+    "es": "Tus respuestas y comentarios"
+  },
+  "No answer provided": {
+    "en": "No answer provided",
+    "zh-TW": "未提供答案",
+    "es": "Sin respuesta"
+  },
+  "Instructor review": {
+    "en": "Instructor review",
+    "zh-TW": "講師評閱",
+    "es": "Revisión del instructor"
+  },
+  "Reloading replaces your unsaved changes with the answers stored on the server.": {
+    "en": "Reloading replaces your unsaved changes with the answers stored on the server.",
+    "zh-TW": "重新載入會以伺服器儲存的答案取代您尚未儲存的變更。",
+    "es": "Al recargar, tus cambios sin guardar se reemplazan por las respuestas almacenadas en el servidor."
+  },
+  "Retry saving": {
+    "en": "Retry saving",
+    "zh-TW": "重試儲存",
+    "es": "Reintentar guardar"
+  },
+  "The player did not confirm a save. Keep it open and retry, or close without saving.": {
+    "en": "The player did not confirm a save. Keep it open and retry, or close without saving.",
+    "zh-TW": "播放器未確認儲存完成。請保持開啟並重試，或選擇不儲存直接關閉。",
+    "es": "El reproductor no confirmó el guardado. Mantenlo abierto y reintenta, o cierra sin guardar."
+  },
+  "Close without saving": {
+    "en": "Close without saving",
+    "zh-TW": "不儲存直接關閉",
+    "es": "Cerrar sin guardar"
+  },
+  "Save and close": {
+    "en": "Save and close",
+    "zh-TW": "儲存並關閉",
+    "es": "Guardar y cerrar"
   }
 }

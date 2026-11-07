@@ -11,6 +11,7 @@ import {
   FileCheck2,
 } from "lucide-react";
 import { api } from "./api";
+import { useAttemptSession } from "./useAttemptSession";
 import type { Attempt as Data, Guest, GuestChallenge } from "./types";
 import { Spinner, ErrorBox, Modal, Badge } from "./ui";
 export function GuestExam({ go }: { go: (p: string) => void }) {
@@ -210,97 +211,32 @@ export default function Attempt({
   guest?: boolean;
 }) {
   useLocale();
-  const [attempt, setAttempt] = useState<Data | null>(null),
-    [answers, setAnswers] = useState<Data["answers"]>({}),
-    [index, setIndex] = useState(0),
-    [remaining, setRemaining] = useState(0),
-    [error, setError] = useState(""),
-    [saveState, setSaveState] = useState("Saved answers loaded"),
-    [busy, setBusy] = useState(false),
+  const {
+    attempt,
+    answers,
+    remaining,
+    error,
+    saveState,
+    busy,
+    conflict,
+    change,
+    submit,
+    retry,
+    reload,
+  } = useAttemptSession(id);
+  const [index, setIndex] = useState(0),
     [confirm, setConfirm] = useState(false);
-  const deadline = useRef(0),
-    changed = useRef(false),
-    submitted = useRef(false),
-    latest = useRef(answers);
-  latest.current = answers;
-  useEffect(() => {
-    api<Data>(`attempts/${id}/`)
-      .then((a) => {
-        setAttempt(a);
-        setAnswers(a.answers);
-        deadline.current =
-          Date.now() +
-          new Date(a.deadline).getTime() -
-          new Date(a.server_time).getTime();
-        setRemaining(
-          Math.max(0, Math.ceil((deadline.current - Date.now()) / 1000)),
-        );
-      })
-      .catch((e) => setError(e.message));
-  }, [id]);
-  async function submit() {
-    if (submitted.current) return;
-    submitted.current = true;
-    setBusy(true);
-    setError("");
-    try {
-      const a = await api<Data>(`attempts/${id}/`, "POST", {
-        answers: latest.current,
-      });
-      setAttempt(a);
-      setConfirm(false);
-      changed.current = false;
-    } catch (e) {
-      submitted.current = false;
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-  useEffect(() => {
-    if (attempt?.status !== "in_progress") return;
-    const timer = window.setInterval(() => {
-      const left = Math.max(
-        0,
-        Math.ceil((deadline.current - Date.now()) / 1000),
-      );
-      setRemaining(left);
-      if (left === 0 && !submitted.current) void submit();
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [attempt?.status, id]);
-  useEffect(() => {
-    if (!changed.current || attempt?.status !== "in_progress") return;
-    setSaveState("Unsaved changes");
-    const timeout = setTimeout(() => {
-      setSaveState("Saving\u2026");
-      api<Data>(`attempts/${id}/`, "PATCH", { answers })
-        .then((a) => {
-          setSaveState("Answers saved automatically");
-          if (a.status !== "in_progress") setAttempt(a);
-        })
-        .catch((e) => {
-          setSaveState("Save failed");
-          setError(e.message);
-        });
-    }, 600);
-    return () => clearTimeout(timeout);
-  }, [answers, attempt?.status, id]);
-  useEffect(() => {
-    const before = (e: BeforeUnloadEvent) => {
-      if (attempt?.status === "in_progress") {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", before);
-    return () => window.removeEventListener("beforeunload", before);
-  }, [attempt?.status]);
   if (!attempt)
     return (
       <div className="attempt-shell">
         <ErrorBox message={error} />
-        {!error && <Spinner />}
+        {error ? (
+          <button className="btn" onClick={reload} disabled={busy}>
+            {t("Reload saved answers")}
+          </button>
+        ) : (
+          <Spinner />
+        )}
       </div>
     );
   if (attempt.status !== "in_progress")
@@ -340,6 +276,48 @@ export default function Attempt({
                   : t("Review the course and prepare for your next attempt."),
               })}
         </p>
+        <section
+          className="response-review"
+          aria-label={t("Your responses and feedback")}
+        >
+          <h2>{t("Your responses and feedback")}</h2>
+          {attempt.questions.map((question, i) => {
+            const answer = attempt.answers[String(question.id)];
+            const grade = attempt.manual_grades[String(question.id)];
+            const response =
+              question.type === "single" || question.type === "multiple"
+                ? (Array.isArray(answer)
+                    ? answer
+                    : typeof answer === "number"
+                      ? [answer]
+                      : []
+                  )
+                    .map((option) => question.options[option])
+                    .join("\n")
+                : String(answer ?? "");
+            return (
+              <article className="response-item" key={question.id}>
+                <h3>
+                  {i + 1}. {question.description}
+                </h3>
+                <p className="review-answer">
+                  {response.trim() || t("No answer provided")}
+                </p>
+                {grade && (
+                  <div className="instructor-feedback">
+                    <strong>
+                      {t("Instructor review")} · {grade.points} /{" "}
+                      {question.points} {t("points")}
+                    </strong>
+                    {grade.feedback && (
+                      <p className="review-answer">{grade.feedback}</p>
+                    )}
+                  </div>
+                )}
+              </article>
+            );
+          })}
+        </section>
         <button
           className="btn primary"
           onClick={() => go(guest ? "/invite" : "/results")}
@@ -354,8 +332,7 @@ export default function Attempt({
       Array.isArray(v) ? v.length : String(v).trim(),
     ).length;
   const setAnswer = (value: string | number | number[]) => {
-    changed.current = true;
-    setAnswers({ ...answers, [String(q.id)]: value });
+    change(String(q.id), value);
   };
   return (
     <div className="attempt-shell">
@@ -366,7 +343,9 @@ export default function Attempt({
             {t("Attempt {number}", { number: attempt.number })}
           </Badge>
           <h1>{attempt.title}</h1>
-          <p>{t(saveState)}</p>
+          <p role="status" aria-live="polite">
+            {t(saveState)}
+          </p>
         </div>
         <div className={"exam-timer " + (remaining < 60 ? "danger-text" : "")}>
           <Clock3 size={21} />
@@ -378,6 +357,24 @@ export default function Attempt({
         </div>
       </div>
       <ErrorBox message={error} />
+      {error && (
+        <div className="save-recovery">
+          {conflict && (
+            <p>
+              {t(
+                "Reloading replaces your unsaved changes with the answers stored on the server.",
+              )}
+            </p>
+          )}
+          <button
+            className="btn"
+            onClick={conflict ? reload : retry}
+            disabled={busy}
+          >
+            {conflict ? t("Reload saved answers") : t("Retry saving")}
+          </button>
+        </div>
+      )}
       <div className="attempt-layout">
         <aside className="question-navigation">
           <h3>
@@ -455,6 +452,7 @@ export default function Attempt({
                       type={q.type === "single" ? "radio" : "checkbox"}
                       name={"q" + q.id}
                       checked={checked}
+                      disabled={busy || conflict || remaining === 0}
                       onChange={() =>
                         setAnswer(
                           q.type === "single"
@@ -479,6 +477,8 @@ export default function Attempt({
           ) : (
             <textarea
               className="essay-answer"
+              readOnly={conflict}
+              disabled={busy || remaining === 0}
               aria-label={t("Your answer")}
               placeholder={t("Enter your answer here\u2026")}
               rows={q.type === "essay" ? 10 : 4}
@@ -505,7 +505,11 @@ export default function Attempt({
                 <ArrowRight size={16} />
               </button>
             ) : (
-              <button className="btn primary" onClick={() => setConfirm(true)}>
+              <button
+                className="btn primary"
+                onClick={() => setConfirm(true)}
+                disabled={busy || conflict}
+              >
                 <Send size={16} />
                 {t("Finish and submit") + " "}
               </button>
@@ -513,7 +517,11 @@ export default function Attempt({
           </div>
         </section>
       </div>
-      <button className="btn submit-fixed" onClick={() => setConfirm(true)}>
+      <button
+        className="btn submit-fixed"
+        onClick={() => setConfirm(true)}
+        disabled={busy || conflict}
+      >
         <FileCheck2 size={17} />
         {t("Submit") + " "}
       </button>
@@ -541,7 +549,11 @@ export default function Attempt({
               <button className="btn" onClick={() => setConfirm(false)}>
                 {t("Continue answering") + " "}
               </button>
-              <button className="btn primary" onClick={submit} disabled={busy}>
+              <button
+                className="btn primary"
+                onClick={submit}
+                disabled={busy || conflict}
+              >
                 {busy ? t("Submitting\u2026") : t("Confirm submission")}
               </button>
             </div>

@@ -104,7 +104,8 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ],
-    "DEFAULT_THROTTLE_RATES": {"anon": "60/min", "user": "600/min", "auth": "10/min"},
+    "DEFAULT_THROTTLE_RATES": {"anon": "600/min", "user": "600/min"},
+    "NUM_PROXIES": 0,
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
 }
 # DB-backed limiter in auth_views additionally works across multiple gunicorn workers.
@@ -112,6 +113,9 @@ EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend"
 )
 EMAIL_FILE_PATH = os.getenv("EMAIL_FILE_PATH", str(BASE_DIR / "test-mail"))
+EMAIL_TIMEOUT = 10
+AUTH_ACCOUNT_LIMIT = 20
+AUTH_NETWORK_LIMIT = max(1, int(os.getenv("AUTH_NETWORK_LIMIT", "300")))
 EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true") == "true"

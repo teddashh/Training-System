@@ -1,5 +1,6 @@
 import { t, useLocale, getLocale, LanguagePicker } from "./i18n";
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 import {
   X,
@@ -8,6 +9,9 @@ import {
   AlertCircle,
   ArrowUpRight,
 } from "lucide-react";
+const modalStack: HTMLElement[] = [];
+let previousOverflow = "";
+
 export function Modal({
   title,
   children,
@@ -24,38 +28,64 @@ export function Modal({
   const close = useRef(onClose);
   close.current = onClose;
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement;
+    const element = panel.current!;
+    const previous = document.activeElement as HTMLElement | null;
+    if (!modalStack.length) previousOverflow = document.body.style.overflow;
+    modalStack.push(element);
+    document.body.style.overflow = "hidden";
     const focusable = () =>
       Array.from(
-        panel.current?.querySelectorAll<HTMLElement>(
-          "button:not(:disabled),input,textarea,select,a[href]",
-        ) || [],
+        element.querySelectorAll<HTMLElement>(
+          "button,input,textarea,select,a[href],[tabindex]",
+        ),
+      ).filter(
+        (node) =>
+          !node.matches(":disabled,[hidden]") &&
+          node.tabIndex >= 0 &&
+          node.getClientRects().length,
       );
-    focusable()[0]?.focus();
-    const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close.current();
-      if (e.key === "Tab") {
-        const els = focusable();
-        const first = els[0],
-          last = els[els.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
+    (focusable()[0] || element).focus();
+    const key = (event: KeyboardEvent) => {
+      if (modalStack.at(-1) !== element) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        close.current();
+      }
+      if (event.key === "Tab") {
+        const els = focusable(),
+          first = els[0],
+          last = els.at(-1);
+        if (!first) {
+          event.preventDefault();
+          element.focus();
+        } else if (
+          !element.contains(document.activeElement) ||
+          document.activeElement === element
+        ) {
+          event.preventDefault();
+          (event.shiftKey ? last : first)?.focus();
+        } else if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
           last?.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
         }
       }
     };
     document.addEventListener("keydown", key);
-    document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", key);
-      document.body.style.overflow = "";
-      previous?.focus();
+      const index = modalStack.indexOf(element);
+      if (index >= 0) modalStack.splice(index, 1);
+      const top = modalStack.at(-1);
+      if (!top) document.body.style.overflow = previousOverflow;
+      if (previous?.isConnected && (!top || top.contains(previous)))
+        previous.focus();
     };
   }, []);
-  return (
+  return createPortal(
     <div
       className="modal-shade"
       onClick={(e) => {
@@ -65,6 +95,7 @@ export function Modal({
       <div
         className={"modal " + (wide ? "wide" : "")}
         ref={panel}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -74,6 +105,7 @@ export function Modal({
           <LanguagePicker />
           <button
             className="icon-btn"
+            type="button"
             onClick={onClose}
             aria-label={t("Close")}
           >
@@ -82,7 +114,8 @@ export function Modal({
         </header>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 export function Badge({

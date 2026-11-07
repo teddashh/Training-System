@@ -47,76 +47,82 @@ export function BankPicker({
         {t("Add from question bank")}
       </button>
       {open && (
-        <div className="bank-picker-body">
-          <input
-            aria-label={t("Search question bank")}
-            placeholder={t("Search question bank")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <div className="bank-picker-list">
-            {rows
-              .filter((q) =>
-                (q.description + q.category)
-                  .toLowerCase()
-                  .includes(search.toLowerCase()),
-              )
-              .map((q) => (
-                <label className="checkbox" key={q.id}>
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(q.id)}
-                    onChange={(e) =>
-                      setSelected(
-                        e.target.checked
-                          ? [...selected, q.id]
-                          : selected.filter((id) => id !== q.id),
-                      )
-                    }
-                  />
-                  <span>
-                    {q.description}
-                    <small className="cell-note">
-                      {q.category} · {q.points} {t("points")}
-                    </small>
-                  </span>
-                </label>
-              ))}
-            {!rows.length && (
-              <p>
-                {t("Create reusable questions in the question bank first.")}
-              </p>
-            )}
+        <Modal
+          title={t("Add from question bank")}
+          onClose={() => setOpen(false)}
+          wide
+        >
+          <div className="bank-picker-body">
+            <input
+              aria-label={t("Search question bank")}
+              placeholder={t("Search question bank")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <div className="bank-picker-list">
+              {rows
+                .filter((q) =>
+                  (q.description + q.category)
+                    .toLowerCase()
+                    .includes(search.toLowerCase()),
+                )
+                .map((q) => (
+                  <label className="checkbox" key={q.id}>
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(q.id)}
+                      onChange={(e) =>
+                        setSelected(
+                          e.target.checked
+                            ? [...selected, q.id]
+                            : selected.filter((id) => id !== q.id),
+                        )
+                      }
+                    />
+                    <span>
+                      {q.description}
+                      <small className="cell-note">
+                        {q.category} · {q.points} {t("points")}
+                      </small>
+                    </span>
+                  </label>
+                ))}
+              {!rows.length && (
+                <p>
+                  {t("Create reusable questions in the question bank first.")}
+                </p>
+              )}
+            </div>
+            <ErrorBox message={error} />
+            <button
+              type="button"
+              className="btn primary"
+              disabled={!selected.length}
+              onClick={() => {
+                onAdd(
+                  rows
+                    .filter((q) => selected.includes(q.id))
+                    .map((q) => ({
+                      description: q.description,
+                      type: q.type,
+                      options: [...q.options],
+                      solution: [...(q.solution || [])],
+                      points: q.points,
+                    })),
+                );
+                setSelected([]);
+                setOpen(false);
+              }}
+            >
+              {t("Add selected questions")} ({selected.length})
+            </button>
+            <p className="notice">
+              {t(
+                "Questions are copied into this exam. Later bank edits do not change existing exams or attempts.",
+              )}
+            </p>
           </div>
-          <ErrorBox message={error} />
-          <button
-            type="button"
-            className="btn primary"
-            disabled={!selected.length}
-            onClick={() => {
-              onAdd(
-                rows
-                  .filter((q) => selected.includes(q.id))
-                  .map((q) => ({
-                    description: q.description,
-                    type: q.type,
-                    options: [...q.options],
-                    solution: [...(q.solution || [])],
-                    points: q.points,
-                  })),
-              );
-              setSelected([]);
-              setOpen(false);
-            }}
-          >
-            {t("Add selected questions")} ({selected.length})
-          </button>
-          <p className="notice">
-            {t(
-              "Questions are copied into this exam. Later bank edits do not change existing exams or attempts.",
-            )}
-          </p>
-        </div>
+        </Modal>
       )}
     </section>
   );

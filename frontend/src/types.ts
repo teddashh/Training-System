@@ -69,6 +69,7 @@ export type Exam = {
   can_manage: boolean;
 };
 export type Attempt = {
+  answer_revision: number;
   id: string;
   exam_id: number;
   title: string;

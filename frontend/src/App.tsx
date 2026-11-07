@@ -1,5 +1,5 @@
 import { t, useLocale, LanguagePicker } from "./i18n";
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import {
   LayoutDashboard,
   BookOpen,
@@ -24,7 +24,7 @@ import {
 import { api } from "./api";
 import type { Course, Exam, User } from "./types";
 import Login from "./Login";
-import Dashboard from "./Dashboard";
+
 import Courses from "./Courses";
 import Exams from "./Exams";
 import Attempt, { GuestExam } from "./Attempt";
@@ -32,8 +32,11 @@ import { Invitations, People, Results, Settings } from "./Management";
 import { Modal, ErrorBox, Spinner } from "./ui";
 import Assignments from "./Assignments";
 import QuestionBank from "./QuestionBank";
-import Insights from "./Insights";
+
 import { PasswordDialog } from "./PeopleTools";
+const Dashboard = lazy(() => import("./Dashboard"));
+const Insights = lazy(() => import("./Insights"));
+
 const getNav = () => [
   {
     path: "/",
@@ -177,7 +180,7 @@ export default function App() {
     );
   if (path === "/invite") return <GuestExam go={go} />;
   if (path.startsWith("/attempt/"))
-    return <Attempt id={path.split("/")[2]} go={go} guest={!user} />;
+    return <Attempt key={path} id={path.split("/")[2]} go={go} guest={!user} />;
   if (!user)
     return (
       <Login
@@ -296,7 +299,7 @@ export default function App() {
             {demo
               ? t("Demo environment \u00B7 Synthetic data")
               : t("Enterprise training workspace")}
-            <span>v1.1</span>
+            <span>v1.2</span>
           </div>
         </div>
       </aside>
@@ -394,74 +397,76 @@ export default function App() {
           </div>
         </header>
         <main id="main-content">
-          <ErrorBox message={error} />
-          {loading && !courses.length && !exams.length ? (
-            <Spinner />
-          ) : !allowed ? (
-            <div className="panel not-found">
-              <h1>{t("This page does not exist or is not accessible")}</h1>
-              <button className="btn primary" onClick={() => go("/")}>
-                {t("Back to overview") + " "}
-              </button>
-            </div>
-          ) : path === "/" ? (
-            <Dashboard
-              user={user}
-              courses={courses}
-              exams={exams}
-              go={go}
-              refreshKey={refreshKey}
-            />
-          ) : path === "/courses" ? (
-            <Courses courses={courses} user={user} onSaved={refresh} />
-          ) : path === "/assignments" ? (
-            <Assignments
-              user={user}
-              courses={courses}
-              exams={exams}
-              go={go}
-              onSaved={refresh}
-            />
-          ) : path === "/question-bank" ? (
-            <QuestionBank />
-          ) : path === "/insights" ? (
-            <Insights exams={exams} />
-          ) : path === "/authoring" ? (
-            <Courses courses={courses} user={user} onSaved={refresh} studio />
-          ) : path === "/exams" ? (
-            <Exams
-              exams={exams}
-              courses={courses}
-              user={user}
-              onSaved={refresh}
-              go={go}
-            />
-          ) : path === "/invitations" ? (
-            <Invitations exams={exams} />
-          ) : path === "/results" ? (
-            <Results
-              user={user}
-              exams={exams}
-              refreshKey={refreshKey}
-              onSaved={refresh}
-              go={go}
-            />
-          ) : path === "/people" ? (
-            <People />
-          ) : (
-            <Settings entra={entra} />
-          )}
-          <footer className="app-footer">
-            <span>
-              © {new Date().getFullYear()} Evitina Learn
-              <span className="inline-sep">·</span>
-              {t("Make learning a part of growth") + " "}
-            </span>
-            <span>
-              <ShieldCheck size={13} />
-              {t("Enterprise learning platform") + " "}
-            </span>
-          </footer>
+          <Suspense fallback={<Spinner />}>
+            <ErrorBox message={error} />
+            {loading && !courses.length && !exams.length ? (
+              <Spinner />
+            ) : !allowed ? (
+              <div className="panel not-found">
+                <h1>{t("This page does not exist or is not accessible")}</h1>
+                <button className="btn primary" onClick={() => go("/")}>
+                  {t("Back to overview") + " "}
+                </button>
+              </div>
+            ) : path === "/" ? (
+              <Dashboard
+                user={user}
+                courses={courses}
+                exams={exams}
+                go={go}
+                refreshKey={refreshKey}
+              />
+            ) : path === "/courses" ? (
+              <Courses courses={courses} user={user} onSaved={refresh} />
+            ) : path === "/assignments" ? (
+              <Assignments
+                user={user}
+                courses={courses}
+                exams={exams}
+                go={go}
+                onSaved={refresh}
+              />
+            ) : path === "/question-bank" ? (
+              <QuestionBank />
+            ) : path === "/insights" ? (
+              <Insights exams={exams} />
+            ) : path === "/authoring" ? (
+              <Courses courses={courses} user={user} onSaved={refresh} studio />
+            ) : path === "/exams" ? (
+              <Exams
+                exams={exams}
+                courses={courses}
+                user={user}
+                onSaved={refresh}
+                go={go}
+              />
+            ) : path === "/invitations" ? (
+              <Invitations exams={exams} />
+            ) : path === "/results" ? (
+              <Results
+                user={user}
+                exams={exams}
+                refreshKey={refreshKey}
+                onSaved={refresh}
+                go={go}
+              />
+            ) : path === "/people" ? (
+              <People />
+            ) : (
+              <Settings entra={entra} />
+            )}
+            <footer className="app-footer">
+              <span>
+                © {new Date().getFullYear()} Evitina Learn
+                <span className="inline-sep">·</span>
+                {t("Make learning a part of growth") + " "}
+              </span>
+              <span>
+                <ShieldCheck size={13} />
+                {t("Enterprise learning platform") + " "}
+              </span>
+            </footer>
+          </Suspense>
         </main>
       </div>
       {password && <PasswordDialog onClose={() => setPassword(false)} />}

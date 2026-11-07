@@ -265,6 +265,7 @@ class Attempt(models.Model):
     snapshot = models.JSONField(default=list)
     pass_score = models.PositiveSmallIntegerField()
     answers = models.JSONField(default=dict)
+    answer_revision = models.PositiveIntegerField(default=0)
     manual_grades = models.JSONField(default=dict)
     score = models.FloatField(null=True, blank=True)
     passed = models.BooleanField(null=True, blank=True)

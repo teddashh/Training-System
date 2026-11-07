@@ -3683,20 +3683,29 @@ form > label {
 }
 .bank-picker-body {
   display: grid;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 16px;
+  padding: 24px;
 }
 .bank-picker-list {
-  max-height: 280px;
+  max-height: min(45vh, 360px);
   overflow-y: auto;
   display: grid;
   gap: 12px;
 }
 .bank-picker-list label {
+  display: flex;
   align-items: start;
-  padding: 10px;
+  gap: 12px;
+  padding: 12px;
   background: white;
+  border: 1px solid #dfe8f1;
   border-radius: 8px;
+}
+.bank-picker-list input {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  flex: 0 0 auto;
 }
 .exam-randomization {
   display: grid;
@@ -3905,4 +3914,43 @@ form > label {
   .insight-search {
     width: 100%;
   }
+}
+
+.response-review {
+  width: min(100%, 780px);
+  margin: 28px auto;
+  text-align: left;
+}
+.response-item {
+  padding: 20px;
+  margin: 12px 0;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+}
+.response-item h3 {
+  margin: 0 0 12px;
+}
+.review-answer {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.instructor-feedback {
+  border-left: 3px solid #0078d4;
+  padding-left: 14px;
+  margin-top: 16px;
+}
+.save-recovery {
+  margin: 16px 0;
+}
+
+.result-celebration .review-answer {
+  color: #344c66;
+  font-size: 14px;
+}
+
+.result-celebration > p,
+.result-celebration > .eyebrow,
+.result-score > span {
+  color: #526b86;
 }

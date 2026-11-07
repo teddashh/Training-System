@@ -31,6 +31,8 @@ def audit(actor, action, target, detail=None):
 
 def find_user(identifier):
     identifier = str(identifier).strip()
+    if not identifier:
+        return None
     return User.objects.filter(
         Q(email__iexact=identifier)
         | Q(username__iexact=identifier)
@@ -313,6 +315,7 @@ def public_attempt(attempt):
         "deadline": attempt.deadline,
         "server_time": timezone.now(),
         "answers": attempt.answers,
+        "answer_revision": attempt.answer_revision,
         "questions": [
             {k: v for k, v in q.items() if k != "solution"} for q in attempt.snapshot
         ],

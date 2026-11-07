@@ -27,6 +27,14 @@ The system does not yet perform Microsoft Graph directory synchronization. Entra
 8. Run `docker compose exec api python manage.py check_deployment --strict`. Review **Settings & audit → Deployment readiness**. These checks inspect local configuration; they do not verify DNS, certificates, SMTP delivery, scheduler health or tenant access.
 9. Connect Entra and Graph following the contract below, then complete the acceptance table. Entra configuration can remain deferred during local platform validation.
 
+## Upgrade from v1.1
+
+Back up database and media before upgrading. v1.2 adds migration `0005_attempt_answer_revision`; Compose applies it during API startup. Deploy matching frontend and API images together and schedule the upgrade outside active examinations. Existing attempt answers and budgets are preserved, with the revision initialized to zero. Existing tabs should reload before taking an exam after the upgrade.
+
+This release adds ordered autosave, multi-tab conflict recovery, learner response/feedback review, confirmed SCORM saves on close and improved question-picker keyboard navigation. Dashboard chart code now loads when needed. All new interface strings support English, Traditional Chinese and Spanish.
+
+Review the [sign-in limits and recovery behavior](OPERATIONS.md#shared-office-sign-in-limits). The account limit stays at 20 requests per ten minutes across aliases; the shared direct-peer network allowance defaults to 300 and is configurable with `AUTH_NETWORK_LIMIT`. The new namespaced counter keys begin fresh windows once at upgrade. Rehearse a slow/failed save, two windows on one attempt, a failed SCORM close and a simultaneous group sign-in during Peach1 acceptance. Live Entra and Graph work remains separate from this upgrade.
+
 ## Entra sign-in contract
 
 Register a single-tenant **Web** application. Configure the redirect URI as `APP_ORIGIN/api/auth/entra/callback/` and set `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, and `ENTRA_CLIENT_SECRET` on the backend. Apply the company's assignment, MFA and Conditional Access policies in Entra.

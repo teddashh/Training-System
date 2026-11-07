@@ -208,17 +208,20 @@ def download_source(request, course_id):
     )
 
 
+def check_learning_access(user, course):
+    if not course.published and not (
+        user.role == "admin"
+        or (user.role == "instructor" and course.owner_id == user.id)
+    ):
+        raise PermissionDenied()
+
+
 @api_view(["POST"])
 def launch(request, package_id):
     package = get_object_or_404(
         ScormPackage.objects.select_related("course"), pk=package_id
     )
-    if (
-        not package.course.published
-        and request.user.role != "admin"
-        and package.course.owner_id != request.user.id
-    ):
-        raise PermissionDenied()
+    check_learning_access(request.user, package.course)
     Enrollment.objects.get_or_create(user=request.user, course=package.course)
     import secrets
 
@@ -246,7 +249,10 @@ def launch(request, package_id):
 
 @api_view(["POST"])
 def commit(request, package_id):
-    package = get_object_or_404(ScormPackage, pk=package_id)
+    package = get_object_or_404(
+        ScormPackage.objects.select_related("course"), pk=package_id
+    )
+    check_learning_access(request.user, package.course)
     expected = request.session.get("scorm_launches", {}).get(str(package_id))
     if not expected or request.data.get("nonce") != expected:
         raise PermissionDenied(translate("Invalid player session."))

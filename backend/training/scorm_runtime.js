@@ -9,8 +9,8 @@
   const errors = { '0': 'No error', '101': 'General exception', '201': 'Invalid argument', '301': 'Not initialized', '401': 'Not implemented', '403': 'Read only', '405': 'Incorrect data type' };
   const readOnly = new Set(['cmi.core.student_id', 'cmi.learner_id', 'cmi.core.entry', 'cmi.entry', 'cmi.core.student_name', 'cmi.learner_name']);
   function fail(code) { error = code; return 'false'; }
-  function flush() {
-    parent.postMessage({ type: 'scorm.commit', nonce: CONFIG.nonce, sequence: ++sequence, cmi: { ...cmi } }, CONFIG.origin);
+  function flush(closeRequest) {
+    parent.postMessage({ type: 'scorm.commit', nonce: CONFIG.nonce, sequence: ++sequence, close_request: closeRequest, cmi: { ...cmi } }, CONFIG.origin);
   }
   const api = {
     LMSInitialize(value) {
@@ -52,6 +52,12 @@
   window.API_1484_11 = Object.fromEntries(Object.entries(api).map(([k, v]) => [k === 'LMSFinish' ? 'Terminate' : k.replace(/^LMS/, ''), v]));
   addEventListener('message', event => {
     if (event.source !== parent || event.origin !== CONFIG.origin || event.data?.nonce !== CONFIG.nonce) return;
+    if (event.data.type === 'scorm.flush' && typeof event.data.close_request === 'string') {
+      // A close flush includes buffered values even after LMSFinish. The parent
+      // only removes this frame after the matching durable save succeeds.
+      if (initialized) flush(event.data.close_request);
+      else parent.postMessage({ type: 'scorm.flushed', nonce: CONFIG.nonce, close_request: event.data.close_request }, CONFIG.origin);
+    }
     if (event.data.type === 'scorm.ack' && !event.data.ok) error = '101';
   });
   setInterval(() => { if (initialized && !terminated) flush(); }, 15000);

@@ -1,4 +1,5 @@
 import hashlib
+import math
 import secrets
 from datetime import timedelta
 
@@ -36,22 +37,33 @@ def user_data(user):
 def rate_limit(request, identifier):
     now = timezone.now()
     # Do not trust an arbitrary X-Forwarded-For header supplied by a client.
-    for item in [
-        request.META.get("REMOTE_ADDR", ""),
-        str(identifier).strip().casefold(),
+    account = find_user(identifier)
+    identity = (
+        f"user:{account.pk}"
+        if account
+        else "identifier:" + str(identifier).strip().casefold()
+    )
+    for scope, item, limit in [
+        ("network", request.META.get("REMOTE_ADDR", ""), settings.AUTH_NETWORK_LIMIT),
+        ("account", identity, settings.AUTH_ACCOUNT_LIMIT),
     ]:
-        key = hashlib.sha256(item.encode()).hexdigest()
+        key = hashlib.sha256(f"{scope}:{item}".encode()).hexdigest()
         with transaction.atomic():
             row, _ = AuthRate.objects.get_or_create(key=key, defaults={"window": now})
             row = AuthRate.objects.select_for_update().get(pk=key)
             if row.window < now - timedelta(minutes=10):
                 row.count, row.window = 0, now
-            row.count += 1
-            row.save()
-            blocked = row.count > 20
+            blocked = row.count >= limit
+            if not blocked:
+                row.count += 1
+                row.save()
+            wait = max(
+                1, math.ceil((row.window + timedelta(minutes=10) - now).total_seconds())
+            )
         if blocked:
             raise Throttled(
-                detail=translate("Too many sign-in attempts. Please try again later.")
+                wait=wait,
+                detail=translate("Too many sign-in attempts. Please try again later."),
             )
 
 
@@ -101,7 +113,11 @@ def password_login(request):
 def email_request(request):
     email = str(request.data.get("email", "")).strip().casefold()
     rate_limit(request, email)
-    user = User.objects.filter(email__iexact=email, is_active=True).first()
+    user = (
+        User.objects.filter(email__iexact=email, is_active=True).first()
+        if email
+        else None
+    )
     if user:
         code = f"{secrets.randbelow(1000000):06d}"
         digest = hashlib.sha256(
@@ -126,7 +142,7 @@ def email_request(request):
                 [email],
             )
         except Exception:
-            EmailCode.objects.filter(email=email).delete()
+            EmailCode.objects.filter(email=email, digest=digest).delete()
             # Same response prevents disclosing whether the account exists.
     return Response(
         {
@@ -158,7 +174,7 @@ def email_verify(request):
                 row.save(update_fields=["failures"])
     user = (
         User.objects.filter(email__iexact=email, is_active=True).first()
-        if valid
+        if valid and email
         else None
     )
     if not user:

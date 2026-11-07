@@ -1,4 +1,15 @@
 import { t, getLocale } from "./i18n";
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: string,
+    public retryAfter?: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
 export async function api<T>(
   path: string,
   method = "GET",
@@ -35,8 +46,11 @@ export async function api<T>(
                   `${k}: ${Array.isArray(v) ? v.join("; ") : JSON.stringify(v)}`,
               )
               .join("; ");
-    throw new Error(
+    throw new ApiError(
       message || t("The operation could not be completed. Please try again."),
+      response.status,
+      body.code,
+      Number(response.headers.get("Retry-After")) || undefined,
     );
   }
   return body;

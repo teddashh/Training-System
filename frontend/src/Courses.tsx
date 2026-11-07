@@ -248,9 +248,62 @@ export function ScormPlayer({
       origin: string;
     } | null>(null),
     [error, setError] = useState(""),
+    [closing, setClosing] = useState(false),
+    [closeFailed, setCloseFailed] = useState(false),
     [status, setStatus] = useState("Preparing content\u2026");
   const frame = useRef<HTMLIFrameElement>(null),
     queue = useRef(Promise.resolve());
+  const closeRequest = useRef<string | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const finishClose = useRef(onClose);
+  finishClose.current = onClose;
+  function cancelClose() {
+    clearTimeout(closeTimer.current);
+    closeRequest.current = null;
+    setClosing(false);
+    setCloseFailed(true);
+  }
+  function requestClose() {
+    if (closeRequest.current) return;
+    if (!launch) {
+      onClose();
+      return;
+    }
+    closeRequest.current = crypto.randomUUID();
+    setClosing(true);
+    setCloseFailed(false);
+    setError("");
+    setStatus("Saving learning progress…");
+    frame.current?.contentWindow?.postMessage(
+      {
+        type: "scorm.flush",
+        nonce: launch.nonce,
+        close_request: closeRequest.current,
+      },
+      launch.origin,
+    );
+    closeTimer.current = setTimeout(() => {
+      cancelClose();
+      setError(
+        t(
+          "The player did not confirm a save. Keep it open and retry, or close without saving.",
+        ),
+      );
+    }, 15000);
+  }
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => {
+      clearTimeout(closeTimer.current);
+      window.removeEventListener("beforeunload", warn);
+    };
+  }, []);
   const pendingLaunch = useRef<{
     packageId: string;
     promise: Promise<{ url: string; nonce: string; origin: string }>;
@@ -284,11 +337,21 @@ export function ScormPlayer({
       if (
         e.source !== frame.current?.contentWindow ||
         e.origin !== launch.origin ||
-        e.data?.type !== "scorm.commit" ||
+        !["scorm.commit", "scorm.flushed"].includes(e.data?.type) ||
         e.data?.nonce !== launch.nonce
       )
         return;
       const message = e.data;
+      if (message.type === "scorm.flushed") {
+        if (
+          message.close_request &&
+          message.close_request === closeRequest.current
+        ) {
+          clearTimeout(closeTimer.current);
+          finishClose.current();
+        }
+        return;
+      }
       setStatus("Saving learning progress\u2026");
       queue.current = queue.current.then(async () => {
         try {
@@ -314,7 +377,19 @@ export function ScormPlayer({
               : "Learning progress saved",
           );
           onSaved();
+          if (
+            message.close_request &&
+            message.close_request === closeRequest.current
+          ) {
+            clearTimeout(closeTimer.current);
+            finishClose.current();
+          }
         } catch (err) {
+          if (
+            message.close_request &&
+            message.close_request === closeRequest.current
+          )
+            cancelClose();
           setError((err as Error).message);
           setStatus("Save failed. Keep the player open and try again shortly.");
           frame.current?.contentWindow?.postMessage(
@@ -333,8 +408,8 @@ export function ScormPlayer({
     return () => window.removeEventListener("message", receive);
   }, [launch, course.package?.id, onSaved]);
   return (
-    <Modal title={course.title} onClose={onClose} wide>
-      <div className="player-status">
+    <Modal title={course.title} onClose={requestClose} wide>
+      <div className="player-status" role="status" aria-live="polite">
         <CheckCircle2 size={15} />
         {t(status)}
       </div>
@@ -349,6 +424,20 @@ export function ScormPlayer({
           referrerPolicy="no-referrer"
         />
       )}
+      <div className="modal-footer">
+        {closeFailed && (
+          <button className="btn" onClick={onClose}>
+            {t("Close without saving")}
+          </button>
+        )}
+        <button
+          className="btn primary"
+          disabled={closing}
+          onClick={requestClose}
+        >
+          {closing ? t("Saving…") : t("Save and close")}
+        </button>
+      </div>
     </Modal>
   );
 }

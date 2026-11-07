@@ -431,7 +431,7 @@ test("SCORM upload, isolated execution, commit and resume persist end to end", a
   );
   zip.file(
     "index.html",
-    `<!doctype html><html><body><h1>SCORM test lesson</h1><p id="resume"></p><button id="finish">Complete lesson</button><script>const api=parent.API;api.LMSInitialize('');document.getElementById('resume').textContent=api.LMSGetValue('cmi.suspend_data');document.getElementById('finish').onclick=()=>{api.LMSSetValue('cmi.suspend_data','bookmark-saved');api.LMSSetValue('cmi.core.lesson_status','completed');api.LMSCommit('')};</script></body></html>`,
+    `<!doctype html><html><body><h1>SCORM test lesson</h1><p id="resume"></p><button id="finish">Complete lesson</button><button id="bookmark">Buffer bookmark</button><script>const api=parent.API;api.LMSInitialize('');document.getElementById('resume').textContent=api.LMSGetValue('cmi.suspend_data');document.getElementById('finish').onclick=()=>{api.LMSSetValue('cmi.suspend_data','bookmark-saved');api.LMSSetValue('cmi.core.lesson_status','completed');api.LMSCommit('')};document.getElementById('bookmark').onclick=()=>api.LMSSetValue('cmi.suspend_data','buffered-until-close');</script></body></html>`,
   );
   const bytes = await zip.generateAsync({ type: "nodebuffer" });
   const csrf = (await page.context().cookies()).find(
@@ -462,9 +462,35 @@ test("SCORM upload, isolated execution, commit and resume persist end to end", a
   await expect(
     page.getByText("Course completed and progress saved", { exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await sco.getByRole("button", { name: "Buffer bookmark" }).click();
+  let rejectSave = true;
+  await page.route("**/api/scorm/*/commit/", async (route) => {
+    if (rejectSave) {
+      rejectSave = false;
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ detail: "Simulated save outage" }),
+      });
+    } else await route.continue();
+  });
+  await page
+    .getByRole("button", { name: "Save and close", exact: true })
+    .click();
+  await expect(
+    page.getByText("Simulated save outage", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    sco.getByRole("heading", { name: "SCORM test lesson" }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Save and close", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await card.getByRole("button", { name: "Learn again", exact: true }).click();
-  await expect(sco.getByText("bookmark-saved", { exact: true })).toBeVisible();
+  await expect(
+    sco.getByText("buffered-until-close", { exact: true }),
+  ).toBeVisible();
 });
 
 test("Scormly publishes a real package and editable backup to the LMS", async ({
@@ -955,7 +981,22 @@ test("question bank creates reusable questions and randomized exam settings pers
   const title = "Randomized bank exam " + Date.now();
   await page.getByLabel("Exam title", { exact: true }).fill(title);
   await page.getByRole("button", { name: "Add from question bank" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(2);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(1);
+  await expect(page.getByLabel("Exam title", { exact: true })).toHaveValue(
+    title,
+  );
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe(
+    "hidden",
+  );
+  await expect(
+    page.getByRole("button", { name: "Add from question bank" }),
+  ).toBeFocused();
+  await page.getByRole("button", { name: "Add from question bank" }).click();
   await page.getByLabel("Search question bank").fill(question);
+  await page.getByLabel("Search question bank").press("Enter");
+  await expect(page.getByRole("dialog")).toHaveCount(2);
   await page.getByRole("checkbox", { name: new RegExp(question) }).check();
   await page.getByRole("button", { name: /Add selected questions/ }).click();
   await page.getByLabel("Shuffle question order").check();
@@ -1053,4 +1094,192 @@ test("CSV preview imports learners, profile edits persist, and new pages transla
   await expect(
     page.getByText("Connect on Peach1", { exact: true }),
   ).toBeVisible();
+});
+
+test("slow autosaves preserve newer edits and submission waits before showing instructor feedback", async ({
+  page,
+}) => {
+  await login(page);
+  const exam = await post<{ id: number }>(page, "exams/", {
+    title: "Reliable written response " + Date.now(),
+    published: true,
+    questions: [
+      {
+        type: "essay",
+        description: "Explain your safety procedure",
+        points: 10,
+        options: [],
+        solution: [],
+      },
+    ],
+  });
+  const attempt = await post<{ id: string; questions: { id: number }[] }>(
+    page,
+    `exams/${exam.id}/start/`,
+    {},
+  );
+  const endpoint = `**/api/attempts/${attempt.id}/`;
+  let patches = 0,
+    posts = 0,
+    release: (() => void) | undefined;
+  await page.route(endpoint, async (route) => {
+    if (route.request().method() === "POST") posts++;
+    if (route.request().method() === "PATCH") {
+      patches++;
+      if (patches === 1 || patches === 3) {
+        const response = await route.fetch();
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        await route.fulfill({ response });
+        return;
+      }
+    }
+    await route.continue();
+  });
+  await page.goto("/attempt/" + attempt.id);
+  const answer = page.getByRole("textbox", { name: "Your answer" });
+  await answer.fill("Initial draft");
+  await expect.poll(() => !!release).toBe(true);
+  await answer.fill("Newer draft written during the save");
+  release!();
+  release = undefined;
+  await expect(page.getByRole("status")).toHaveText(
+    "Answers saved automatically",
+  );
+  expect(patches).toBe(2);
+  await answer.fill("Draft before submission");
+  await expect.poll(() => !!release).toBe(true);
+  await answer.fill(
+    "Final response: isolate the hazard and notify the supervisor.",
+  );
+  await page
+    .getByRole("button", { name: "Finish and submit", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Confirm submission", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Submitting…", exact: true }),
+  ).toBeDisabled();
+  expect(posts).toBe(0);
+  release!();
+  await expect(
+    page.getByRole("heading", {
+      name: "Submitted, awaiting instructor review",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Final response: isolate the hazard and notify the supervisor.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await post(page, `results/${attempt.id}/review/`, {
+    grades: {
+      [attempt.questions[0].id]: {
+        points: 9,
+        feedback: "Clear escalation steps. Include the incident record.",
+      },
+    },
+  });
+  await page.reload();
+  await expect(
+    page.getByText("Clear escalation steps. Include the incident record.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Instructor review · 9 / 10 points", { exact: true }),
+  ).toBeVisible();
+  const result = await (
+    await page.request.get(`/api/attempts/${attempt.id}/`)
+  ).json();
+  expect(result.answer_revision).toBe(4);
+  expect(result.questions[0]).not.toHaveProperty("solution");
+});
+
+test("conflicting tabs require recovery and a failed save retries without losing local answers", async ({
+  page,
+  context,
+}) => {
+  await login(page);
+  const exam = await post<{ id: number }>(page, "exams/", {
+    title: "Cross-window recovery " + Date.now(),
+    published: true,
+    questions: [
+      {
+        type: "essay",
+        description: "Describe the handover",
+        points: 10,
+        options: [],
+        solution: [],
+      },
+    ],
+  });
+  const attempt = await post<{ id: string }>(
+    page,
+    `exams/${exam.id}/start/`,
+    {},
+  );
+  await page.goto("/attempt/" + attempt.id);
+  const other = await context.newPage();
+  await other.goto("/attempt/" + attempt.id);
+  await expect(
+    other.getByRole("textbox", { name: "Your answer" }),
+  ).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Your answer" })
+    .fill("Saved in the first window");
+  await expect(page.getByRole("status")).toHaveText(
+    "Answers saved automatically",
+  );
+  await other
+    .getByRole("textbox", { name: "Your answer" })
+    .fill("Conflicting local draft");
+  await expect(
+    other.getByText(
+      "This attempt was updated in another window. Reload saved answers before continuing.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(other.getByRole("textbox", { name: "Your answer" })).toHaveValue(
+    "Conflicting local draft",
+  );
+  await expect(
+    other.getByRole("button", { name: "Submit", exact: true }),
+  ).toBeDisabled();
+  await other
+    .getByRole("button", { name: "Reload saved answers", exact: true })
+    .click();
+  await expect(other.getByRole("textbox", { name: "Your answer" })).toHaveValue(
+    "Saved in the first window",
+  );
+  let offline = true;
+  await other.route(`**/api/attempts/${attempt.id}/`, async (route) => {
+    if (offline && route.request().method() === "PATCH")
+      await route.abort("connectionfailed");
+    else await route.continue();
+  });
+  await other
+    .getByRole("textbox", { name: "Your answer" })
+    .fill("Recovered after a connection failure");
+  await expect(other.getByRole("status")).toHaveText("Save failed");
+  await expect(other.getByRole("textbox", { name: "Your answer" })).toHaveValue(
+    "Recovered after a connection failure",
+  );
+  offline = false;
+  // The automatic backoff should recover without needing another keystroke.
+  await expect(other.getByRole("status")).toHaveText(
+    "Answers saved automatically",
+    { timeout: 10000 },
+  );
+  const saved = await (
+    await other.request.get(`/api/attempts/${attempt.id}/`)
+  ).json();
+  expect(Object.values(saved.answers)).toEqual([
+    "Recovered after a connection failure",
+  ]);
+  expect(saved.answer_revision).toBe(2);
+  await other.close();
 });

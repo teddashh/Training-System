@@ -481,7 +481,7 @@ export function Results({
   onSaved: () => void;
   go: (p: string) => void;
 }) {
-  useLocale();
+  const locale = useLocale();
   const [data, setData] = useState<ResultsPage | null>(null),
     [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
@@ -528,7 +528,7 @@ export function Results({
     return () => {
       alive = false;
     };
-  }, [refreshKey, parameters]);
+  }, [refreshKey, parameters, locale]);
   const rows = data?.results || [];
   return (
     <>

@@ -40,6 +40,26 @@ The results endpoint and `/api/results/export/` share optional `exam`, `search`,
 
 `GET /api/exams/{id}/insights/?days=90` returns exam metadata, summary, distribution, departments and question analysis. Add `export=csv` for the question analysis file. This endpoint enforces current administrator/owner-instructor authority. Both CSV exports use localized headers, UTF-8 with BOM, and spreadsheet formula escaping.
 
+## Answer saving and learner feedback
+
+The assessment player sends one save at a time. Edits made during a slow save remain local until the next save; submission waits for the pending save and then sends the latest answers. Connection failures retain the current tab's draft and retry with backoff. **Retry saving** requests an immediate retry. Unsaved answers are held in memory, so keep the tab open during a connection failure. Closing or reloading the browser can discard them.
+
+Every saved attempt has an `answer_revision`. Another tab's newer save causes a conflict instead of overwriting answers. Copy any local text you need before selecting **Reload saved answers**, which replaces that tab's draft with the server copy. The timer continues during failures and conflicts. At the deadline the server grades the last answers it received before expiry; offline edits cannot extend the deadline.
+
+`GET /api/attempts/{id}/` returns the revision. New clients must include that integer with each `PATCH` save and `POST` submission. A stale revision receives HTTP 409 with `code: answer_conflict`. Omitting the revision remains supported for legacy clients, whose writes still advance the revision; those clients do not get conflict protection. Repeating a completed submission returns the existing result without changing answers. The endpoint never includes solution keys.
+
+After submission, learners and invited recipients can review their own responses. Instructor marks and written feedback appear once recorded; the final score waits for all manual grading. Refresh the result after the instructor reviews it. Feedback is visible to the participant, so instructors should avoid copying confidential answer keys into it.
+
+## Closing SCORM lessons
+
+**Save and close**, the close button and Escape all request the runtime's latest buffered values and wait for the API to acknowledge persistence. If saving fails, the player stays open for another attempt. **Close without saving** becomes available after a failed close; choosing it can lose recent progress. Use the player controls before leaving the page. Browser shutdown, a crash or a lost connection cannot guarantee a final save. Reopening a lesson restores the last confirmed state.
+
+## Shared-office sign-in limits
+
+Password login and email-code requests/verification share a persistent limit of 20 requests per account per ten-minute window. Username, email and employee ID aliases share the same counter. Guest verification uses an invitation counter. A separate network counter defaults to 300 requests per ten minutes; `AUTH_NETWORK_LIMIT` configures that network allowance. HTTP 429 includes `Retry-After` in seconds. A failed earlier email delivery does not invalidate a newer code; SMTP operations time out after ten seconds.
+
+The API uses the direct connection's address, ignoring client-supplied forwarding headers. In the bundled deployment, the Nginx peer is shared by participants, so the network counter is a deployment-wide budget. Size it for scheduled training groups and enforce actual client-IP limits at the trusted outer proxy. General API throttles allow 600 requests per minute for an authenticated user or anonymous direct peer. These are traffic controls, not a concurrency capacity guarantee; validate company usage on Peach1.
+
 ## Bulk onboarding
 
 **People & permissions → Import participants** accepts UTF-8 CSV up to 1 MB and 500 rows. Required header: `username`. Optional headers: `email,employee_id,display_name,department,employment`. Use `employee` or `contractor` for employment; an empty value defaults to employee. Quote commas/newlines according to CSV rules.
