@@ -1,4 +1,10 @@
-import { test, expect, type Page } from "@playwright/test";
+import {
+  test,
+  expect,
+  type Page,
+  type Request,
+  type Response,
+} from "@playwright/test";
 
 async function downloadText(download: import("@playwright/test").Download) {
   const stream = await download.createReadStream();
@@ -10,29 +16,52 @@ async function downloadText(download: import("@playwright/test").Download) {
     .replace(/^\uFEFF/, "");
 }
 
+async function waitForThrottle(responses: Response[], retry: number) {
+  const throttled = responses.filter((response) => response.status() === 429);
+  if (!throttled.length) {
+    for (const response of responses) expect(response.status()).toBe(200);
+    return false;
+  }
+  let seconds = 0;
+  for (const response of throttled) {
+    const wait = Number(response.headers()["retry-after"]);
+    expect(wait).toBeGreaterThan(0);
+    expect(wait).toBeLessThanOrEqual(60);
+    seconds = Math.max(seconds, wait);
+  }
+  expect(
+    retry,
+    "Request remained throttled after bounded retries",
+  ).toBeLessThan(3);
+  const delay = (seconds + 1) * 1000;
+  test.setTimeout(test.info().timeout + delay);
+  await new Promise((resolve) => setTimeout(resolve, delay));
+  return true;
+}
+
 async function login(page: Page) {
-  // This suite creates many independent browser sessions behind one IP.
-  // Honor the application's Retry-After response instead of disabling limits.
-  for (let retry = 0; retry < 3; retry++) {
-    const session = page.waitForResponse(
-      (response) => new URL(response.url()).pathname === "/api/auth/session/",
-    );
-    await page.goto("/");
-    const response = await session;
-    if (response.status() !== 429) {
-      expect(response.status()).toBe(200);
-      break;
+  // Real limits remain enabled. StrictMode issues two startup requests: inspect
+  // both, since one can succeed while the other exhausts the remaining allowance.
+  const sessions: Promise<Response | null>[] = [];
+  const collect = (request: Request) => {
+    if (new URL(request.url()).pathname === "/api/auth/session/")
+      sessions.push(request.response());
+  };
+  page.on("request", collect);
+  try {
+    for (let retry = 0; retry < 4; retry++) {
+      sessions.length = 0;
+      const first = page.waitForResponse(
+        (response) => new URL(response.url()).pathname === "/api/auth/session/",
+      );
+      await page.goto("/");
+      await first;
+      const responses = await Promise.all(sessions);
+      for (const response of responses) expect(response).not.toBeNull();
+      if (!(await waitForThrottle(responses as Response[], retry))) break;
     }
-    const seconds = Number(response.headers()["retry-after"]);
-    expect(seconds).toBeGreaterThan(0);
-    expect(seconds).toBeLessThanOrEqual(60);
-    expect(
-      retry,
-      "Session remained throttled after bounded retries",
-    ).toBeLessThan(2);
-    const delay = (seconds + 1) * 1000;
-    test.setTimeout(test.info().timeout + delay);
-    await page.waitForTimeout(delay);
+  } finally {
+    page.off("request", collect);
   }
   await page
     .getByLabel("Email, username or employee ID")
@@ -40,9 +69,15 @@ async function login(page: Page) {
   await page
     .getByLabel("Password", { exact: true })
     .fill(process.env.DEMO_PASSWORD || "Demo-Training-2026!");
-  await page
-    .getByRole("button", { name: "Sign in to workspace", exact: true })
-    .click();
+  for (let retry = 0; retry < 4; retry++) {
+    const response = page.waitForResponse(
+      (response) => new URL(response.url()).pathname === "/api/auth/login/",
+    );
+    await page
+      .getByRole("button", { name: "Sign in to workspace", exact: true })
+      .click();
+    if (!(await waitForThrottle([await response], retry))) break;
+  }
   await expect(
     page.getByRole("heading", { name: "Learning & development overview" }),
   ).toBeVisible();
