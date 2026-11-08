@@ -2152,7 +2152,10 @@ form > label {
   border-radius: 6px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  color: #70869e;
+  color: #344c66;
+}
+.accepted-answer {
+  margin: 8px 0 0;
 }
 .help-content h3 {
   color: #3d6c9b;

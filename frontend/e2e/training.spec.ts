@@ -1302,6 +1302,20 @@ test("numeric and ordering questions round-trip through authoring, resume, gradi
     await page.request.get(`/api/results/${attempt.id}/review/`)
   ).json();
   expect(reviewed.questions[1].answer_tolerances).toEqual(["0.05", "0.01"]);
+  await page.goto("/results");
+  await page.getByLabel("Filter by exam").selectOption(String(exam.id));
+  await page
+    .getByRole("row")
+    .filter({ hasText: examTitle })
+    .getByRole("button", { name: "View attempt", exact: true })
+    .click();
+  const review = page.getByRole("dialog", { name: "Review attempt", exact: true });
+  await expect(review.locator(".accepted-answer")).toHaveText([
+    "9007199254740993",
+    "12.5 ± 0.05\n-12.5 ± 0.01",
+    "1. Isolate\n2. Verify\n3. Maintain",
+  ]);
+  await review.getByRole("button", { name: "Close", exact: true }).last().click();
   await page.goto("/insights");
   await page.getByLabel("Select assessment").selectOption(String(exam.id));
   const analysis = page.getByRole("row").filter({ hasText: bankTitle });

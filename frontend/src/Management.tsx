@@ -622,12 +622,14 @@ function ReviewModal({
                     </label>
                   </div>
                 ) : (
-                  <small className="muted">
-                    {t("Auto-graded \u00B7 Accepted answer:") + " "}
-                    <span className="review-answer">
+                  <div>
+                    <small className="muted">
+                      {t("Auto-graded \u00B7 Accepted answer:")}
+                    </small>
+                    <p className="review-answer accepted-answer">
                       {acceptedAnswerText(q)}
-                    </span>
-                  </small>
+                    </p>
+                  </div>
                 )}
               </div>
             ))}
