@@ -524,12 +524,14 @@ export function Invitations({ exams }: { exams: Exam[] }) {
     </>
   );
 }
-function ReviewModal({
+export function ReviewModal({
   id,
+  preview = false,
   onClose,
   onSaved,
 }: {
   id: string;
+  preview?: boolean;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -539,19 +541,21 @@ function ReviewModal({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   useEffect(() => {
-    api<Attempt>(`results/${id}/review/`)
+    api<Attempt>(`${preview ? "previews" : "results"}/${id}/review/`)
       .then((a) => {
         setAttempt(a);
         setMarks(a.manual_grades);
       })
       .catch((e) => setError(e.message));
-  }, [id]);
+  }, [id, preview]);
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError("");
     try {
-      await api(`results/${id}/review/`, "POST", { grades: marks });
+      await api(`${preview ? "previews" : "results"}/${id}/review/`, "POST", {
+        grades: marks,
+      });
       onSaved();
       onClose();
     } catch (e) {
@@ -561,8 +565,19 @@ function ReviewModal({
     }
   }
   return (
-    <Modal title={t("Review attempt")} onClose={onClose} wide>
+    <Modal
+      title={preview ? t("Inspect test result") : t("Review attempt")}
+      onClose={onClose}
+      wide
+    >
       <form className="modal-form" onSubmit={save}>
+        {preview && (
+          <p className="notice exam-policy-notice">
+            {t(
+              "Test grading affects this preview only. Participant records remain unchanged.",
+            )}
+          </p>
+        )}
         <ErrorBox message={error} />
         {attempt ? (
           <>

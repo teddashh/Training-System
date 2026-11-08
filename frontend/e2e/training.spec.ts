@@ -1,3 +1,4 @@
+import { previewWorkflow } from "./preview";
 import {
   test,
   expect,
@@ -1465,9 +1466,10 @@ test("assign required training, complete from worklist, and export evidence", as
   await expect(row).toContainText("Cancelled");
 });
 
-test("question bank creates reusable questions and randomized exam settings persist", async ({
+test("question bank, randomized exams and private instructor previews work end to end", async ({
   page,
 }) => {
+  test.setTimeout(120000);
   await login(page);
   const question = "Reusable security question " + Date.now();
   await page.getByRole("link", { name: "Question bank", exact: true }).click();
@@ -1544,6 +1546,7 @@ test("question bank creates reusable questions and randomized exam settings pers
   await expect(
     page.getByRole("heading", { name: "Congratulations, you passed" }),
   ).toBeVisible();
+  await previewWorkflow(page);
 });
 
 test("numeric, ordering and text rules round-trip through authoring, resume, grading and reports", async ({

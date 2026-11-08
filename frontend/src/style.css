@@ -4107,3 +4107,31 @@ form > label {
     flex-direction: column;
   }
 }
+.preview-banner {
+  border: 1px solid #b6d5f5;
+  border-radius: 12px;
+  background: #eef6ff;
+  color: #24496e;
+  padding: 16px;
+  margin: 16px 0 24px;
+  text-align: left;
+}
+.preview-banner p, .result-celebration .preview-banner p {
+  color: #24496e;
+  font-size: 14px;
+  margin: 8px 0;
+}
+.preview-banner small { display: block; }
+.preview-banner .btn { margin-top: 12px; }
+.preview-modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.preview-modes section { padding: 16px; background: #f4f8fc; border: 1px solid #d9e5f2; border-radius: 10px; }
+.preview-modes p { font-size: 14px; line-height: 1.6; }
+.preview-session { display: flex; align-items: center; gap: 8px; padding: 12px 0; border-bottom: 1px solid #e3ebf5; }
+.preview-session > div { flex: 1; min-width: 0; }
+.preview-session small { display: block; }
+.preview-question { display: block; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .preview-modes { grid-template-columns: 1fr; }
+  .preview-session { flex-wrap: wrap; }
+  .preview-session > div { flex-basis: 100%; }
+}

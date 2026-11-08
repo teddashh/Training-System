@@ -13,6 +13,7 @@ import {
   Pencil,
   Link2,
   Trash2,
+  Eye,
 } from "lucide-react";
 import { api } from "./api";
 import type { Exam, Course, Question, User, Attempt } from "./types";
@@ -21,6 +22,7 @@ import { BankPicker } from "./QuestionBank";
 import { questionTypes, questionTypeDefaults } from "./questionTypes";
 import StructuredQuestionFields from "./StructuredQuestionFields";
 import TextAnswerFields from "./TextAnswerFields";
+import ExamPreview from "./ExamPreview";
 function ExamEditor({
   exam,
   courses,
@@ -601,6 +603,7 @@ export default function Exams({
   useLocale();
   const [search, setSearch] = useState(""),
     [editing, setEditing] = useState<Exam | null | undefined>(),
+    [previewing, setPreviewing] = useState<number | null>(null),
     [starting, setStarting] = useState<Exam | null>(null),
     [budget, setBudget] = useState<Exam | null>(null),
     [key, setKey] = useState(""),
@@ -641,6 +644,13 @@ export default function Exams({
   }
   return (
     <>
+      {previewing !== null && (
+        <ExamPreview
+          id={previewing}
+          onClose={() => setPreviewing(null)}
+          go={go}
+        />
+      )}
       <div className="page-heading">
         <div>
           <div className="eyebrow">{t("ASSESSMENT CENTER")}</div>
@@ -759,6 +769,14 @@ export default function Exams({
                   </button>
                   {exam.can_manage && (
                     <div className="exam-tools">
+                      <button
+                        className="icon-btn"
+                        title={t("Preview exam")}
+                        aria-label={t("Preview {title}", { title: exam.title })}
+                        onClick={() => setPreviewing(exam.id)}
+                      >
+                        <Eye size={16} />
+                      </button>
                       <button
                         title={t("Edit questions")}
                         aria-label={t("Edit ") + exam.title}

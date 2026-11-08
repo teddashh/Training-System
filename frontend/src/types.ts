@@ -93,7 +93,9 @@ export type Attempt = {
   title: string;
   number: number;
   status: string;
-  deadline: string;
+  deadline: string | null;
+  preview_mode?: "learner" | "unrestricted";
+  preview_expires_at?: string;
   server_time: string;
   answers: Record<string, string | number | number[]>;
   questions: Question[];

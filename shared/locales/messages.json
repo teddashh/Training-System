@@ -9658,5 +9658,145 @@
     "en": "Controls future access to completed attempts. Scores remain visible. Instructors retain full review access.",
     "zh-TW": "控制已完成應試的後續檢視權限。分數仍可查看，講師保有完整閱卷權限。",
     "es": "Controla el acceso futuro a los intentos completados. Las puntuaciones siguen visibles y los instructores conservan acceso a la revisión completa."
+  },
+  "Preview exam": {
+    "en": "Preview exam",
+    "zh-TW": "預覽考試",
+    "es": "Vista previa del examen"
+  },
+  "Preview {title}": {
+    "en": "Preview {title}",
+    "zh-TW": "預覽 {title}",
+    "es": "Vista previa de {title}"
+  },
+  "Private test. No participant attempts, results or training completion are recorded.": {
+    "en": "Private test. No participant attempts, results or training completion are recorded.",
+    "zh-TW": "這是私人測試，不會記錄應試者的考試次數、成績或訓練完成狀態。",
+    "es": "Prueba privada. No se registran intentos, resultados ni formación completada de los participantes."
+  },
+  "Learner simulation": {
+    "en": "Learner simulation",
+    "zh-TW": "學員模擬",
+    "es": "Simulación del participante"
+  },
+  "Uses the open window, timer, navigation and review settings. Audience, attempt limits and retry waits are not tested.": {
+    "en": "Uses the open window, timer, navigation and review settings. Audience, attempt limits and retry waits are not tested.",
+    "zh-TW": "套用開放時間、計時、題目導覽與作答檢視設定，不測試對象限制、應試次數上限或重考等待時間。",
+    "es": "Utiliza el periodo de apertura, el temporizador y los ajustes de navegación y revisión. No comprueba el público, los límites de intentos ni la espera entre intentos."
+  },
+  "Start learner simulation": {
+    "en": "Start learner simulation",
+    "zh-TW": "開始學員模擬",
+    "es": "Iniciar simulación"
+  },
+  "Untimed test": {
+    "en": "Untimed test",
+    "zh-TW": "不限時測試",
+    "es": "Prueba sin límite de tiempo"
+  },
+  "Test drafts or closed exams without a timer. Question selection, navigation and grading rules still apply.": {
+    "en": "Test drafts or closed exams without a timer. Question selection, navigation and grading rules still apply.",
+    "zh-TW": "可不限時測試草稿或已關閉的考試，仍套用選題、題目導覽與評分規則。",
+    "es": "Prueba borradores o exámenes cerrados sin temporizador. Se mantienen las reglas de selección, navegación y calificación."
+  },
+  "Start untimed test": {
+    "en": "Start untimed test",
+    "zh-TW": "開始不限時測試",
+    "es": "Iniciar prueba sin límite de tiempo"
+  },
+  "Saved previews": {
+    "en": "Saved previews",
+    "zh-TW": "已儲存的預覽",
+    "es": "Vistas previas guardadas"
+  },
+  "Saved previews are deleted after seven days.": {
+    "en": "Saved previews are deleted after seven days.",
+    "zh-TW": "已儲存的預覽會在七天後刪除。",
+    "es": "Las vistas previas guardadas se eliminan después de siete días."
+  },
+  "No saved previews yet.": {
+    "en": "No saved previews yet.",
+    "zh-TW": "尚無已儲存的預覽。",
+    "es": "Aún no hay vistas previas guardadas."
+  },
+  "Open preview": {
+    "en": "Open preview",
+    "zh-TW": "開啟預覽",
+    "es": "Abrir vista previa"
+  },
+  "Delete preview": {
+    "en": "Delete preview",
+    "zh-TW": "刪除預覽",
+    "es": "Eliminar vista previa"
+  },
+  "Question paper": {
+    "en": "Question paper",
+    "zh-TW": "試卷預覽",
+    "es": "Cuestionario"
+  },
+  "All saved questions are shown here. Each test selects and shuffles its own paper using the exam settings.": {
+    "en": "All saved questions are shown here. Each test selects and shuffles its own paper using the exam settings.",
+    "zh-TW": "此處顯示所有已儲存的題目。每次測試會依考試設定選題並打亂順序。",
+    "es": "Aquí se muestran todas las preguntas guardadas. Cada prueba selecciona y ordena su cuestionario según los ajustes del examen."
+  },
+  "Show accepted answers": {
+    "en": "Show accepted answers",
+    "zh-TW": "顯示可接受的答案",
+    "es": "Mostrar respuestas aceptadas"
+  },
+  "Manual review required": {
+    "en": "Manual review required",
+    "zh-TW": "需要人工評分",
+    "es": "Requiere evaluación manual"
+  },
+  "Accepted answers": {
+    "en": "Accepted answers",
+    "zh-TW": "可接受的答案",
+    "es": "Respuestas aceptadas"
+  },
+  "Back to exams": {
+    "en": "Back to exams",
+    "zh-TW": "返回考試列表",
+    "es": "Volver a los exámenes"
+  },
+  "Instructor preview": {
+    "en": "Instructor preview",
+    "zh-TW": "講師預覽",
+    "es": "Vista previa del instructor"
+  },
+  "Inspect test result": {
+    "en": "Inspect test result",
+    "zh-TW": "檢查測試結果",
+    "es": "Inspeccionar resultado de prueba"
+  },
+  "Untimed": {
+    "en": "Untimed",
+    "zh-TW": "不限時",
+    "es": "Sin límite de tiempo"
+  },
+  "Test grading affects this preview only. Participant records remain unchanged.": {
+    "en": "Test grading affects this preview only. Participant records remain unchanged.",
+    "zh-TW": "測試評分僅影響此預覽，不會變更應試者的紀錄。",
+    "es": "La calificación de prueba solo afecta a esta vista previa. Los registros de los participantes no cambian."
+  },
+  "Choose learner simulation or untimed test.": {
+    "en": "Choose learner simulation or untimed test.",
+    "zh-TW": "請選擇學員模擬或不限時測試。",
+    "es": "Elige simulación del participante o prueba sin límite de tiempo."
+  },
+  "Learner simulation requires an open, published exam. Use an untimed test for drafts or closed exams.": {
+    "en": "Learner simulation requires an open, published exam. Use an untimed test for drafts or closed exams.",
+    "zh-TW": "學員模擬需要已發佈且開放中的考試。草稿或已關閉的考試請使用不限時測試。",
+    "es": "La simulación requiere un examen publicado y abierto. Para borradores o exámenes cerrados, usa una prueba sin límite de tiempo."
+  },
+  "You have 20 saved previews for this exam. Delete a preview before starting another.": {
+    "en": "You have 20 saved previews for this exam. Delete a preview before starting another.",
+    "zh-TW": "此考試已有 20 份已儲存的預覽。請先刪除一份再開始新的預覽。",
+    "es": "Tienes 20 vistas previas guardadas de este examen. Elimina una antes de iniciar otra."
+  },
+  "Questions unlock in order after answers are saved. You can revisit unlocked questions. Answer every question before submitting.": {
+    "en": "Questions unlock in order after answers are saved. You can revisit unlocked questions. Answer every question before submitting.",
+    "zh-TW": "答案儲存後會依序解鎖題目，您可返回已解鎖的題目。交卷前須回答所有題目。",
+    "es": "Las preguntas se desbloquean en orden al guardar las respuestas. Puedes volver a las preguntas desbloqueadas. Responde todas antes de entregar."
   }
 }

@@ -202,6 +202,36 @@ def start_attempt(exam_id, identity, invitation=None):
                 "server_time": now.isoformat(),
             }
         )
+    questions = question_snapshot(exam)
+    deadline = now + timedelta(minutes=exam.duration_minutes)
+    if exam.ends_at:
+        deadline = min(deadline, exam.ends_at)
+    budget.used += 1
+    budget.save(update_fields=["used"])
+    if invitation:
+        invitation.used += 1
+        invitation.save(update_fields=["used"])
+    attempt = Attempt.objects.create(
+        exam=exam,
+        identity=identity,
+        invitation=invitation,
+        number=budget.used,
+        snapshot=questions,
+        pass_score=exam.pass_score,
+        allow_skip=exam.allow_skip,
+        deadline=deadline,
+    )
+    audit(
+        identity.user,
+        "attempt.started",
+        attempt.id,
+        {"exam": exam.id, "number": budget.used},
+    )
+    return attempt
+
+
+def question_snapshot(exam):
+    """Freeze one randomized paper for participant and instructor trials alike."""
     questions = list(
         exam.questions.values(
             "id",
@@ -236,31 +266,7 @@ def start_attempt(exam_id, identity, invitation=None):
             random.shuffle(order)
             question["options"] = [question["options"][i] for i in order]
             question["solution"] = [order.index(i) for i in question["solution"]]
-    deadline = now + timedelta(minutes=exam.duration_minutes)
-    if exam.ends_at:
-        deadline = min(deadline, exam.ends_at)
-    budget.used += 1
-    budget.save(update_fields=["used"])
-    if invitation:
-        invitation.used += 1
-        invitation.save(update_fields=["used"])
-    attempt = Attempt.objects.create(
-        exam=exam,
-        identity=identity,
-        invitation=invitation,
-        number=budget.used,
-        snapshot=questions,
-        pass_score=exam.pass_score,
-        allow_skip=exam.allow_skip,
-        deadline=deadline,
-    )
-    audit(
-        identity.user,
-        "attempt.started",
-        attempt.id,
-        {"exam": exam.id, "number": budget.used},
-    )
-    return attempt
+    return questions
 
 
 def question_points(question, answer, manual_grade=None):
@@ -458,3 +464,25 @@ def public_attempt(attempt, *, for_review=False):
         "pass_score": attempt.pass_score,
         "manual_grades": attempt.manual_grades if visible else {},
     }
+
+
+def apply_manual_grades(attempt, marks):
+    if not isinstance(marks, dict):
+        raise ValidationError(translate("Invalid grading format."))
+    essay = {str(q["id"]): q for q in attempt.snapshot if q["type"] == "essay"}
+    for key, mark in marks.items():
+        if (
+            key not in essay
+            or not isinstance(mark, dict)
+            or type(mark.get("points")) not in (int, float)
+            or not 0 <= mark["points"] <= essay[key]["points"]
+            or len(str(mark.get("feedback", ""))) > 5000
+        ):
+            raise ValidationError(
+                translate(
+                    "The written-response score exceeds its points or the question does not exist."
+                )
+            )
+    attempt.manual_grades.update(marks)
+    grade(attempt)
+    attempt.save()

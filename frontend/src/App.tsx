@@ -133,7 +133,8 @@ export default function App() {
     return () => window.removeEventListener("popstate", pop);
   }, []);
   useEffect(() => {
-    if (!user || path.startsWith("/attempt/")) return;
+    if (!user || path.startsWith("/attempt/") || path.startsWith("/preview/"))
+      return;
     let alive = true;
     setLoading(true);
     Promise.all([api<Course[]>("courses/"), api<Exam[]>("exams/")])
@@ -191,6 +192,8 @@ export default function App() {
         }}
       />
     );
+  if (path.startsWith("/preview/"))
+    return <Attempt key={path} id={path.split("/")[2]} go={go} preview />;
   const current = nav.find((n) => n.path === path),
     allowed =
       current &&

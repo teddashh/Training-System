@@ -320,6 +320,51 @@ class Attempt(models.Model):
         ]
 
 
+class ExamPreview(models.Model):
+    """Private instructor trials, deliberately outside participant evidence."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    mode = models.CharField(
+        max_length=20,
+        choices=[("learner", "Learner simulation"), ("unrestricted", "Untimed test")],
+    )
+    status = models.CharField(max_length=20, default="in_progress")
+    snapshot = models.JSONField(default=list)
+    pass_score = models.PositiveSmallIntegerField()
+    answers = models.JSONField(default=dict)
+    answer_revision = models.PositiveIntegerField(default=0)
+    allow_skip = models.BooleanField(default=True)
+    unlocked_question_count = models.PositiveSmallIntegerField(default=1)
+    manual_grades = models.JSONField(default=dict)
+    score = models.FloatField(null=True, blank=True)
+    passed = models.BooleanField(null=True, blank=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    deadline = models.DateTimeField(null=True, blank=True)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(db_index=True)
+
+    @property
+    def number(self):
+        return 1
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(
+                    unlocked_question_count__gte=1, unlocked_question_count__lte=200
+                ),
+                name="bounded_preview_unlocks",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(mode="learner", deadline__isnull=False)
+                | models.Q(mode="unrestricted", deadline__isnull=True),
+                name="valid_preview_timing",
+            ),
+        ]
+
+
 class AuditEvent(models.Model):
     actor = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     action = models.CharField(max_length=100)

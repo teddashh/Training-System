@@ -17,6 +17,7 @@ import { Spinner, ErrorBox, Modal, Badge } from "./ui";
 import { questionTypes, answerText, answerProvided } from "./questionTypes";
 import ExamPolicyNotice from "./ExamPolicyNotice";
 import OrderingAnswer from "./OrderingAnswer";
+import { ReviewModal } from "./Management";
 import { RetryNotice, useRetryAvailability } from "./RetryAvailability";
 export function GuestExam({ go }: { go: (p: string) => void }) {
   useLocale();
@@ -235,10 +236,12 @@ export default function Attempt({
   id,
   go,
   guest = false,
+  preview = false,
 }: {
   id: string;
   go: (p: string) => void;
   guest?: boolean;
+  preview?: boolean;
 }) {
   useLocale();
   const {
@@ -253,9 +256,10 @@ export default function Attempt({
     submit,
     retry,
     reload,
-  } = useAttemptSession(id);
+  } = useAttemptSession(id, preview);
   const [index, setIndex] = useState(0),
-    [confirm, setConfirm] = useState(false);
+    [confirm, setConfirm] = useState(false),
+    [reviewing, setReviewing] = useState(false);
   useEffect(() => {
     setIndex(0);
     setConfirm(false);
@@ -264,6 +268,11 @@ export default function Attempt({
     return (
       <div className="attempt-shell">
         <ErrorBox message={error} />
+        {preview && (
+          <button className="btn" onClick={() => go("/exams")}>
+            {t("Back to exams")}
+          </button>
+        )}
         {error ? (
           <button className="btn" onClick={reload} disabled={busy}>
             {t("Reload saved answers")}
@@ -273,10 +282,41 @@ export default function Attempt({
         )}
       </div>
     );
+  const previewNotice = preview && (
+    <aside className="preview-banner" aria-label={t("Instructor preview")}>
+      <strong>
+        {attempt.preview_mode === "learner"
+          ? t("Learner simulation")
+          : t("Untimed test")}
+      </strong>
+      <p>
+        {t(
+          "Private test. No participant attempts, results or training completion are recorded.",
+        )}
+      </p>
+      <small>{t("Saved previews are deleted after seven days.")}</small>
+      {attempt.status === "in_progress" && (
+        <button
+          className="btn"
+          disabled={
+            busy ||
+            conflict ||
+            !["Answers saved automatically", "Saved answers loaded"].includes(
+              saveState,
+            )
+          }
+          onClick={() => go("/exams")}
+        >
+          {t("Back to exams")}
+        </button>
+      )}
+    </aside>
+  );
   if (attempt.status !== "in_progress")
     return (
       <div className="result-celebration">
         <LanguagePicker />
+        {previewNotice}
         <div className={"result-emblem " + (attempt.passed ? "passed" : "")}>
           <Trophy size={44} />
         </div>
@@ -351,14 +391,33 @@ export default function Attempt({
           </p>
         )}
         <ErrorBox message={error} />
+        {preview && (
+          <button className="btn" onClick={() => setReviewing(true)}>
+            {t("Inspect test result")}
+          </button>
+        )}
+        {reviewing && (
+          <ReviewModal
+            id={id}
+            preview
+            onClose={() => setReviewing(false)}
+            onSaved={reload}
+          />
+        )}
         <button className="btn" onClick={reload} disabled={busy}>
           {t("Refresh result")}
         </button>
         <button
           className="btn primary"
-          onClick={() => go(guest ? "/invite" : "/results")}
+          onClick={() =>
+            go(preview ? "/exams" : guest ? "/invite" : "/results")
+          }
         >
-          {guest ? t("Back to invitation") : t("Back to assessment history")}
+          {preview
+            ? t("Back to exams")
+            : guest
+              ? t("Back to invitation")
+              : t("Back to assessment history")}
           <ArrowRight size={16} />
         </button>
       </div>
@@ -368,13 +427,15 @@ export default function Attempt({
     answered = attempt.questions.filter((question) =>
       answerProvided(answers[String(question.id)]),
     ).length,
-    incompleteRequired = !attempt.allow_skip && answered < total;
+    incompleteRequired = !attempt.allow_skip && answered < total,
+    timedOut = attempt.deadline !== null && remaining === 0;
   const setAnswer = (value: string | number | number[]) => {
     change(String(q.id), value);
   };
   return (
     <div className="attempt-shell">
       <LanguagePicker />
+      {previewNotice}
       <div className="attempt-header">
         <div>
           <Badge tone="blue">
@@ -385,21 +446,33 @@ export default function Attempt({
             {t(saveState)}
           </p>
         </div>
-        <div className={"exam-timer " + (remaining < 60 ? "danger-text" : "")}>
+        <div
+          className={
+            "exam-timer " +
+            (attempt.deadline && remaining < 60 ? "danger-text" : "")
+          }
+        >
           <Clock3 size={21} />
           <strong>
-            {String(Math.floor(remaining / 60)).padStart(2, "0")}:
-            {String(remaining % 60).padStart(2, "0")}
+            {attempt.deadline
+              ? `${String(Math.floor(remaining / 60)).padStart(2, "0")}:${String(remaining % 60).padStart(2, "0")}`
+              : t("Untimed")}
           </strong>
-          <span>{t("Time remaining")}</span>
+          <span>
+            {attempt.deadline ? t("Time remaining") : t("Instructor preview")}
+          </span>
         </div>
       </div>
       <ErrorBox message={error} />
       {!attempt.allow_skip && (
         <p className="notice exam-policy-notice" id="sequential-rules">
-          {t(
-            "Questions unlock in order after answers are saved. You can revisit unlocked questions. Answer every question before submitting; the timer still applies.",
-          )}
+          {attempt.deadline
+            ? t(
+                "Questions unlock in order after answers are saved. You can revisit unlocked questions. Answer every question before submitting; the timer still applies.",
+              )
+            : t(
+                "Questions unlock in order after answers are saved. You can revisit unlocked questions. Answer every question before submitting.",
+              )}
         </p>
       )}
       {error && (
@@ -496,7 +569,7 @@ export default function Attempt({
                       type={q.type === "single" ? "radio" : "checkbox"}
                       name={"q" + q.id}
                       checked={checked}
-                      disabled={busy || conflict || remaining === 0}
+                      disabled={busy || conflict || timedOut}
                       onChange={() =>
                         setAnswer(
                           q.type === "single"
@@ -522,7 +595,7 @@ export default function Attempt({
             <OrderingAnswer
               options={q.options}
               answer={answers[String(q.id)]}
-              disabled={busy || conflict || remaining === 0}
+              disabled={busy || conflict || timedOut}
               onChange={setAnswer}
             />
           ) : q.type === "integer" || q.type === "numeric" ? (
@@ -539,7 +612,7 @@ export default function Attempt({
                 aria-label={t("Your answer")}
                 maxLength={128}
                 readOnly={conflict}
-                disabled={busy || remaining === 0}
+                disabled={busy || timedOut}
                 value={String(answers[String(q.id)] ?? "")}
                 onChange={(event) => setAnswer(event.target.value)}
               />
@@ -556,7 +629,7 @@ export default function Attempt({
               <textarea
                 className="essay-answer"
                 readOnly={conflict}
-                disabled={busy || remaining === 0}
+                disabled={busy || timedOut}
                 aria-label={t("Your answer")}
                 aria-describedby={
                   q.type === "short" ? "text-answer-format" : undefined

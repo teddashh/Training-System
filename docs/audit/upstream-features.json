@@ -1161,16 +1161,49 @@
       "id": "Y46",
       "repository": "yaksh",
       "feature": "Instructor preview, student mode and unrestricted test mode",
-      "status": "missing",
+      "status": "implemented",
       "source": [
         {
           "path": "yaksh/views.py",
           "line": 2240
+        },
+        {
+          "path": "yaksh/views.py",
+          "line": 3332
+        },
+        {
+          "path": "yaksh/models.py",
+          "line": 411
+        },
+        {
+          "path": "yaksh/documentation/moderator_docs/creating_quiz.rst",
+          "line": 86
         }
       ],
-      "implementation": [],
-      "verification": [],
-      "assessment": "No sandbox preview of independent exams without consuming participant attempts. Studio learner preview is separate.",
+      "implementation": [
+        "backend/training/models.py",
+        "backend/training/previews.py",
+        "backend/training/services.py",
+        "backend/training/management/commands/expire_attempts.py",
+        "frontend/src/ExamPreview.tsx",
+        "frontend/src/Attempt.tsx",
+        "frontend/src/useAttemptSession.ts",
+        "frontend/src/Management.tsx"
+      ],
+      "verification": [
+        "backend/training/test_previews.py::test_preview_never_creates_participant_evidence_or_consumes_budgets",
+        "backend/training/test_previews.py::test_learner_window_and_timer_and_unrestricted_drafts",
+        "backend/training/test_previews.py::test_private_owner_access_role_changes_and_endpoint_separation",
+        "backend/training/test_previews.py::test_random_snapshot_and_rules_freeze_across_edits_and_resume",
+        "backend/training/test_previews.py::test_sequential_unlock_revision_conflict_and_incomplete_submit",
+        "backend/training/test_previews.py::test_shared_grading_all_seven_types_and_private_review_release",
+        "backend/training/test_previews.py::test_timeout_uses_saved_answers_and_untimed_test_stays_open",
+        "backend/training/test_previews.py::test_saved_list_delete_retention_and_bounded_storage",
+        "backend/training/test_previews.py::test_competing_preview_saves_preserve_one_revision",
+        "frontend/e2e/training.spec.ts::question bank, randomized exams and private instructor previews work end to end",
+        "frontend/e2e/preview.ts"
+      ],
+      "assessment": "Managers can inspect the full saved question pool and answer key, run a timed learner simulation of an open published exam, or run untimed tests of drafts/closed exams. Separate creator-scoped preview records share randomized snapshots, all seven answer types, autosave/revision protection, frozen navigation, live response visibility and automatic/manual grading with participant attempts. Preview results do not affect identities, attempt/link budgets, reports, exports or assignment completion. Learner simulation deliberately does not impersonate a participant or test their audience/budget/retry eligibility. Saved trials support resume/deletion, a 20-per-exam creator cap and seven-day retention; timed previews finalize only saved answers. Real API/browser coverage includes three languages, mobile layouts and result inspection while participant review is hidden.",
       "priority": 1,
       "routes": [
         "yaksh:test_quiz",
@@ -5779,16 +5812,17 @@
     "Retry intervals now share one server-enforced clock across account aliases and guest links. Eligibility is measured from the previous start, active attempts resume, early starts do not consume budgets, and account/assignment/guest interfaces show localized availability. PostgreSQL concurrency and real browser workflows cover the new policy.",
     "Yaksh string matching now preserves each accepted answer’s case and spacing policy, including multiline and Unicode distinctions. Three-language bank/exam authoring, frozen attempts, account/guest grading, labeled reviews, rule-aware analytics and atomic string imports share these rules. Historical normalized grading remains compatible.",
     "Sequential exam navigation is now enforced in the API, including private future questions, persisted unlocking, incomplete-submission validation and frozen attempt rules. Completed response visibility remains a live organizer setting with no-store responses, scoped instructor access and participant refresh. Account/guest and PostgreSQL concurrency coverage preserve existing budgets, autosave and timeout behavior.",
-    "The active exam player now uses monotonic elapsed time for deadlines and save-retry delays, anchored to server timestamps. Changing the device wall clock cannot prematurely submit an exam or reset its duration; server-side expiry remains authoritative."
+    "The active exam player now uses monotonic elapsed time for deadlines and save-retry delays, anchored to server timestamps. Changing the device wall clock cannot prematurely submit an exam or reset its duration; server-side expiry remains authoritative.",
+    "Instructor exam previews now provide a complete saved question-paper view, timed learner simulation and untimed draft testing. Trials use a separate private model, shared production question/grading rules, resumable autosaves, independent test grading and bounded retention. Tests verify that successful trials cannot change existing participant evidence or assignment completion."
   ],
   "validation": [
     {
       "check": "Django suite on PostgreSQL 17",
-      "result": "138 passed, including frozen sequential navigation, private future questions, all seven answer types, live review redaction/release, authorization, guest budgets, deadline finalization and competing unlock requests. Existing grading, retry and answer-revision tests also pass."
+      "result": "147 passed, including private preview ownership, role/ownership revocation, all seven answer types, frozen shuffled papers, draft/open-window rules, hidden review and test grading, deadline/retention cleanup, storage limits and concurrent preview saves. Existing participant results, CSV, budgets, identity counts and assignment completion remain unchanged by successful trials."
     },
     {
       "check": "Playwright application workflows",
-      "result": "20 passed against the real API and isolated content server. Policy coverage includes three-language settings, delayed-save navigation, resume, frozen active policy, hidden guest responses, instructor grading, later feedback release, mobile layouts, a device-date jump to 2099 and recoverable incomplete-submission validation. Existing text/numeric/ordering, retry, SCORM, invitation and conflict-recovery workflows pass. Synthetic sign-in counters were reset before the suite; production limits are unchanged."
+      "result": "All 20 workflows passed against the real API and isolated content server: 19 in the main suite and the email-verification workflow separately with its file-mail directory configured. The extended instructor workflow covers question-paper inspection, three-language controls, draft rejection in learner mode, untimed draft testing, saved preview resume/deletion, sequential access, hidden results, test grading and timed simulation. Existing account/guest, SCORM, text/numeric/ordering, retry, invitation and conflict-recovery workflows pass. Synthetic sign-in counters were reset before the suite; production limits are unchanged."
     },
     {
       "check": "Scormly unit tests",
@@ -5800,7 +5834,7 @@
     },
     {
       "check": "Django configuration and migration checks",
-      "result": "Passed. Migration 0010 adds compatible navigation/review defaults and a bounded unlock counter. Existing attempts remain freely navigable; historical responses, grades and budgets are not rewritten."
+      "result": "Passed. Migration 0011 creates a separate preview table with timing/unlock constraints. Existing exam, attempt, identity and learning tables are not rewritten. Backup tooling tests pass."
     },
     {
       "check": "Audit evidence and pinned upstream checkouts",
@@ -5823,8 +5857,12 @@
       "result": "Verified database/media backup before upgrade. All 13 existing data groups matched before/after hashes, including 109 historical attempts and 104 attempt budgets. All 13 existing exams received enabled navigation/review defaults; all 109 attempts retained free navigation with an initial unlock count of one. Both origins and all application services are healthy. The sequential-policy, private-review, clock-change and feedback-release browser workflow also passed against the built Docker site."
     },
     {
+      "check": "Docker upgrade from migration 0010 to 0011",
+      "result": "Verified database/media backup before upgrade. Hashes of every existing field in all 13 tracked data groups matched before/after, including 110 historical attempts and 105 attempt budgets. The new preview table started empty. Both origins and all application services are healthy. The question-bank, real-attempt and instructor-preview browser workflow passed against the built Docker site, including private grading, resume/deletion and three-language controls."
+    },
+    {
       "check": "Full feature-parity gate",
-      "result": "Expected failure: 119 feature groups still require implementation, acceptance or an explicit scope decision."
+      "result": "Expected failure: 118 feature groups still require implementation, acceptance or an explicit scope decision."
     }
   ]
 }

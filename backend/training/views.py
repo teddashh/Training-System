@@ -33,9 +33,9 @@ from .serializers import (
 )
 from .services import (
     audit,
+    apply_manual_grades,
     check_invite,
     finalize,
-    grade,
     hash_token,
     identity_for_user,
     in_exam_audience,
@@ -534,25 +534,7 @@ def review(request, pk):
             raise ValidationError(translate("This attempt has not been submitted."))
         if request.method == "POST":
             marks = request.data.get("grades", {})
-            if not isinstance(marks, dict):
-                raise ValidationError(translate("Invalid grading format."))
-            essay = {str(q["id"]): q for q in attempt.snapshot if q["type"] == "essay"}
-            for key, mark in marks.items():
-                if (
-                    key not in essay
-                    or not isinstance(mark, dict)
-                    or type(mark.get("points")) not in (int, float)
-                    or not 0 <= mark["points"] <= essay[key]["points"]
-                    or len(str(mark.get("feedback", ""))) > 5000
-                ):
-                    raise ValidationError(
-                        translate(
-                            "The written-response score exceeds its points or the question does not exist."
-                        )
-                    )
-            attempt.manual_grades.update(marks)
-            grade(attempt)
-            attempt.save()
+            apply_manual_grades(attempt, marks)
             audit(request.user, "attempt.reviewed", attempt.id, {"grades": marks})
         return Response(
             {

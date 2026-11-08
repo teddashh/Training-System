@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from training import auth_views as auth
-from training import invitations, operations, reporting, scorm, views
+from training import invitations, operations, previews, reporting, scorm, views
 
 router = DefaultRouter()
 router.register("users", views.Users)
@@ -29,6 +29,9 @@ urlpatterns = [
     path("api/guest/email/request/", views.guest_email_request),
     path("api/guest/email/verify/", views.guest_email_verify),
     path("api/attempts/<uuid:pk>/", views.attempt_detail),
+    path("api/exams/<int:pk>/previews/", previews.exam_previews),
+    path("api/previews/<uuid:pk>/", previews.preview_detail),
+    path("api/previews/<uuid:pk>/review/", previews.preview_review),
     path("api/results/", reporting.results),
     path("api/results/<uuid:pk>/review/", views.review),
     path("api/results/export/", reporting.export_results),

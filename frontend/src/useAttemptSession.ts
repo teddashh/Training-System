@@ -12,7 +12,7 @@ type Actions = {
 
 // One writer per mounted attempt. New edits never compete with an older save;
 // the server revision also detects writes made by another browser window.
-export function useAttemptSession(id: string) {
+export function useAttemptSession(id: string, preview = false) {
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [answers, setAnswers] = useState<Answers>({});
   const [remaining, setRemaining] = useState(0);
@@ -23,6 +23,7 @@ export function useAttemptSession(id: string) {
   const actions = useRef<Actions | null>(null);
 
   useEffect(() => {
+    const endpoint = `${preview ? "previews" : "attempts"}/${id}/`;
     let alive = true,
       current: Attempt | null = null,
       latest: Answers = {};
@@ -92,7 +93,7 @@ export function useAttemptSession(id: string) {
       setSaveState("Saving…");
       saving = (async () => {
         try {
-          const result = await api<Attempt>(`attempts/${id}/`, "PATCH", {
+          const result = await api<Attempt>(endpoint, "PATCH", {
             answers: snapshot,
             answer_revision: current!.answer_revision,
           });
@@ -133,7 +134,7 @@ export function useAttemptSession(id: string) {
       if (saving) await saving;
       try {
         if (!alive || blocked || current.status !== "in_progress") return;
-        const result = await api<Attempt>(`attempts/${id}/`, "POST", {
+        const result = await api<Attempt>(endpoint, "POST", {
           answers: latest,
           answer_revision: current.answer_revision,
         });
@@ -166,7 +167,7 @@ export function useAttemptSession(id: string) {
       setBusy(true);
       clearTimeout(timer);
       try {
-        const data = await api<Attempt>(`attempts/${id}/`);
+        const data = await api<Attempt>(endpoint);
         if (!alive) return;
         latest = data.answers;
         dirty = false;
@@ -176,16 +177,20 @@ export function useAttemptSession(id: string) {
         // Server timestamps establish the remaining duration; elapsed time must
         // not jump if the participant changes the device wall clock.
         deadline =
-          performance.now() +
-          new Date(data.deadline).getTime() -
-          new Date(data.server_time).getTime();
+          data.deadline === null
+            ? Infinity
+            : performance.now() +
+              new Date(data.deadline).getTime() -
+              new Date(data.server_time).getTime();
         accept(data);
         setAnswers(latest);
         setError("");
         setConflict(false);
         setSaveState("Saved answers loaded");
         setRemaining(
-          Math.max(0, Math.ceil((deadline - performance.now()) / 1000)),
+          Number.isFinite(deadline)
+            ? Math.max(0, Math.ceil((deadline - performance.now()) / 1000))
+            : 0,
         );
       } catch (reason) {
         if (alive) {
@@ -226,7 +231,8 @@ export function useAttemptSession(id: string) {
       },
     };
     const tick = setInterval(() => {
-      if (!current || current.status !== "in_progress") return;
+      if (!current || current.status !== "in_progress" || !current.deadline)
+        return;
       const left = Math.max(
         0,
         Math.ceil((deadline - performance.now()) / 1000),
@@ -253,7 +259,7 @@ export function useAttemptSession(id: string) {
       window.removeEventListener("beforeunload", before);
       window.removeEventListener("online", online);
     };
-  }, [id]);
+  }, [id, preview]);
   return {
     attempt,
     answers,

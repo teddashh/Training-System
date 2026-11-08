@@ -48,6 +48,23 @@ All three types auto-grade for account and guest attempts. Autosave permits inco
 
 For API clients, integer/numeric `solution` values are strings, and numeric `answer_tolerances` is an equally sized list of strings. For example, `{"type":"numeric","options":[],"solution":["12.5","-12.5"],"answer_tolerances":["0.05","0.01"]}` defines two accepted intervals. Ordering solutions and answers are arrays of zero-based option indexes, with each item present exactly once. An empty answer array represents an unanswered ordering question. Attempt saves still require the current `answer_revision` for conflict protection.
 
+## Instructor exam previews
+
+Open **Exams & assessments → Preview exam** (the eye icon). The dialog loads the saved exam, displays every question in its pool, and can show accepted answers, numeric tolerances and text-matching rules. Unsaved editor changes must be saved first. A randomized trial selects its own paper; the question-paper display is the complete pool.
+
+- **Learner simulation** requires a published exam within its opening/closing window. It uses the configured duration, capped by the exam closing time, and follows navigation and completed-response visibility policies. It is a trial of the assessment experience; it does not check a particular participant's audience membership, available attempts or retry wait.
+- **Untimed test** works with drafts, future and closed exams. It has no exam deadline. Question selection, shuffling, scoring, sequential navigation and completed-response visibility still follow the exam settings.
+
+Both modes use a separate private preview record. They never create participant identities, consume exam or invitation budgets, appear in results/insights/exports, or fulfill training assignments. Question snapshots, answer rules, pass thresholds and navigation remain frozen across edits and reloads; response visibility follows the live exam setting. Autosave and revision conflicts work as in a real attempt. The back button waits for answers to be saved; recover a failed save before leaving if those answers are needed.
+
+After submitting, **Inspect test result** lets the preview owner inspect the answer key and practice written-response grading even when participant response review is disabled. Those marks and feedback affect only the preview. **Refresh result** shows the corresponding participant view. This separation allows instructors to verify both the hidden-review experience and the grading workflow.
+
+Only the preview creator can open, grade or delete it, and that person must still be allowed to manage the exam. Administrators can create their own previews of any exam; they do not gain access to another person's private trial. Losing the instructor role or exam ownership revokes access. Learners and guest links cannot use preview endpoints. Requests use the signed-in session and CSRF protection, and responses are marked `no-store`.
+
+**Saved previews** supports resume, result inspection and deletion. Each creator may retain up to 20 previews per exam; delete one to free a slot. Previews expire seven days after creation, regardless of exam timing, and the existing minute scheduler removes expired trial records. Untimed means no assessment timer, not permanent retention. The scheduler also submits timed previews at their deadline using only saved answers. Preview audit entries use the `preview.*` namespace and do not record answer content.
+
+API clients use `GET/POST /api/exams/{id}/previews/` with `mode: "learner"` or `"unrestricted"`, then `GET/PATCH/POST/DELETE /api/previews/{uuid}/`. Save/submit requires the current `answer_revision`; stale writes return 409. The private grading endpoint is `/api/previews/{uuid}/review/`. Responses reuse the participant attempt shape with `preview_mode`, `preview_expires_at`, and a nullable `deadline` for untimed trials. Preview IDs cannot be used in participant attempt or results endpoints. See the navigation rules below for sequential papers.
+
 ## Navigation and completed-response review
 
 The exam editor's **Navigation and response review** section has two independent settings. Both default to enabled, preserving the existing platform behavior for old and new exams.
