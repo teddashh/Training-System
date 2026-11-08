@@ -138,6 +138,13 @@ def in_exam_audience(exam, user):
     return False
 
 
+def next_attempt_at(exam, last_started_at):
+    """Yaksh measures retry spacing from the previous start, not submission."""
+    if not last_started_at or not exam.retry_interval_minutes:
+        return None
+    return last_started_at + timedelta(minutes=exam.retry_interval_minutes)
+
+
 @transaction.atomic
 def start_attempt(exam_id, identity, invitation=None):
     # Lock the exam first, including first-ever budgets. PostgreSQL serializes
@@ -157,9 +164,11 @@ def start_attempt(exam_id, identity, invitation=None):
             raise PermissionDenied(
                 translate("This invitation does not apply to this exam.")
             )
-    active = Attempt.objects.filter(
-        exam=exam, identity=identity, status="in_progress"
-    ).first()
+    active = (
+        Attempt.objects.select_for_update()
+        .filter(exam=exam, identity=identity, status="in_progress")
+        .first()
+    )
     if active and active.deadline > now:
         return active
     if active:
@@ -175,6 +184,24 @@ def start_attempt(exam_id, identity, invitation=None):
         )
     if invitation and invitation.used >= invitation.max_attempts:
         raise PermissionDenied(translate("This invitation has no remaining attempts."))
+    last_started_at = (
+        Attempt.objects.filter(exam=exam, identity=identity)
+        .order_by("-number")
+        .values_list("started_at", flat=True)
+        .first()
+    )
+    eligible_at = next_attempt_at(exam, last_started_at)
+    if eligible_at and now < eligible_at:
+        raise PermissionDenied(
+            {
+                "code": "retry_wait",
+                "detail": translate(
+                    "The waiting period for your next attempt has not ended."
+                ),
+                "next_attempt_at": eligible_at.isoformat(),
+                "server_time": now.isoformat(),
+            }
+        )
     questions = list(
         exam.questions.values(
             "id",

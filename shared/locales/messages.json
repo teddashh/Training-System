@@ -9508,5 +9508,50 @@
     "en": "An ordering answer must contain every item exactly once.",
     "zh-TW": "排序答案必須包含每個項目各一次。",
     "es": "Una respuesta de ordenación debe incluir cada elemento una sola vez."
+  },
+  "The waiting period for your next attempt has not ended.": {
+    "en": "The waiting period for your next attempt has not ended.",
+    "zh-TW": "下一次作答的等待時間尚未結束。",
+    "es": "El período de espera para tu próximo intento aún no ha terminado."
+  },
+  "The retry interval must be between 0 and 525600 whole minutes.": {
+    "en": "The retry interval must be between 0 and 525600 whole minutes.",
+    "zh-TW": "重考間隔必須是 0 至 525600 之間的整數分鐘。",
+    "es": "El intervalo entre intentos debe ser de 0 a 525600 minutos enteros."
+  },
+  "Next attempt available at {time}": {
+    "en": "Next attempt available at {time}",
+    "zh-TW": "下一次可開始作答的時間：{time}",
+    "es": "Próximo intento disponible a partir de {time}"
+  },
+  "The waiting period is measured from the start of your previous attempt.": {
+    "en": "The waiting period is measured from the start of your previous attempt.",
+    "zh-TW": "等待時間自上一次開始作答時計算。",
+    "es": "El período de espera se cuenta desde el inicio del intento anterior."
+  },
+  "Minimum interval between starts: {minutes} min": {
+    "en": "Minimum interval between starts: {minutes} min",
+    "zh-TW": "兩次開始作答的最短間隔：{minutes} 分鐘",
+    "es": "Intervalo mínimo entre inicios: {minutes} min"
+  },
+  "Minimum time between attempt starts (minutes)": {
+    "en": "Minimum time between attempt starts (minutes)",
+    "zh-TW": "兩次開始作答的最短間隔（分鐘）",
+    "es": "Tiempo mínimo entre inicios de intentos (minutos)"
+  },
+  "Use 0 for no waiting period. The interval starts when an attempt begins; resuming an active attempt does not restart it.": {
+    "en": "Use 0 for no waiting period. The interval starts when an attempt begins; resuming an active attempt does not restart it.",
+    "zh-TW": "設為 0 表示不需等待。間隔自開始作答時計算，續考不會重新計時。",
+    "es": "Usa 0 para no exigir espera. El intervalo empieza al iniciar un intento; reanudarlo no reinicia la espera."
+  },
+  "Checking availability…": {
+    "en": "Checking availability…",
+    "zh-TW": "正在檢查作答資格…",
+    "es": "Comprobando disponibilidad…"
+  },
+  "Refresh availability": {
+    "en": "Refresh availability",
+    "zh-TW": "重新檢查作答資格",
+    "es": "Actualizar disponibilidad"
   }
 }

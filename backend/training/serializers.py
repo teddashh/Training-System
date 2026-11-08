@@ -269,6 +269,8 @@ class ExamSerializer(serializers.ModelSerializer):
     effective_attempt_limit = serializers.SerializerMethodField()
     attempts_remaining = serializers.SerializerMethodField()
     active_attempt_id = serializers.SerializerMethodField()
+    next_attempt_at = serializers.SerializerMethodField()
+    server_time = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
 
     class Meta:
@@ -280,6 +282,7 @@ class ExamSerializer(serializers.ModelSerializer):
             "course",
             "duration_minutes",
             "max_attempts",
+            "retry_interval_minutes",
             "pass_score",
             "published",
             "starts_at",
@@ -290,6 +293,8 @@ class ExamSerializer(serializers.ModelSerializer):
             "effective_attempt_limit",
             "attempts_remaining",
             "active_attempt_id",
+            "next_attempt_at",
+            "server_time",
             "audience",
             "allowed_users",
             "allowed_departments",
@@ -351,6 +356,38 @@ class ExamSerializer(serializers.ModelSerializer):
             deadline__gt=timezone.now(),
         ).first()
         return str(row.pk) if row else None
+
+    def get_next_attempt_at(self, obj):
+        from .models import Attempt
+        from .services import next_attempt_at
+
+        if hasattr(obj, "last_user_attempt_started_at"):
+            started_at = obj.last_user_attempt_started_at
+        else:
+            started_at = (
+                Attempt.objects.filter(
+                    exam=obj, identity__user=self.context["request"].user
+                )
+                .order_by("-number")
+                .values_list("started_at", flat=True)
+                .first()
+            )
+        value = next_attempt_at(obj, started_at)
+        return value.isoformat() if value else None
+
+    def get_server_time(self, obj):
+        from django.utils import timezone
+
+        return self.context.setdefault("server_time", timezone.now().isoformat())
+
+    def validate_retry_interval_minutes(self, value):
+        if not 0 <= value <= 525600:
+            raise serializers.ValidationError(
+                translate(
+                    "The retry interval must be between 0 and 525600 whole minutes."
+                )
+            )
+        return value
 
     def validate(self, data):
         departments = data.get(

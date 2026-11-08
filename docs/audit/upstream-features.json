@@ -835,7 +835,7 @@
       "verification": [
         "backend/training/tests.py::test_attempt_limit_and_invitation_reissue_share_budget"
       ],
-      "assessment": "Shared identity/link caps and individual limit overrides work. Upstream special attempt start/revoke and wait-time semantics are not equivalent.",
+      "assessment": "Shared identity/link caps and individual limit overrides work. The shared waiting period is implemented in Y36. Upstream special attempt authorization, revocation and its separate wait/validity window are not equivalent.",
       "priority": 2,
       "routes": [
         "yaksh:allow_special_attempt",
@@ -847,16 +847,39 @@
       "id": "Y36",
       "repository": "yaksh",
       "feature": "Waiting period between attempts",
-      "status": "missing",
+      "status": "implemented",
       "source": [
         {
           "path": "yaksh/models.py",
-          "line": 407
+          "line": 515
+        },
+        {
+          "path": "yaksh/models.py",
+          "line": 1919
         }
       ],
-      "implementation": [],
-      "verification": [],
-      "assessment": "No minimum retry interval or next-eligible start timestamp.",
+      "implementation": [
+        "backend/training/models.py",
+        "backend/training/services.py",
+        "backend/training/serializers.py",
+        "backend/training/views.py",
+        "frontend/src/useExamPreflight.ts",
+        "frontend/src/RetryAvailability.tsx",
+        "frontend/src/Exams.tsx",
+        "frontend/src/Assignments.tsx",
+        "frontend/src/Attempt.tsx"
+      ],
+      "verification": [
+        "backend/training/test_retry_interval.py::test_exact_boundary_uses_previous_start_not_submission",
+        "backend/training/test_retry_interval.py::test_early_start_has_localized_metadata_and_no_side_effects",
+        "backend/training/test_retry_interval.py::test_aliases_reissued_links_and_extra_attempts_share_waiting_period",
+        "backend/training/test_retry_interval.py::test_active_account_and_guest_resume_before_retry_time_without_charging",
+        "backend/training/test_retry_interval.py::test_guest_history_survives_later_account_linking",
+        "backend/training/test_retry_interval.py::test_expired_attempt_does_not_restart_retry_clock",
+        "backend/training/test_retry_interval.py::test_parallel_account_and_guest_retries_share_one_start",
+        "frontend/e2e/training.spec.ts::individual attempt limit is visible and a final active attempt can resume"
+      ],
+      "assessment": "A configurable 0–525600 whole-minute interval follows Yaksh start-to-start timing with an inclusive boundary. Account aliases, linked guest histories and reissued invitations share the identity/exam restriction; early requests charge neither budget. Active attempts resume, and extra allowances do not waive the wait. Fresh account/assignment preflight and guest metadata expose scoped eligibility timestamps. Three-language controls, automatic time-based enabling, device-clock skew, server rejection, policy refresh and mobile guest layout have browser coverage. PostgreSQL tests exercise competing account/guest starts. Special-attempt exceptions remain separate unfinished work.",
       "priority": 1,
       "routes": []
     },
@@ -5688,16 +5711,17 @@
     "SCORM launch context now supplies current learner ID/name, safely escapes embedded JSON and rejects deactivated accounts. Regression coverage includes name fallbacks and overriding stale saved identity.",
     "English, Traditional Chinese and Spanish include the new publication controls. The studio build and 197 unit tests pass (4 upstream skips); complete per-block acceptance is still pending.",
     "Integer, numeric-with-tolerance and ordering questions now work through bank and exam authoring, frozen attempts, autosave/resume, automatic grading, guest limits, learner/instructor review and assessment insights. English, Traditional Chinese and Spanish have browser coverage, including keyboard ordering and mobile layout.",
-    "Yaksh draft import now preserves alternative integer values and individual floating error margins. Arrange import requires an explicitly reviewed correct_order because the native export omits reliable testcase ordering metadata. Invalid imports remain atomic."
+    "Yaksh draft import now preserves alternative integer values and individual floating error margins. Arrange import requires an explicitly reviewed correct_order because the native export omits reliable testcase ordering metadata. Invalid imports remain atomic.",
+    "Retry intervals now share one server-enforced clock across account aliases and guest links. Eligibility is measured from the previous start, active attempts resume, early starts do not consume budgets, and account/assignment/guest interfaces show localized availability. PostgreSQL concurrency and real browser workflows cover the new policy."
   ],
   "validation": [
     {
       "check": "Django suite on PostgreSQL 17",
-      "result": "105 passed, including numeric precision/boundary checks, ordering validation, frozen grading rules, guest limits and attempt-budget/invitation/answer-revision concurrency races."
+      "result": "116 passed, including retry boundaries, alias/link identity continuity, expired attempts, localized errors and competing account/guest starts, plus existing grading and answer-revision races."
     },
     {
       "check": "Playwright application workflows",
-      "result": "20 passed against the real API and isolated content server, including numeric/ordering authoring, bank reuse, three-language controls, keyboard operation, mobile layout, autosave/resume, grading and insights. Synthetic test sign-in counters were reset before the suite; production limits are unchanged."
+      "result": "20 passed against the real API and isolated content server. Retry coverage includes editor persistence, three languages, device-clock skew, automatic button enabling, authoritative early-start rejection, assignment preflight, guest links, policy refresh and mobile layout. Numeric/ordering, SCORM, autosave and invitation regressions also pass. Synthetic sign-in counters were reset before the suite; production limits are unchanged."
     },
     {
       "check": "Scormly unit tests",
@@ -5709,7 +5733,7 @@
     },
     {
       "check": "Django configuration and migration checks",
-      "result": "Passed. Migration 0007 adds question tolerance lists and expands question types; it does not rewrite historical attempt snapshots."
+      "result": "Passed. Migration 0008 adds a bounded retry interval with default 0; historical attempts, grades and budgets are unchanged."
     },
     {
       "check": "Audit evidence and pinned upstream checkouts",
@@ -5720,8 +5744,12 @@
       "result": "Verified database/media backup before upgrade. All 13 existing data groups matched before/after hashes, including 104 historical attempts and 100 attempt budgets. Both origins and all application services are healthy."
     },
     {
+      "check": "Docker upgrade from migration 0007 to 0008",
+      "result": "Verified database/media backup before upgrade. All 13 existing data groups matched before/after hashes, including 106 historical attempts and 102 attempt budgets. All 11 existing exams received the zero-minute default."
+    },
+    {
       "check": "Full feature-parity gate",
-      "result": "Expected failure: 122 feature groups still require implementation, acceptance or an explicit scope decision."
+      "result": "Expected failure: 121 feature groups still require implementation, acceptance or an explicit scope decision."
     }
   ]
 }

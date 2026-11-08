@@ -55,6 +55,9 @@ export type Exam = {
   course: number | null;
   duration_minutes: number;
   max_attempts: number;
+  retry_interval_minutes: number;
+  next_attempt_at: string | null;
+  server_time: string;
   pass_score: number;
   published: boolean;
   starts_at: string | null;
@@ -146,6 +149,10 @@ export type Guest = {
   title: string;
   description: string;
   duration_minutes: number;
+  retry_interval_minutes: number;
+  next_attempt_at: string | null;
+  server_time: string;
+  active_attempt_id: string | null;
   remaining: number;
   recipient: string;
   expires_at: string;

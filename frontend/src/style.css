@@ -2157,6 +2157,12 @@ form > label {
 .accepted-answer {
   margin: 8px 0 0;
 }
+.retry-availability .notice {
+  display: grid;
+  gap: 6px;
+  color: #344c66;
+  text-align: left;
+}
 .help-content h3 {
   color: #3d6c9b;
   font-size: 14px;

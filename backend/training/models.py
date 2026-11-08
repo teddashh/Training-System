@@ -103,6 +103,7 @@ class Exam(models.Model):
     owner = models.ForeignKey(User, on_delete=models.PROTECT)
     duration_minutes = models.PositiveIntegerField(default=30)
     max_attempts = models.PositiveSmallIntegerField(default=2)
+    retry_interval_minutes = models.PositiveIntegerField(default=0)
     pass_score = models.PositiveSmallIntegerField(default=70)
     published = models.BooleanField(default=False)
     audience = models.CharField(
@@ -136,6 +137,10 @@ class Exam(models.Model):
             ),
             models.CheckConstraint(
                 condition=models.Q(pass_score__lte=100), name="valid_pass_score"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(retry_interval_minutes__lte=525600),
+                name="bounded_retry_interval",
             ),
         ]
 

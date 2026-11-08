@@ -32,6 +32,10 @@ The system does not yet perform Microsoft Graph directory synchronization. Entra
 
 ## Changes after v1.3
 
+Main also supports a configurable waiting period between attempt starts, shared by account and guest access. Fresh start dialogs show the next eligible time in English, Traditional Chinese or Spanish. Reissued links and additional attempt allowances do not bypass the interval; active attempts still resume. [Operations](OPERATIONS.md#waiting-periods-between-exam-attempts) explains the timing and policy-change behavior.
+
+Migration `0008_exam_retry_interval` adds `retry_interval_minutes` with default 0 and a database upper bound of 525600 minutes. Existing exams retain immediate retry behavior, and historical attempts, grades and budgets are not rewritten. Back up before upgrading, deploy matching API/web images outside active exams, and reload open tabs. Compose applies migration 0007 followed by 0008 as needed. If rolling back to code without retry enforcement, restore the matching pre-upgrade backup rather than silently dropping configured waiting periods.
+
 Current main adds integer, numeric-with-tolerance and ordering questions throughout authoring, bank reuse, account/guest attempts, autosave, reviews and analytics. The Yaksh draft importer also accepts reviewed integer, float and arrange records. See [question operations](OPERATIONS.md#integer-numeric-and-ordering-questions) for accepted formats and limits.
 
 Back up database and media, then rebuild matching application/content and web images outside active examinations. Migration `0007_numeric_and_ordering_questions` adds an empty `answer_tolerances` list to existing exam and bank questions and expands the allowed question types. It does not rewrite existing attempt snapshots, answers, grades or attempt budgets. Compose applies it during API startup. Reload open application tabs after upgrading. Rolling back to v1.3 application code after creating new question types is unsupported; retain the pre-upgrade backup for a full restoration if needed.

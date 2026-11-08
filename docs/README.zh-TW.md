@@ -29,6 +29,8 @@ docker compose exec api python manage.py shell -c \
 
 ## 公司部署交接
 
+目前主分支支援設定兩次開始作答的最短間隔，帳號與同一身分的所有訪客連結共用等待時間，增加可考次數不會略過等待。開始作答前會依伺服器時間顯示下一次可考時間。`0008` 遷移讓既有考試維持 0 分鐘、無需等待的原有行為。請參閱[重考間隔說明](OPERATIONS.md#waiting-periods-between-exam-attempts)。
+
 目前主分支加入整數題、各答案可設定容許誤差的數值題，以及排序題，完整支援題庫、試卷編輯、帳號與訪客作答、自動儲存、檢視答案和成績分析。`0007` 遷移新增容許誤差欄位，不改寫歷史作答與成績。請參閱[題型操作說明](OPERATIONS.md#integer-numeric-and-ordering-questions)及 [v1.3 後續升級說明](PEACH1-HANDOVER.md#changes-after-v13)。預設介面仍為英文。
 
 v1.3 加入最多 200 人的 CSV 批次邀請、收件者與登入別名驗證、整批建立，以及回應遺失後十分鐘內的相同請求復原。關閉前可下載個人連結；邀請紀錄支援搜尋、狀態篩選與分頁。停用帳號也會封鎖其既有訪客連結與工作階段，保留已儲存答案和應試次數。請參閱 [v1.2 升級說明](PEACH1-HANDOVER.md#upgrade-from-v12) 與[邀請操作說明](OPERATIONS.md#guest-invitation-cohorts)。公司 Entra／Graph 串接仍留待 Peach1。

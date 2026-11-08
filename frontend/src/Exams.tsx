@@ -1,4 +1,6 @@
 import ExamBudget from "./ExamBudget";
+import { useExamPreflight } from "./useExamPreflight";
+import { useRetryAvailability } from "./RetryAvailability";
 import { t, useLocale } from "./i18n";
 import { useEffect, useState } from "react";
 import {
@@ -60,6 +62,9 @@ function ExamEditor({
     [course, setCourse] = useState(exam?.course?.toString() || ""),
     [minutes, setMinutes] = useState(exam?.duration_minutes || 30),
     [limit, setLimit] = useState(exam?.max_attempts || 2),
+    [retryInterval, setRetryInterval] = useState(
+      exam?.retry_interval_minutes || 0,
+    ),
     [pass, setPass] = useState(exam?.pass_score || 70),
     [published, setPublished] = useState(exam?.published || false),
     [start, setStart] = useState(
@@ -112,6 +117,7 @@ function ExamEditor({
           course: course ? Number(course) : null,
           duration_minutes: minutes,
           max_attempts: limit,
+          retry_interval_minutes: retryInterval,
           pass_score: pass,
           published,
           audience,
@@ -209,6 +215,23 @@ function ExamEditor({
               value={pass}
               onChange={(e) => setPass(Number(e.target.value))}
             />
+          </label>
+          <label className="span-2">
+            {t("Minimum time between attempt starts (minutes)")}
+            <input
+              type="number"
+              min={0}
+              max={525600}
+              step={1}
+              required
+              value={retryInterval}
+              onChange={(e) => setRetryInterval(Number(e.target.value))}
+            />
+            <span className="field-hint">
+              {t(
+                "Use 0 for no waiting period. The interval starts when an attempt begins; resuming an active attempt does not restart it.",
+              )}
+            </span>
           </label>
           <label>
             {t("Opens at (optional)") + " "}
@@ -555,6 +578,8 @@ export default function Exams({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const manage = user.role !== "learner";
+  const preflight = useExamPreflight(starting?.id);
+  const waiting = useRetryAvailability(preflight.exam);
   async function start() {
     if (!starting) return;
     setBusy(true);
@@ -565,6 +590,7 @@ export default function Exams({
       go("/attempt/" + a.id);
     } catch (e) {
       setError((e as Error).message);
+      preflight.refresh();
     } finally {
       setBusy(false);
     }
@@ -779,7 +805,21 @@ export default function Exams({
                 <span>{t("Total questions")}</span>
               </div>
             </div>
-            <ExamBudget exam={starting} />
+            {preflight.exam && <ExamBudget exam={preflight.exam} />}
+            <ErrorBox message={preflight.error} />
+            <button
+              type="button"
+              className="text-btn"
+              onClick={() => {
+                setError("");
+                preflight.refresh();
+              }}
+              disabled={busy || preflight.loading}
+            >
+              {preflight.loading
+                ? t("Checking availability…")
+                : t("Refresh availability")}
+            </button>
             <p className="notice">
               {t(
                 "Starting uses one attempt. Refreshing or returning resumes an active attempt. The timer does not pause; saved answers are submitted when time runs out.",
@@ -794,8 +834,11 @@ export default function Exams({
                 className="btn primary"
                 disabled={
                   busy ||
-                  (starting.attempts_remaining === 0 &&
-                    !starting.active_attempt_id)
+                  preflight.loading ||
+                  !preflight.exam ||
+                  waiting ||
+                  (preflight.exam.attempts_remaining === 0 &&
+                    !preflight.exam.active_attempt_id)
                 }
                 onClick={start}
               >

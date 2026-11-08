@@ -1,4 +1,6 @@
 import ExamBudget from "./ExamBudget";
+import { useExamPreflight } from "./useExamPreflight";
+import { useRetryAvailability } from "./RetryAvailability";
 import { useEffect, useState } from "react";
 import {
   ClipboardList,
@@ -105,6 +107,7 @@ export default function Assignments({
       go("/attempt/" + attempt.id);
     } catch (e) {
       setError((e as Error).message);
+      preflight.refresh();
     } finally {
       setBusy(false);
     }
@@ -124,7 +127,9 @@ export default function Assignments({
       setBusy(false);
     }
   }
-  const startingExam = exams.find((exam) => exam.id === starting?.target_id);
+  const preflight = useExamPreflight(starting?.target_id);
+  const startingExam = preflight.exam;
+  const waiting = useRetryAvailability(startingExam);
   const active = rows.filter((r) => r.status !== "cancelled");
   return (
     <>
@@ -388,6 +393,20 @@ export default function Assignments({
                 <ExamBudget exam={startingExam} />
               </>
             )}
+            <ErrorBox message={preflight.error} />
+            <button
+              type="button"
+              className="text-btn"
+              onClick={() => {
+                setError("");
+                preflight.refresh();
+              }}
+              disabled={busy || preflight.loading}
+            >
+              {preflight.loading
+                ? t("Checking availability…")
+                : t("Refresh availability")}
+            </button>
             <p>
               {t(
                 "Starting a new attempt uses one attempt and starts the exam timer. An active attempt resumes with its remaining time.",
@@ -402,6 +421,9 @@ export default function Assignments({
                 className="btn primary"
                 disabled={
                   busy ||
+                  preflight.loading ||
+                  !startingExam ||
+                  waiting ||
                   !!(
                     startingExam &&
                     startingExam.attempts_remaining === 0 &&

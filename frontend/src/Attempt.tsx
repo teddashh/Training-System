@@ -16,12 +16,27 @@ import type { Attempt as Data, Guest, GuestChallenge } from "./types";
 import { Spinner, ErrorBox, Modal, Badge } from "./ui";
 import { questionTypes, answerText } from "./questionTypes";
 import OrderingAnswer from "./OrderingAnswer";
+import { RetryNotice, useRetryAvailability } from "./RetryAvailability";
 export function GuestExam({ go }: { go: (p: string) => void }) {
   useLocale();
   const [guest, setGuest] = useState<Guest | GuestChallenge | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const pending = useRef<Promise<Guest | GuestChallenge> | null>(null);
+  const waiting = useRetryAvailability(
+    guest && !guest.verification_required ? guest : null,
+  );
+  async function refreshAvailability(preserveError = false) {
+    setBusy(true);
+    if (!preserveError) setError("");
+    try {
+      setGuest(await api<Guest | GuestChallenge>("guest/exam/"));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
   useEffect(() => {
     const token = window.location.hash.slice(1);
     if (!pending.current)
@@ -43,6 +58,7 @@ export function GuestExam({ go }: { go: (p: string) => void }) {
       go("/attempt/" + result.id);
     } catch (e) {
       setError((e as Error).message);
+      await refreshAvailability(true);
     } finally {
       setBusy(false);
     }
@@ -97,10 +113,20 @@ export function GuestExam({ go }: { go: (p: string) => void }) {
                 "This link belongs to the named participant. Do not forward it. Starting uses one attempt; an existing active attempt will resume.",
               ) + " "}
             </p>
+            <RetryNotice value={guest} />
+            {guest.retry_interval_minutes > 0 && (
+              <button
+                className="text-btn"
+                onClick={() => refreshAvailability()}
+                disabled={busy}
+              >
+                {t("Refresh availability")}
+              </button>
+            )}
             <button
               className="btn primary full"
               onClick={start}
-              disabled={busy}
+              disabled={busy || waiting}
             >
               {busy ? t("Preparing\u2026") : t("Start / resume exam")}
               <ArrowRight size={17} />

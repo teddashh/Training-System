@@ -2,7 +2,7 @@ import secrets
 from datetime import timedelta
 
 from django.db import transaction
-from django.db.models import Avg, Count, Prefetch, Q
+from django.db.models import Avg, Count, OuterRef, Prefetch, Q, Subquery
 from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -39,6 +39,7 @@ from .services import (
     identity_for_user,
     in_exam_audience,
     invitation_from_token,
+    next_attempt_at,
     public_attempt,
     resolve_identity,
     start_attempt,
@@ -145,23 +146,37 @@ class Exams(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "head", "options"]
 
     def get_queryset(self):
-        qs = Exam.objects.prefetch_related(
-            "allowed_users",
-            Prefetch(
-                "attemptbudget_set",
-                queryset=AttemptBudget.objects.filter(identity__user=self.request.user),
-                to_attr="user_budgets",
-            ),
-            Prefetch(
-                "attempt_set",
-                queryset=Attempt.objects.filter(
-                    identity__user=self.request.user,
-                    status="in_progress",
-                    deadline__gt=timezone.now(),
+        qs = (
+            Exam.objects.annotate(
+                last_user_attempt_started_at=Subquery(
+                    Attempt.objects.filter(
+                        exam=OuterRef("pk"), identity__user=self.request.user
+                    )
+                    .order_by("-number")
+                    .values("started_at")[:1]
+                )
+            )
+            .prefetch_related(
+                "allowed_users",
+                Prefetch(
+                    "attemptbudget_set",
+                    queryset=AttemptBudget.objects.filter(
+                        identity__user=self.request.user
+                    ),
+                    to_attr="user_budgets",
                 ),
-                to_attr="active_user_attempts",
-            ),
-        ).order_by("-created_at")
+                Prefetch(
+                    "attempt_set",
+                    queryset=Attempt.objects.filter(
+                        identity__user=self.request.user,
+                        status="in_progress",
+                        deadline__gt=timezone.now(),
+                    ),
+                    to_attr="active_user_attempts",
+                ),
+            )
+            .order_by("-created_at")
+        )
         if self.request.user.role == "admin":
             return qs
         permitted = [
@@ -409,11 +424,21 @@ def guest_info(inv):
     )
     # The secret link identifies one pre-bound recipient; typing another email
     # never creates a new identity or budget. The link itself is a credential.
+    now = timezone.now()
+    attempts = Attempt.objects.filter(exam=inv.exam, identity=inv.identity)
+    last_started_at = (
+        attempts.order_by("-number").values_list("started_at", flat=True).first()
+    )
+    active = attempts.filter(status="in_progress", deadline__gt=now).first()
     return {
         "exam_id": inv.exam_id,
         "title": inv.exam.title,
         "description": inv.exam.description,
         "duration_minutes": inv.exam.duration_minutes,
+        "retry_interval_minutes": inv.exam.retry_interval_minutes,
+        "next_attempt_at": next_attempt_at(inv.exam, last_started_at),
+        "server_time": now,
+        "active_attempt_id": str(active.pk) if active else None,
         "remaining": max(0, min(remaining, inv.max_attempts - inv.used)),
         "recipient": inv.identity.label,
         "expires_at": inv.expires_at,

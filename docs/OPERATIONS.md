@@ -32,6 +32,18 @@ All three types auto-grade for account and guest attempts. Autosave permits inco
 
 For API clients, integer/numeric `solution` values are strings, and numeric `answer_tolerances` is an equally sized list of strings. For example, `{"type":"numeric","options":[],"solution":["12.5","-12.5"],"answer_tolerances":["0.05","0.01"]}` defines two accepted intervals. Ordering solutions and answers are arrays of zero-based option indexes, with each item present exactly once. An empty answer array represents an unanswered ordering question. Attempt saves still require the current `answer_revision` for conflict protection.
 
+## Waiting periods between exam attempts
+
+In the exam editor, set **Minimum time between attempt starts (minutes)** to a whole number from 0 to 525600 (one year). The default is 0, which preserves immediate retries after submission. As in Yaksh, the interval runs from the previous attempt's **start**, not its submission or grading time. For example, an attempt started at 09:00 with a 90-minute interval permits the next start at 10:30, even if the first attempt was submitted at 09:20. The boundary is inclusive.
+
+The interval is shared by the participant identity across email, username, employee ID, account sign-in and every guest link for that exam. Issuing another invitation or granting extra attempts does not remove the wait. Resuming a valid active attempt does not consume another attempt or restart the interval, including when its invitation has no new attempts left. Expired attempts retain their original start time for this calculation.
+
+Exam and assignment start dialogs fetch fresh eligibility. They show the next eligible time in the selected interface language and disable new starts until the wait ends, using the server clock. Guest invitations show the same restriction. **Refresh availability** retrieves changes made by an organizer or another session. The server always rechecks eligibility; early requests consume no identity or invitation allowance.
+
+The exam's current interval applies to subsequent starts. Increasing it can extend the wait for someone who already submitted; decreasing it or setting it to 0 can make that person eligible sooner. Existing answers, scores and attempt counts are unchanged. A next-attempt timestamp describes only the retry interval: publication, opening/closing times, audience access, account status, invitation validity and remaining attempts still apply. If the next retry falls after the exam closes, the organizer must change the schedule or interval to allow it. Special-attempt waivers are not implemented.
+
+The account exam API and verified guest metadata expose `retry_interval_minutes`, `next_attempt_at`, `server_time` and `active_attempt_id`. The timestamp can be in the past; it is `null` when there is no prior attempt or the interval is 0. Account metadata is scoped to the signed-in participant; a guest sees only its bound identity after any required email verification. A rejected early start returns HTTP 403 with `code: retry_wait`, a translated `detail`, `next_attempt_at` and `server_time`. This is separate from HTTP 429 traffic throttling.
+
 ## Assessment results and insights
 
 **Results & reviews** searches all accessible attempt history and paginates it on the server. Filter by assessment, grading status, passed/not passed, rolling reporting period or a search across people, exams and current departments. Summary counts and average scores cover all matching records. **Export results CSV** uses the same filters and includes every matching page. Administrators can report on all attempts; instructors on their own exams; learners on their own identity's attempts.

@@ -1,5 +1,6 @@
 import { t, useLocale } from "./i18n";
 import type { Exam } from "./types";
+import { RetryNotice } from "./RetryAvailability";
 
 export default function ExamBudget({ exam }: { exam: Exam }) {
   const locale = useLocale();
@@ -23,6 +24,14 @@ export default function ExamBudget({ exam }: { exam: Exam }) {
           )}
         </p>
       )}
+      {exam.retry_interval_minutes > 0 && (
+        <small>
+          {t("Minimum interval between starts: {minutes} min", {
+            minutes: exam.retry_interval_minutes,
+          })}
+        </small>
+      )}
+      <RetryNotice value={exam} />
       {exam.starts_at && (
         <small>
           {t("Opens at")}: {new Date(exam.starts_at).toLocaleString(locale)}

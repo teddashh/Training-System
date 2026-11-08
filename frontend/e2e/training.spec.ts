@@ -218,13 +218,16 @@ test("paginated results, matching exports and multilingual assessment insights",
 
 test("individual attempt limit is visible and a final active attempt can resume", async ({
   page,
+  browser,
 }) => {
+  test.setTimeout(90000);
   await login(page);
   const title = "Individual budget " + Date.now();
   const exam = await post<{ id: number }>(page, "exams/", {
     title,
     published: true,
     max_attempts: 3,
+    retry_interval_minutes: 60,
     questions: [
       {
         description: "Choose the safe action",
@@ -287,6 +290,162 @@ test("individual attempt limit is visible and a final active attempt can resume"
     card.getByRole("button", { name: "Start / resume", exact: true }),
   ).toBeDisabled();
   await expect(card).toContainText("Used 1 attempts");
+
+  // Extra attempts do not bypass the interval, and editor changes persist.
+  await post(page, `exams/${exam.id}/budget/`, {
+    key: "admin@evitina.example",
+    limit: 3,
+  });
+  await page.goto("/exams");
+  await card
+    .getByRole("button", { name: "Edit " + title, exact: true })
+    .click();
+  const editor = page.getByRole("dialog");
+  await editor
+    .getByLabel("Minimum time between attempt starts (minutes)")
+    .fill("90");
+  await editor.locator(".language-picker select").selectOption("es");
+  await expect(
+    editor.getByLabel("Tiempo mínimo entre inicios de intentos (minutos)"),
+  ).toHaveValue("90");
+  await editor.locator(".language-picker select").selectOption("en");
+  await editor.getByRole("button", { name: "Save exam", exact: true }).click();
+  await card
+    .getByRole("button", { name: "Start / resume", exact: true })
+    .click();
+  const startButton = dialog.getByRole("button", {
+    name: "Start / resume attempt",
+    exact: true,
+  });
+  await expect(dialog).toContainText("2 new attempts remaining");
+  await expect(dialog).toContainText("Next attempt available at");
+  await expect(startButton).toBeDisabled();
+  // The device clock cannot prematurely unlock an attempt.
+  await page.clock.setFixedTime(new Date("2099-01-01T00:00:00Z"));
+  await dialog.locator(".language-picker select").selectOption("zh-TW");
+  const translatedDialog = page.getByRole("dialog");
+  await expect(translatedDialog).toContainText("下一次可開始作答的時間");
+  await expect(
+    translatedDialog.getByRole("button", {
+      name: "開始／繼續作答",
+      exact: true,
+    }),
+  ).toBeDisabled();
+  await translatedDialog.locator(".language-picker select").selectOption("en");
+  await page.clock.setFixedTime(new Date());
+
+  // Exercise the client countdown without delaying the suite for 90 minutes.
+  // The server retains the real policy and must reject the premature request.
+  await page.route(
+    `**/api/exams/${exam.id}/`,
+    async (route) => {
+      const response = await route.fetch();
+      const data = await response.json();
+      data.next_attempt_at = new Date(
+        Date.parse(data.server_time) + 1500,
+      ).toISOString();
+      await route.fulfill({ response, json: data });
+    },
+    { times: 1 },
+  );
+  await dialog
+    .getByRole("button", { name: "Refresh availability", exact: true })
+    .click();
+  await expect(startButton).toBeEnabled({ timeout: 7000 });
+  await startButton.click();
+  await expect(dialog.getByRole("alert")).toContainText("waiting period");
+  await expect(startButton).toBeDisabled();
+  const budget = await (
+    await page.request.get(`/api/exams/${exam.id}/`)
+  ).json();
+  expect(budget.attempts_used).toBe(1);
+  expect(budget.retry_interval_minutes).toBe(90);
+  await dialog
+    .getByRole("button", { name: "Take it later", exact: true })
+    .click();
+
+  const session = await (await page.request.get("/api/auth/session/")).json();
+  await post(page, "assignments/", {
+    kind: "exam",
+    target_id: exam.id,
+    audience: "people",
+    people: [session.user.id],
+  });
+  await page.goto("/assignments");
+  await page
+    .getByRole("row")
+    .filter({ hasText: title })
+    .getByRole("button", { name: "Open assessment", exact: true })
+    .click();
+  const assignment = page.getByRole("dialog", {
+    name: "Open assessment",
+    exact: true,
+  });
+  await expect(assignment).toContainText("Next attempt available at");
+  await expect(
+    assignment.getByRole("button", {
+      name: "Start / resume exam",
+      exact: true,
+    }),
+  ).toBeDisabled();
+  await assignment.getByRole("button", { name: "Cancel", exact: true }).click();
+
+  const invitation = await post<{ url: string }>(page, "invitations/issue/", {
+    exam: exam.id,
+    key: "admin@evitina.example",
+    max_attempts: 2,
+    days: 1,
+    require_email_verification: false,
+  });
+  const context = await browser.newContext();
+  const guest = await context.newPage();
+  try {
+    await guest.goto(invitation.url);
+    await expect(
+      guest.getByRole("button", { name: "Start / resume exam", exact: true }),
+    ).toBeDisabled();
+    await expect(guest).toHaveURL(/\/invite$/);
+    await expect(guest.locator(".retry-availability")).toContainText(
+      "Next attempt available at",
+    );
+    await guest.locator(".language-picker select").selectOption("es");
+    await expect(guest.locator(".retry-availability")).toContainText(
+      "Próximo intento disponible",
+    );
+    await guest.setViewportSize({ width: 390, height: 844 });
+    expect(
+      await guest.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await guest.locator(".language-picker select").selectOption("en");
+    await page.goto("/exams");
+    await card
+      .getByRole("button", { name: "Edit " + title, exact: true })
+      .click();
+    await editor
+      .getByLabel("Minimum time between attempt starts (minutes)")
+      .fill("0");
+    await editor
+      .getByRole("button", { name: "Save exam", exact: true })
+      .click();
+    await guest
+      .getByRole("button", { name: "Refresh availability", exact: true })
+      .click();
+    await expect(
+      guest.getByRole("button", { name: "Start / resume exam", exact: true }),
+    ).toBeEnabled();
+    await guest
+      .getByRole("button", { name: "Start / resume exam", exact: true })
+      .click();
+    await expect(guest).toHaveURL(/\/attempt\//);
+    const after = await (
+      await page.request.get(`/api/exams/${exam.id}/`)
+    ).json();
+    expect(after.attempts_used).toBe(2);
+  } finally {
+    await context.close();
+  }
 });
 
 test("dashboard, responsive navigation, library and persisted course editor", async ({
@@ -1309,13 +1468,19 @@ test("numeric and ordering questions round-trip through authoring, resume, gradi
     .filter({ hasText: examTitle })
     .getByRole("button", { name: "View attempt", exact: true })
     .click();
-  const review = page.getByRole("dialog", { name: "Review attempt", exact: true });
+  const review = page.getByRole("dialog", {
+    name: "Review attempt",
+    exact: true,
+  });
   await expect(review.locator(".accepted-answer")).toHaveText([
     "9007199254740993",
     "12.5 ± 0.05\n-12.5 ± 0.01",
     "1. Isolate\n2. Verify\n3. Maintain",
   ]);
-  await review.getByRole("button", { name: "Close", exact: true }).last().click();
+  await review
+    .getByRole("button", { name: "Close", exact: true })
+    .last()
+    .click();
   await page.goto("/insights");
   await page.getByLabel("Select assessment").selectOption(String(exam.id));
   const analysis = page.getByRole("row").filter({ hasText: bankTitle });
