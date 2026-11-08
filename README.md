@@ -8,6 +8,8 @@ A self-hosted training, course authoring and assessment platform for employees, 
 
 **English is the default.** Switch to Traditional Chinese or Spanish from the sign-in page, workspace, course editor or exam. The platform and authoring studio share the preference, without discarding unsaved edits or exam answers. Authored course content, questions and names keep their original language.
 
+**Upstream feature parity is incomplete.** The [source-linked audit](docs/UPSTREAM-AUDIT.md) reviews all four reference repositories, 146 feature groups, 155 Yaksh route declarations and 32 Scormly block types. It distinguishes tested workflows, partial implementations, missing features, retained source and upstream placeholders. The missing workflows remain required implementation work; a successful build does not mean full parity.
+
 This v1.3 handover release runs with a real database and tested end-to-end workflows. [Peach1 handover](docs/PEACH1-HANDOVER.md) covers deployment, backup/restore, the Graph provisioning contract and company acceptance tests. Live Graph synchronization, Entra/SMTP configuration and infrastructure validation belong to the Peach1 integration stage. The public repository contains no company credentials or live deployment.
 
 ![Dashboard with synthetic demonstration data](docs/screenshots/dashboard.png)
@@ -23,7 +25,7 @@ This v1.3 handover release runs with a real database and tested end-to-end workf
 | Learning | Course creation, publication, block lessons, self-enrollment and completion records |
 | Required training | Assign courses or exams to people, departments or employment groups; due dates, learner worklists, completion/overdue reports and CSV |
 | SCORM | ZIP validation/import, isolated content origin, SCORM 1.2/2004 single-SCO runtime subset, progress, suspend-data persistence and confirmed save on close |
-| Authoring | Integrated Scormly with English, Traditional Chinese and Spanish; **Publish to LMS** uploads SCORM 1.2 and an editable project backup |
+| Authoring | Integrated Scormly with English, Traditional Chinese and Spanish; **Publish to LMS** uploads the selected SCORM 1.2 or 2004 format and an editable project backup to a course the author can manage |
 | Exams | Standalone or course-linked; four question types; question banks, random subsets and shuffled options; scheduling, duration and passing score |
 | Audience | All accounts, employees, contractors, selected departments, selected people or invitation only; enforced by the API |
 | Attempts | Default and individual budgets; invitation-specific caps; shared account/guest identity; PostgreSQL locking prevents concurrent overuse |
@@ -115,17 +117,18 @@ docker compose exec api python manage.py test training
 npm run build --prefix frontend
 npm run build --prefix vendor/scormly -- --base=/studio/
 npm test --prefix vendor/scormly
+python3 scripts/check_upstream_audit.py
 npx --prefix frontend playwright install chromium
 DEMO_PASSWORD='Your-local-demo-password' npm run test:e2e --prefix frontend
 ```
 
 For the guest email browser test, start the development API with `EMAIL_BACKEND=django.core.mail.backends.filebased.EmailBackend EMAIL_FILE_PATH=/tmp/training-test-mail` and run Playwright with `TEST_EMAIL_DIR=/tmp/training-test-mail`. Use this local mail sink only for testing; normal deployment uses SMTP. CI runs this test against real generated messages without exposing verification codes.
 
-GitHub Actions checks PostgreSQL authorization/budget/grading tests, both frontend builds, Scormly unit tests, browser workflows, active dependency audits and deployment image builds. Language coverage includes dictionary placeholders, API validation, unsaved forms, active answers, studio preferences and mobile overflow.
+GitHub Actions checks PostgreSQL authorization/budget/grading tests, both frontend builds, Scormly unit tests, browser workflows, active dependency audits, deployment image builds and upstream inventory integrity. The inventory check does not certify feature completeness. Language coverage includes dictionary placeholders, API validation, unsaved forms, active answers, studio preferences and mobile overflow.
 
 ## Integration and scope
 
-Yaksh Git history and its original source remain in `legacy/yaksh/`. The supported enterprise API is a modern rebuild; the archived Django application and code sandbox are not deployed. The `import_yaksh` adapter accepts equivalent JSON for Yaksh `mcq`/`mcc` exports. Full historical data migration and arbitrary code execution are outside this version. See [integration details](docs/INTEGRATIONS.md), [third-party notices](THIRD_PARTY_NOTICES.md) and [security scope](SECURITY.md).
+Yaksh Git history and its original source remain in `legacy/yaksh/`. The supported enterprise API is a modern rebuild; the archived Django application and code sandbox are not deployed. The `import_yaksh` adapter accepts equivalent JSON for Yaksh `mcq`/`mcc` exports. Full historical migration and isolated programming assessments remain unfinished; see the [feature audit and completion workstreams](docs/UPSTREAM-AUDIT.md), [integration details](docs/INTEGRATIONS.md), [third-party notices](THIRD_PARTY_NOTICES.md) and [security scope](SECURITY.md).
 
 - SCORM supports a single-SCO runtime subset, without full certification, multi-SCO sequencing or a cmi5/xAPI LRS. Scormly can export cmi5, but this LMS does not accept it.
 - A link issued with email verification disabled is a bearer credential. Verified links require the configured recipient mailbox before guest access. Neither mode provides exam proctoring.

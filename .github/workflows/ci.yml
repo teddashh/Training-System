@@ -10,6 +10,15 @@ concurrency:
   group: verify-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 jobs:
+  upstream-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Validate source inventory and evidence links (not full feature parity)
+        run: python scripts/check_upstream_audit.py
   dependencies:
     runs-on: ubuntu-latest
     steps:

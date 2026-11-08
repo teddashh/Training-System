@@ -6,6 +6,8 @@ Plataforma autohospedada de formación, creación de cursos, exámenes y evaluac
 
 **El idioma predeterminado es el inglés.** Puede cambiar a chino tradicional o español desde el inicio de sesión, el espacio de trabajo, el editor o un examen. La plataforma y el estudio comparten la preferencia sin borrar cambios ni respuestas. Los contenidos de cursos, preguntas y nombres conservan su idioma original.
 
+**La integración de todas las funciones de los repositorios originales aún está incompleta.** La [auditoría con referencias al código](UPSTREAM-AUDIT.md) revisa los cuatro repositorios, 146 grupos de funciones, 155 rutas de Yaksh y 32 tipos de bloques de Scormly. Distingue funciones verificadas, parciales, ausentes y código conservado. Las funciones pendientes siguen formando parte del trabajo requerido. La publicación permite elegir SCORM 1.2 o 2004 y solo muestra cursos que el autor puede gestionar.
+
 Incluye SSO con Entra ID; acceso por correo, usuario o ID de empleado; cursos SCORM con reanudación; publicación y copia editable del proyecto; exámenes independientes; límites por participante; revisión manual y paneles de resultados. Los exámenes admiten audiencias de empleados, contratistas, departamentos, personas seleccionadas o solo invitados. Los enlaces pueden exigir verificación del correo del destinatario; el formulario del organizador activa esta opción de forma predeterminada.
 
 Desde la raíz del repositorio:

@@ -493,42 +493,100 @@ test("SCORM upload, isolated execution, commit and resume persist end to end", a
   ).toBeVisible();
 });
 
-test("Scormly publishes a real package and editable backup to the LMS", async ({
-  page,
-}) => {
-  await login(page);
-  const course = await post<{ id: number }>(page, "courses/", {
-    title: "Scormly publish test " + Date.now(),
-    published: true,
-    blocks: [],
-  });
-  await page.goto("/studio/#/app");
-  await page.getByRole("button", { name: /Explore the demo course/ }).click();
-  await expect(
-    page
+for (const version of ["1.2", "2004"] as const) {
+  test(`Scormly publishes a real package and editable backup to the LMS (${version})`, async ({
+    page,
+  }) => {
+    await login(page);
+    const title = `Scormly ${version} publish test ${Date.now()}`;
+    const course = await post<{ id: number }>(page, "courses/", {
+      title,
+      published: true,
+      blocks: [],
+    });
+    await page.goto("/studio/#/app");
+    await page.getByRole("button", { name: /Explore the demo course/ }).click();
+    // Catalog visibility does not imply publication rights. Exercise the picker
+    // with a visible course the current author cannot manage.
+    await page.route("**/api/courses/", async route => {
+      const response = await route.fetch();
+      const courses = await response.json();
+      await route.fulfill({ response, json: [...courses, { id: -1, title: "Read-only course", can_manage: false }] });
+    });
+    await expect(
+      page
+        .getByRole("button", { name: "Publish to LMS", exact: true })
+        .filter({ visible: true }),
+    ).toBeVisible();
+    await page
       .getByRole("button", { name: "Publish to LMS", exact: true })
-      .filter({ visible: true }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Publish to LMS", exact: true })
-    .filter({ visible: true })
-    .click();
-  await expect(page.getByLabel("Select a company course")).toBeVisible();
-  await page
-    .getByLabel("Select a company course")
-    .selectOption(String(course.id));
-  await page
-    .getByRole("button", { name: "Publish to LMS", exact: true })
-    .filter({ visible: true })
-    .last()
-    .click();
-  await expect(
-    page.getByRole("status").filter({ hasText: "Published. The package" }),
-  ).toBeVisible({ timeout: 20000 });
-  const response = await page.request.get(`/api/courses/${course.id}/source/`);
-  expect(response.ok()).toBeTruthy();
-  expect(response.headers()["content-type"]).toBe("application/zip");
-});
+      .filter({ visible: true })
+      .click();
+    await expect(page.getByLabel("Select a company course")).toBeVisible();
+    await page
+      .getByLabel("Select a company course")
+      .selectOption(String(course.id));
+    await expect(page.getByLabel("Select a company course").locator('option[value="-1"]')).toHaveCount(0);
+    await page.unroute("**/api/courses/");
+    await page.getByLabel("LMS package format").selectOption(version);
+    const published = page.waitForResponse(response =>
+      response.url().endsWith(`/api/courses/${course.id}/upload/`) &&
+      response.request().method() === "POST",
+    );
+    await page
+      .getByRole("button", { name: "Publish to LMS", exact: true })
+      .filter({ visible: true })
+      .last()
+      .click();
+    const upload = await published;
+    expect(upload.status()).toBe(201);
+    const packageInfo = await upload.json();
+    expect(packageInfo.version).toBe(version);
+    await expect(
+      page.getByRole("status").filter({ hasText: "Published. The package" }),
+    ).toBeVisible({ timeout: 20000 });
+    const response = await page.request.get(`/api/courses/${course.id}/source/`);
+    expect(response.ok()).toBeTruthy();
+    expect(response.headers()["content-type"]).toBe("application/zip");
+
+    // Run the actual exported player on the isolated origin, then verify its
+    // version-specific bookmark survives a confirmed save and relaunch.
+    await page.goto("/courses");
+    const card = page.locator("article").filter({ hasText: title });
+    await card.getByRole("button", { name: "Start learning", exact: true }).click();
+    const sco = page.frameLocator('iframe[title="SCORM course player"]').frameLocator("#sco");
+    await expect(sco.getByRole("button", { name: /^Start course/ })).toBeVisible();
+    const bookmark = version === "2004" ? "cmi.location" : "cmi.core.lesson_location";
+    const saved = page.waitForResponse(response =>
+      response.url().endsWith(`/api/scorm/${packageInfo.id}/commit/`) &&
+      response.request().postDataJSON()?.cmi?.[bookmark] === "0",
+    );
+    await sco.getByRole("button", { name: /^Start course/ }).click();
+    await expect(sco.locator(".lesson-title")).toBeVisible();
+    await page.getByRole("button", { name: "Save and close", exact: true }).click();
+    expect((await saved).ok()).toBeTruthy();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await card.getByRole("button", { name: "Continue learning", exact: true }).click();
+    await expect(sco.locator(".lesson-title")).toBeVisible();
+    await expect(sco.getByRole("button", { name: /^Start course/ })).toHaveCount(0);
+    const restored = await sco.locator("body").evaluate(() => {
+      const player = window as typeof window & {
+        __SCORMLY_SCORM__: string;
+        SCORM: { available(): boolean; getSuspend(): string };
+      };
+      return {
+        version: player.__SCORMLY_SCORM__,
+        connected: player.SCORM.available(),
+        progress: JSON.parse(player.SCORM.getSuspend()),
+      };
+    });
+    expect(restored.version).toBe(version);
+    expect(restored.connected).toBe(true);
+    expect(restored.progress.l).toBe(0);
+    await page.getByRole("button", { name: "Save and close", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  });
+}
 
 test("imported and pasted rich text cannot execute in the signed-in authoring origin", async ({
   page,

@@ -25,6 +25,7 @@ from .models import (
     Identity,
     Invitation,
     Question,
+    ScormPackage,
     ScormState,
     User,
 )
@@ -375,6 +376,74 @@ class EnterpriseTests(TestCase):
         ]:
             with self.assertRaises(ValidationError):
                 inspect_package(bad)
+
+    def test_scorm_2004_declared_version_aliases(self):
+        for version in ("CAM 1.3", "  cam 1.3  ", "1.3", "2004 4th Edition"):
+            with self.subTest(version=version):
+                package = io.BytesIO()
+                with zipfile.ZipFile(package, "w") as archive:
+                    archive.writestr(
+                        "imsmanifest.xml",
+                        '<manifest xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_v1p3">'
+                        f'<metadata><schemaversion>{version}</schemaversion></metadata>'
+                        '<resources><resource identifier="sco" adlcp:scormType="sco" '
+                        'href="lesson.html"/></resources></manifest>',
+                    )
+                    archive.writestr("lesson.html", "<h1>SCORM 2004 lesson</h1>")
+                package.seek(0)
+                archive, detected, launch, _ = inspect_package(package)
+                try:
+                    self.assertEqual(detected, "2004")
+                    self.assertEqual(launch, "lesson.html")
+                finally:
+                    archive.close()
+
+    def test_scorm_launch_uses_current_learner_identity(self):
+        from urllib.parse import parse_qs, urlsplit
+
+        course = Course.objects.create(
+            title="Identity context", owner=self.admin, published=True
+        )
+        package = ScormPackage.objects.create(
+            course=course, version="2004", launch_path="index.html"
+        )
+        ScormState.objects.create(
+            user=self.admin,
+            package=package,
+            cmi={
+                "cmi.core.student_name": "Old or forged name",
+                "cmi.learner_name": "Old or forged name",
+                "cmi.learner_id": "another-person",
+            },
+        )
+        self.login(self.admin)
+        launched = self.client.post(f"/api/scorm/{package.id}/launch/", {}, format="json")
+        ticket = parse_qs(urlsplit(launched.json()["url"]).query)["ticket"][0]
+        for display_name, first_name, last_name, expected in [
+            (
+                "Learner </script><script>alert(1)</script>", "", "",
+                "Learner </script><script>alert(1)</script>",
+            ),
+            ("", "Ada", "Lovelace", "Ada Lovelace"),
+            ("", "", "", self.admin.username),
+        ]:
+            with self.subTest(expected=expected):
+                User.objects.filter(pk=self.admin.pk).update(
+                    display_name=display_name, first_name=first_name, last_name=last_name,
+                )
+                with override_settings(ROOT_URLCONF="config.content_urls"):
+                    response = APIClient().get("/launch", {"ticket": ticket})
+                self.assertEqual(response.status_code, 200)
+                html = response.content.decode()
+                config = json.loads(html.split("const CONFIG=", 1)[1].split(";\n", 1)[0])
+                for key in ("cmi.core.student_name", "cmi.learner_name"):
+                    self.assertEqual(config["cmi"][key], expected)
+                for key in ("cmi.core.student_id", "cmi.learner_id"):
+                    self.assertEqual(config["cmi"][key], str(self.admin.id))
+                self.assertNotIn("</script><script>alert(1)</script>", html)
+        User.objects.filter(pk=self.admin.pk).update(is_active=False)
+        with override_settings(ROOT_URLCONF="config.content_urls"):
+            self.assertEqual(APIClient().get("/launch", {"ticket": ticket}).status_code, 404)
 
     def test_scorm_upload_launch_commit_and_source(self):
         course = Course.objects.create(title="SCORM", owner=self.admin, published=True)

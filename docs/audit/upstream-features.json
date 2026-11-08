@@ -1,0 +1,5689 @@
+{
+  "schema": 1,
+  "audited_on": "2026-11-07",
+  "baseline": "670fdbfdd7ce945c7f9219ea641881c768b4db56",
+  "scope": "Working features and discoverable feature surfaces at pinned revisions. Preserved source and passing suites are not full feature-parity acceptance.",
+  "repositories": {
+    "yaksh": {
+      "repository": "FOSSEE/online_test",
+      "revision": "336fc050cce6eab6d45475297d19f3b659491d48"
+    },
+    "scorm": {
+      "repository": "dhodges47/SCORM-LearningManagementSystem",
+      "revision": "87a57d9702aa5d9f3befb22b55444d026ba3be51"
+    },
+    "studio": {
+      "repository": "dmmat/Scormly",
+      "revision": "53c35d2753e89db5f58f07de4d6164be14359fce"
+    },
+    "dashboard": {
+      "repository": "MariemMagdi/School-Management-Dashboard",
+      "revision": "d249f7d7d3bfac7a652d3f54f5ed19d7b9bfe248"
+    }
+  },
+  "features": [
+    {
+      "id": "Y01",
+      "repository": "yaksh",
+      "feature": "Sign-in, logout and role-scoped workspace",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "yaksh/urls.py",
+          "line": 7
+        }
+      ],
+      "implementation": [
+        "backend/training/auth_views.py",
+        "frontend/src/Login.tsx"
+      ],
+      "verification": [
+        "backend/training/tests.py::test_learner_cannot_administer_or_grade"
+      ],
+      "assessment": "Password, email-code and Entra adapters replace the legacy session entry points; company tenant acceptance is separate.",
+      "priority": 2,
+      "routes": [
+        "yaksh:index",
+        "yaksh:user_login",
+        "yaksh:user_logout",
+        "yaksh:prof_manage",
+        "api:login",
+        "online_test:index",
+        "online_test:admin.site.urls"
+      ]
+    },
+    {
+      "id": "Y02",
+      "repository": "yaksh",
+      "feature": "Self-registration and email activation",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 153
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Current accounts are provisioned by administrators or Entra. Guest invitations do not create login accounts. Registration/activation/resend flows are absent.",
+      "priority": 1,
+      "routes": [
+        "yaksh:user_register",
+        "yaksh:activate_user",
+        "yaksh:new_activation"
+      ]
+    },
+    {
+      "id": "Y03",
+      "repository": "yaksh",
+      "feature": "Participant profile, timezone and email changes",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 1307
+        }
+      ],
+      "implementation": [
+        "frontend/src/PeopleTools.tsx",
+        "backend/training/operations.py"
+      ],
+      "verification": [
+        "backend/training/test_operations.py::test_password_change_requires_current_password_and_preserves_current_session"
+      ],
+      "assessment": "Admin profile edits and password changes exist; self-service profile/timezone and verified email changes do not.",
+      "priority": 2,
+      "routes": [
+        "yaksh:edit_profile",
+        "yaksh:view_profile",
+        "yaksh:update_email"
+      ]
+    },
+    {
+      "id": "Y04",
+      "repository": "yaksh",
+      "feature": "Moderator role switching",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 2136
+        }
+      ],
+      "implementation": [
+        "backend/training/operations.py"
+      ],
+      "verification": [],
+      "assessment": "Administrator role editing exists. No moderator/learner mode switch without changing role.",
+      "priority": 2,
+      "routes": [
+        "yaksh:toggle_moderator_role"
+      ]
+    },
+    {
+      "id": "Y05",
+      "repository": "yaksh",
+      "feature": "Course catalog, creation and publication",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "yaksh/documentation/moderator_docs/creating_course.rst",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "backend/training/views.py",
+        "frontend/src/Courses.tsx"
+      ],
+      "verification": [
+        "frontend/e2e/training.spec.ts::dashboard, responsive navigation, library and persisted course editor"
+      ],
+      "assessment": "Course CRUD, ownership and publication implemented with modern course blocks. Module hierarchy is tracked separately.",
+      "priority": 2,
+      "routes": [
+        "yaksh:courses",
+        "yaksh:add_course",
+        "yaksh:toggle_course_status"
+      ]
+    },
+    {
+      "id": "Y06",
+      "repository": "yaksh",
+      "feature": "Open self-enrollment",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 1183
+        }
+      ],
+      "implementation": [
+        "backend/training/views.py",
+        "frontend/src/Courses.tsx"
+      ],
+      "verification": [
+        "frontend/e2e/training.spec.ts::assign required training, complete from worklist, and export evidence"
+      ],
+      "assessment": "Published course enrollment is available to authenticated participants.",
+      "priority": 2,
+      "routes": [
+        "yaksh:self_enroll"
+      ]
+    },
+    {
+      "id": "Y07",
+      "repository": "yaksh",
+      "feature": "Enrollment requests, approval, rejection and removal",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/documentation/moderator_docs/creating_course.rst",
+          "line": 83
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "No enrollment approval state machine or manager review queue. Required assignments are a different workflow.",
+      "priority": 1,
+      "routes": [
+        "yaksh:enroll_request",
+        "yaksh:enroll_reject_user",
+        "yaksh:enroll_user",
+        "yaksh:reject_user"
+      ]
+    },
+    {
+      "id": "Y08",
+      "repository": "yaksh",
+      "feature": "Hidden course codes and enrollment windows",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 290
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Exam audience/scheduling does not provide course access codes or enrollment start/end windows.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "Y09",
+      "repository": "yaksh",
+      "feature": "Bulk user creation and enrollment CSV",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 2493
+        }
+      ],
+      "implementation": [
+        "backend/training/operations.py",
+        "frontend/src/PeopleTools.tsx"
+      ],
+      "verification": [
+        "backend/training/test_operations.py::test_people_import_preview_rolls_back_and_apply_is_atomic"
+      ],
+      "assessment": "Atomic account CSV onboarding and required assignments exist separately; native Yaksh CSV mappings and combined course enrollment/removal are absent.",
+      "priority": 2,
+      "routes": [
+        "yaksh:upload_users",
+        "yaksh:download_sample_csv"
+      ]
+    },
+    {
+      "id": "Y10",
+      "repository": "yaksh",
+      "feature": "Course teachers and teaching assistants",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/documentation/moderator_docs/creating_course.rst",
+          "line": 153
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Only one course owner plus administrators can manage a course; no per-course collaborators.",
+      "priority": 1,
+      "routes": [
+        "yaksh:search_teacher",
+        "yaksh:add_teacher",
+        "yaksh:remove_teachers",
+        "yaksh:course_teachers"
+      ]
+    },
+    {
+      "id": "Y11",
+      "repository": "yaksh",
+      "feature": "Modules, units and ordered course structure",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 724
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/store/courseStore.ts",
+        "backend/training/models.py"
+      ],
+      "verification": [],
+      "assessment": "Scormly provides ordered lessons inside a package. Native LMS modules mixing lessons, exams and exercises are absent.",
+      "priority": 1,
+      "routes": [
+        "yaksh:course_detail",
+        "yaksh:view_module",
+        "yaksh:get_next_unit",
+        "yaksh:course_modules",
+        "yaksh:design_module",
+        "yaksh:add_module",
+        "yaksh:design_course",
+        "yaksh:get_course_modules"
+      ]
+    },
+    {
+      "id": "Y12",
+      "repository": "yaksh",
+      "feature": "Completion and passing prerequisites",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 734
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/preview/progress.ts",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [],
+      "assessment": "Scormly linear navigation/restricted continue works inside its package. Cross-module and LMS exam passing prerequisites are absent.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "Y13",
+      "repository": "yaksh",
+      "feature": "Lessons, video and downloadable resources",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/documentation/moderator_docs/creating_lessons_modules.rst",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "frontend/src/Courses.tsx",
+        "vendor/scormly/src/blocks/registry.ts"
+      ],
+      "verification": [],
+      "assessment": "Block content and Scormly media/attachments exist; standalone LMS lessons with individual files and status are not modeled.",
+      "priority": 2,
+      "routes": [
+        "yaksh:show_lesson",
+        "yaksh:edit_lesson"
+      ]
+    },
+    {
+      "id": "Y14",
+      "repository": "yaksh",
+      "feature": "Video chapter markers and embedded question checkpoints",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 3660
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Scormly video watch gating is not a timestamped chapter/quiz editor or its lesson statistics.",
+      "priority": 1,
+      "routes": [
+        "yaksh:add_marker",
+        "yaksh:add_topic",
+        "yaksh:add_marker_quiz",
+        "yaksh:delete_toc",
+        "yaksh:get_marker_quiz",
+        "yaksh:submit_marker_quiz",
+        "yaksh:lesson_statistics",
+        "yaksh:download_sample_toc"
+      ]
+    },
+    {
+      "id": "Y15",
+      "repository": "yaksh",
+      "feature": "Video watch-session tracking and instructor analytics",
+      "status": "missing",
+      "source": [
+        {
+          "path": "stats/models.py",
+          "line": 27
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "LMS saves overall SCORM state, not video watch logs or per-marker learner reports.",
+      "priority": 2,
+      "routes": [
+        "stats:add_tracker",
+        "stats:view_lesson_watch_stats"
+      ]
+    },
+    {
+      "id": "Y16",
+      "repository": "yaksh",
+      "feature": "Course completion/progress reporting and CSV",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 3455
+        }
+      ],
+      "implementation": [
+        "backend/training/operations.py",
+        "frontend/src/Assignments.tsx"
+      ],
+      "verification": [
+        "backend/training/test_operations.py::test_completion_export_scopes_and_escapes_spreadsheet_formulas"
+      ],
+      "assessment": "Assignment completion CSV exists; unit/module progress and native course grade exports are absent.",
+      "priority": 2,
+      "routes": [
+        "yaksh:course_status",
+        "yaksh:get_user_data",
+        "yaksh:download_course_progress",
+        "yaksh:download_course_csv"
+      ]
+    },
+    {
+      "id": "Y17",
+      "repository": "yaksh",
+      "feature": "Clone complete course",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 2681
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "No deep clone of a native course, its modules, quizzes and files. Scormly project duplication does not cover this.",
+      "priority": 2,
+      "routes": [
+        "yaksh:duplicate_course"
+      ]
+    },
+    {
+      "id": "Y18",
+      "repository": "yaksh",
+      "feature": "Offline course ZIP and Markdown course import/export",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 2335
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/lib/exportProjectZip.ts",
+        "backend/training/scorm.py"
+      ],
+      "verification": [],
+      "assessment": "Scormly project/package downloads exist. Yaksh offline course bundles, Markdown uploads/downloads and LMS restore mapping are absent.",
+      "priority": 2,
+      "routes": [
+        "yaksh:download_course",
+        "yaksh:upload_download_course_md",
+        "upload:download_course_md"
+      ]
+    },
+    {
+      "id": "Y19",
+      "repository": "yaksh",
+      "feature": "Course and lesson forums, replies, moderation",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 2868
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "No course forum, lesson discussions, anonymous posting or hide-post/comment workflow.",
+      "priority": 1,
+      "routes": [
+        "yaksh:course_forum",
+        "yaksh:lessons_forum",
+        "yaksh:post_comments",
+        "yaksh:hide_post",
+        "yaksh:hide_comment"
+      ]
+    },
+    {
+      "id": "Y20",
+      "repository": "yaksh",
+      "feature": "Course email and read/unread notifications",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 1348
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Sign-in codes are implemented; instructor course mail, notification inbox and read markers are absent.",
+      "priority": 1,
+      "routes": [
+        "yaksh:send_mail",
+        "yaksh:view_notifications",
+        "yaksh:mark_notification"
+      ]
+    },
+    {
+      "id": "Y21",
+      "repository": "yaksh",
+      "feature": "Named grade ranges and weighted course grade",
+      "status": "missing",
+      "source": [
+        {
+          "path": "grades/models.py",
+          "line": 5
+        },
+        {
+          "path": "yaksh/models.py",
+          "line": 530
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Exam percentage and pass threshold exist; weighted course grades, grade range systems and course grade visibility are absent.",
+      "priority": 1,
+      "routes": [
+        "grades:grading_systems",
+        "grades:add_grading_system"
+      ]
+    },
+    {
+      "id": "Y22",
+      "repository": "yaksh",
+      "feature": "Question bank CRUD, filtering and tags",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 1687
+        }
+      ],
+      "implementation": [
+        "backend/training/operations.py",
+        "frontend/src/QuestionBank.tsx"
+      ],
+      "verification": [
+        "backend/training/test_operations.py::test_question_bank_is_private_and_copies_do_not_change"
+      ],
+      "assessment": "Scoped bank, search, category and archive exist. Multiple tags, topic/language metadata and standalone question preview/test are incomplete.",
+      "priority": 2,
+      "routes": [
+        "yaksh:add_question",
+        "yaksh:show_all_questions",
+        "yaksh:questions_filter",
+        "yaksh:search_questions_by_tags",
+        "yaksh:delete_question",
+        "yaksh:test_question"
+      ]
+    },
+    {
+      "id": "Y23",
+      "repository": "yaksh",
+      "feature": "Single and multiple choice assessment questions",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 2756
+        }
+      ],
+      "implementation": [
+        "backend/training/services.py",
+        "frontend/src/Exams.tsx",
+        "frontend/src/Attempt.tsx"
+      ],
+      "verification": [
+        "backend/training/test_operations.py::test_randomized_snapshot_grades_original_correct_options_and_resumes"
+      ],
+      "assessment": "Both types are authored, snapshotted, graded and reported; partial-credit settings are tracked separately.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "Y24",
+      "repository": "yaksh",
+      "feature": "String answers and matching rules",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 2812
+        }
+      ],
+      "implementation": [
+        "backend/training/services.py"
+      ],
+      "verification": [],
+      "assessment": "Short answers compare normalized case/whitespace. Upstream configurable string matching modes are not exposed.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "Y25",
+      "repository": "yaksh",
+      "feature": "Integer and floating answers with error margins",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 2802
+        },
+        {
+          "path": "yaksh/models.py",
+          "line": 2824
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Text equality is not numeric grading with a configurable tolerance.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "Y26",
+      "repository": "yaksh",
+      "feature": "Arrange/ordered answer questions",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 2839
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Scormly ordering is a learning block; the independent exam bank/player has no ordering question type.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "Y27",
+      "repository": "yaksh",
+      "feature": "Assignment/file answers and grader downloads",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 2668
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "No exam response upload, private response storage, reviewer download or assignment ZIP export.",
+      "priority": 1,
+      "routes": [
+        "yaksh:download_assignment_file"
+      ]
+    },
+    {
+      "id": "Y28",
+      "repository": "yaksh",
+      "feature": "Phone/QR upload handoff",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 3319
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "No expiring QR-bound phone upload workflow.",
+      "priority": 2,
+      "routes": [
+        "yaksh:generate_qrcode",
+        "yaksh:upload_file"
+      ]
+    },
+    {
+      "id": "Y29",
+      "repository": "yaksh",
+      "feature": "Programming assessments in seven languages",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/settings.py",
+          "line": 27
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Python, C, C++, Java, Bash, R and Scilab execution remains archived. No active isolated code evaluator, queue or feedback UI.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "Y30",
+      "repository": "yaksh",
+      "feature": "Standard/assertion, stdin/stdout and hook test cases",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 2719
+        },
+        {
+          "path": "yaksh/models.py",
+          "line": 2736
+        },
+        {
+          "path": "yaksh/models.py",
+          "line": 2768
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "No executable test cases, fixtures, hidden tests, snippets, time/memory controls or weighted test-case scores in the supported runtime.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "Y31",
+      "repository": "yaksh",
+      "feature": "Question attachments, hidden fixtures and ZIP expansion",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 1692
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "SCORM ZIP ingestion is unrelated to assessment fixtures and learner attachments.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "Y32",
+      "repository": "yaksh",
+      "feature": "Partial automatic grading and fractional points",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 1393
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Exam points are integer and automatic choice grading is all-or-nothing. Manual essay partial marks do not replace per-test/choice partial grading.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "Y33",
+      "repository": "yaksh",
+      "feature": "Question YAML/ZIP export/import and templates",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 1826
+        }
+      ],
+      "implementation": [
+        "backend/training/management/commands/import_yaksh.py"
+      ],
+      "verification": [
+        "backend/training/tests.py::test_yaksh_adapter_preserves_correct_options"
+      ],
+      "assessment": "Command-line import supports only equivalent MCQ/MCC JSON. Native YAML/ZIP, attachments, other types and UI round-trip are absent.",
+      "priority": 2,
+      "routes": [
+        "yaksh:download_question",
+        "yaksh:download_yaml_template"
+      ]
+    },
+    {
+      "id": "Y34",
+      "repository": "yaksh",
+      "feature": "Exam CRUD, scheduling, duration and pass threshold",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "yaksh/documentation/moderator_docs/creating_quiz.rst",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "backend/training/views.py",
+        "frontend/src/Exams.tsx"
+      ],
+      "verification": [
+        "backend/training/tests.py::test_scheduled_exam_and_deadline_cap"
+      ],
+      "assessment": "Modern API supports scheduled standalone and course-linked exams.",
+      "priority": 2,
+      "routes": [
+        "yaksh:add_quiz",
+        "yaksh:quizlist_user"
+      ]
+    },
+    {
+      "id": "Y35",
+      "repository": "yaksh",
+      "feature": "Attempts, resume and individual extra attempts",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 3214
+        }
+      ],
+      "implementation": [
+        "backend/training/services.py",
+        "frontend/src/ExamBudget.tsx"
+      ],
+      "verification": [
+        "backend/training/tests.py::test_attempt_limit_and_invitation_reissue_share_budget"
+      ],
+      "assessment": "Shared identity/link caps and individual limit overrides work. Upstream special attempt start/revoke and wait-time semantics are not equivalent.",
+      "priority": 2,
+      "routes": [
+        "yaksh:allow_special_attempt",
+        "yaksh:special_start",
+        "yaksh:revoke_special_attempt"
+      ]
+    },
+    {
+      "id": "Y36",
+      "repository": "yaksh",
+      "feature": "Waiting period between attempts",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 407
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "No minimum retry interval or next-eligible start timestamp.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "Y37",
+      "repository": "yaksh",
+      "feature": "Answer-paper visibility policy and no-skip policy",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 524
+        },
+        {
+          "path": "yaksh/models.py",
+          "line": 527
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Participants can review their responses and navigate questions; organizers cannot configure these policies.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "Y38",
+      "repository": "yaksh",
+      "feature": "Untimed practice exercises with per-question timers/solutions",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/documentation/moderator_docs/creating_quiz.rst",
+          "line": 42
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Independent exams are timed and budgeted. Scormly quiz blocks do not reproduce the native exercise workflow.",
+      "priority": 1,
+      "routes": [
+        "yaksh:add_exercise"
+      ]
+    },
+    {
+      "id": "Y39",
+      "repository": "yaksh",
+      "feature": "Fixed plus multiple random question pools",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/models.py",
+          "line": 1995
+        }
+      ],
+      "implementation": [
+        "backend/training/services.py",
+        "frontend/src/Exams.tsx"
+      ],
+      "verification": [
+        "backend/training/test_operations.py::test_invalid_random_pool_is_rejected_without_charging_attempt"
+      ],
+      "assessment": "Question/option shuffling and one random subset work. Fixed questions combined with multiple separately weighted pools are absent.",
+      "priority": 2,
+      "routes": [
+        "yaksh:design_questionpaper"
+      ]
+    },
+    {
+      "id": "Y40",
+      "repository": "yaksh",
+      "feature": "Student attempt navigation, save, submit and feedback",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 847
+        }
+      ],
+      "implementation": [
+        "backend/training/services.py",
+        "frontend/src/Attempt.tsx",
+        "frontend/src/useAttemptSession.ts"
+      ],
+      "verification": [
+        "backend/training/test_reliability.py::test_stale_save_and_submission_preserve_newer_answers"
+      ],
+      "assessment": "Autosave, revision protection and submission work. Immediate evaluation/check-again semantics for coding/practice questions are absent.",
+      "priority": 2,
+      "routes": [
+        "yaksh:start",
+        "yaksh:quit",
+        "yaksh:complete",
+        "yaksh:check",
+        "yaksh:get_result",
+        "yaksh:skip",
+        "yaksh:view_answerpaper"
+      ]
+    },
+    {
+      "id": "Y41",
+      "repository": "yaksh",
+      "feature": "Student results and manual grading/review",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 1950
+        }
+      ],
+      "implementation": [
+        "backend/training/views.py",
+        "frontend/src/Management.tsx"
+      ],
+      "verification": [
+        "backend/training/tests.py::test_manual_review_and_regrade_audited"
+      ],
+      "assessment": "Scoped result history, written-response grades and instructor comments are available.",
+      "priority": 2,
+      "routes": [
+        "yaksh:results_user",
+        "yaksh:grade_user",
+        "yaksh:user_data"
+      ]
+    },
+    {
+      "id": "Y42",
+      "repository": "yaksh",
+      "feature": "Question/quiz/student automatic regrade jobs",
+      "status": "partial",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 2302
+        }
+      ],
+      "implementation": [
+        "backend/training/views.py"
+      ],
+      "verification": [],
+      "assessment": "Manual review can be updated with audit history. Bulk automatic re-evaluation by question, quiz or student is absent.",
+      "priority": 1,
+      "routes": [
+        "yaksh:regrade"
+      ]
+    },
+    {
+      "id": "Y43",
+      "repository": "yaksh",
+      "feature": "Live exam monitoring and active-attempt time extension",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 1439
+        },
+        {
+          "path": "yaksh/views.py",
+          "line": 3940
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Results can be refreshed manually. No live invigilation view, heartbeat, or audited active timer extension.",
+      "priority": 1,
+      "routes": [
+        "yaksh:monitor",
+        "yaksh:extend_time"
+      ]
+    },
+    {
+      "id": "Y44",
+      "repository": "yaksh",
+      "feature": "Question statistics and result CSV",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 1401
+        }
+      ],
+      "implementation": [
+        "backend/training/reporting.py",
+        "frontend/src/Insights.tsx"
+      ],
+      "verification": [
+        "backend/training/test_reporting.py::test_filters_and_csv_match_across_all_pages"
+      ],
+      "assessment": "Frozen-question analysis, filtered reporting and matching CSV implemented.",
+      "priority": 2,
+      "routes": [
+        "yaksh:show_statistics",
+        "yaksh:download_quiz_csv"
+      ]
+    },
+    {
+      "id": "Y45",
+      "repository": "yaksh",
+      "feature": "Marks CSV upload",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 4100
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "No bulk mark import with preview, review and validation.",
+      "priority": 2,
+      "routes": [
+        "yaksh:upload_marks"
+      ]
+    },
+    {
+      "id": "Y46",
+      "repository": "yaksh",
+      "feature": "Instructor preview, student mode and unrestricted test mode",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 2240
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "No sandbox preview of independent exams without consuming participant attempts. Studio learner preview is separate.",
+      "priority": 1,
+      "routes": [
+        "yaksh:test_quiz",
+        "yaksh:preview_questionpaper"
+      ]
+    },
+    {
+      "id": "Y47",
+      "repository": "yaksh",
+      "feature": "Safe Exam Browser config and request verification",
+      "status": "missing",
+      "source": [
+        {
+          "path": "yaksh/seb.py",
+          "line": 1
+        },
+        {
+          "path": "yaksh/models.py",
+          "line": 3401
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "No SEB policy, config download or request hash verification; current platform has no proctoring claim.",
+      "priority": 2,
+      "routes": [
+        "yaksh:download_seb_config"
+      ]
+    },
+    {
+      "id": "Y48",
+      "repository": "yaksh",
+      "feature": "Synthetic demonstration course",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "yaksh/views.py",
+          "line": 2286
+        }
+      ],
+      "implementation": [
+        "backend/training/management/commands/seed_demo.py",
+        "vendor/scormly/src/lib/sampleCourse.ts"
+      ],
+      "verification": [
+        "vendor/scormly/tests/sampleCourse.test.ts"
+      ],
+      "assessment": "Seed command creates synthetic company examples; studio includes its sample project.",
+      "priority": 2,
+      "routes": [
+        "yaksh:create_demo_course"
+      ]
+    },
+    {
+      "id": "Y49",
+      "repository": "yaksh",
+      "feature": "Legacy REST API compatibility",
+      "status": "partial",
+      "source": [
+        {
+          "path": "api/urls.py",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "backend/config/urls.py"
+      ],
+      "verification": [],
+      "assessment": "Modern endpoints cover core objects but do not preserve legacy URL/schema contracts or programming validator APIs.",
+      "priority": 2,
+      "routes": [
+        "api:QuestionList",
+        "api:QuestionDetail",
+        "api:CourseList",
+        "api:StartQuiz",
+        "api:QuizList",
+        "api:QuizDetail",
+        "api:QuestionPaperList",
+        "api:QuestionPaperDetail",
+        "api:AnswerPaperList",
+        "api:AnswerValidator",
+        "api:GetCourse",
+        "api:QuitQuiz"
+      ]
+    },
+    {
+      "id": "Y50",
+      "repository": "yaksh",
+      "feature": "500+ simultaneous participant operation",
+      "status": "unverified",
+      "source": [
+        {
+          "path": "README.rst",
+          "line": 32
+        }
+      ],
+      "implementation": [
+        "backend/training/tests.py"
+      ],
+      "verification": [
+        "backend/training/tests.py::test_parallel_starts_consume_only_one_slot"
+      ],
+      "assessment": "This is an upstream capacity claim, not evidence for our deployment. Only bounded concurrency races have been tested; Peach1 workload testing remains required.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "S01",
+      "repository": "scorm",
+      "feature": "Account sign-in and personal study area",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Pages/MyCoursesForStudy.cshtml.cs",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "backend/training/views.py",
+        "frontend/src/Courses.tsx"
+      ],
+      "verification": [
+        "frontend/e2e/training.spec.ts::dashboard, responsive navigation, library and persisted course editor"
+      ],
+      "assessment": "Authenticated enrollment and personal course progress replace the demo identity/study list.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "S02",
+      "repository": "scorm",
+      "feature": "SCORM ZIP import and package metadata",
+      "status": "partial",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMUploadHelper.cs",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm.py"
+      ],
+      "verification": [
+        "backend/training/tests.py::test_scorm_manifest_and_zip_security"
+      ],
+      "assessment": "Single-SCO extraction, title and version exist. Manifest default-organization, LOM metadata and xml:base support are incomplete.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "S03",
+      "repository": "scorm",
+      "feature": "SCORM 1.2 and 2004/CAM 1.3 recognition",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMUploadHelper.cs",
+          "line": 45
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm.py"
+      ],
+      "verification": [
+        "backend/training/tests.py::test_scorm_2004_declared_version_aliases",
+        "backend/training/tests.py::test_scorm_manifest_and_zip_security"
+      ],
+      "assessment": "Importer recognizes SCORM 1.2, 1.3, CAM 1.3 and 2004 declarations, including whitespace/case variants. Regression ZIPs verify the CAM 1.3 misclassification found in v1.3 is corrected. Other manifest gaps remain in S02/S04.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "S04",
+      "repository": "scorm",
+      "feature": "Default organization and item launch selection",
+      "status": "partial",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMUploadHelper.cs",
+          "line": 91
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm.py"
+      ],
+      "verification": [],
+      "assessment": "Current importer requires exactly one SCO resource and uses its href directly. Upstream selects the first item in the default organization; neither provides full multi-SCO sequencing.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "S05",
+      "repository": "scorm",
+      "feature": "Isolated course launch and persistent learner state",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Pages/SCORMPlayer.cshtml.cs",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm.py",
+        "frontend/src/Courses.tsx"
+      ],
+      "verification": [
+        "frontend/e2e/training.spec.ts::SCORM upload, isolated execution, commit and resume persist end to end"
+      ],
+      "assessment": "Signed launches, isolated origin, stored CMI, package cookies and commit acknowledgements implemented.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "S06",
+      "repository": "scorm",
+      "feature": "Initialize/finish/commit and error API lifecycle",
+      "status": "partial",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Api/SCORMRuntimeController.cs",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm_runtime.js"
+      ],
+      "verification": [
+        "frontend/e2e/training.spec.ts::SCORM upload, isolated execution, commit and resume persist end to end"
+      ],
+      "assessment": "API surfaces exist. Version-specific lifecycle error codes and complete data-model validation are incomplete.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "S07",
+      "repository": "scorm",
+      "feature": "Learner ID and learner name",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMRuntimeHelper.cs",
+          "line": 111
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm.py",
+        "backend/training/scorm_runtime.js"
+      ],
+      "verification": [
+        "backend/training/tests.py::test_scorm_launch_uses_current_learner_identity"
+      ],
+      "assessment": "Each launch restores current learner ID/name from the active account, overriding stale or forged saved CMI. Display name falls back to full name and username; script delimiters are escaped. Deactivated accounts cannot redeem launch tickets.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "S08",
+      "repository": "scorm",
+      "feature": "Credit, mode, children and version metadata",
+      "status": "missing",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMRuntimeHelper.cs",
+          "line": 122
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Runtime does not initialize credit/mode or return supported _children metadata.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "S09",
+      "repository": "scorm",
+      "feature": "Bookmark and suspend data",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMRuntimeHelper.cs",
+          "line": 126
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm.py"
+      ],
+      "verification": [
+        "frontend/e2e/training.spec.ts::SCORM upload, isolated execution, commit and resume persist end to end"
+      ],
+      "assessment": "CMI is saved and restored; publication versions isolate state.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "S10",
+      "repository": "scorm",
+      "feature": "Exit-dependent entry/resume semantics",
+      "status": "partial",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Api/SCORMRuntimeController.cs",
+          "line": 84
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm.py"
+      ],
+      "verification": [],
+      "assessment": "Every saved state resumes, regardless of exit flag; upstream distinguishes suspend exit.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "S11",
+      "repository": "scorm",
+      "feature": "Session duration and cumulative total time",
+      "status": "missing",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Api/SCORMRuntimeController.cs",
+          "line": 118
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Raw CMI strings persist but session time is not accumulated into total time or reset between launches.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "S12",
+      "repository": "scorm",
+      "feature": "Completion, success and score tracking",
+      "status": "partial",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMRuntimeHelper.cs",
+          "line": 118
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm.py",
+        "backend/training/scorm_runtime.js"
+      ],
+      "verification": [],
+      "assessment": "SCORM 1.2 passed/completed and 2004 completion update enrollment. Score histories/reports, mastered state and full score validation remain incomplete.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "S13",
+      "repository": "scorm",
+      "feature": "Launch data, mastery/passing score and time limits",
+      "status": "partial",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMRuntimeHelper.cs",
+          "line": 236
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm_runtime.js"
+      ],
+      "verification": [],
+      "assessment": "Upstream supports data-model fields but its initialize controller explicitly leaves most launch metadata empty. Current runtime accepts arbitrary keys without manifest-backed defaults or policies.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "S14",
+      "repository": "scorm",
+      "feature": "Objectives and nested objective counts",
+      "status": "partial",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMRuntimeHelper.cs",
+          "line": 72
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm_runtime.js"
+      ],
+      "verification": [],
+      "assessment": "Generic indexed CMI persists and _count is derived. Typed objective schemas, child metadata and validation are absent.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "S15",
+      "repository": "scorm",
+      "feature": "Interaction types, responses, results and latency",
+      "status": "partial",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMRuntimeHelper.cs",
+          "line": 48
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm_runtime.js"
+      ],
+      "verification": [],
+      "assessment": "Generic indexed CMI persists. The typed interaction rules and learner/reviewer interaction report are absent.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "S16",
+      "repository": "scorm",
+      "feature": "Nested interaction objectives and correct responses",
+      "status": "partial",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMRuntimeHelper.cs",
+          "line": 48
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm_runtime.js"
+      ],
+      "verification": [],
+      "assessment": "Generic keys can be saved, but dependency checks, vocabulary validation and read/write semantics are not implemented.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "S17",
+      "repository": "scorm",
+      "feature": "Learner preferences: audio, language, speed, captions",
+      "status": "partial",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMRuntimeHelper.cs",
+          "line": 56
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm.py",
+        "backend/training/scorm_runtime.js"
+      ],
+      "verification": [],
+      "assessment": "Language is initialized and generic writes persist. Default preferences and range/type validation are incomplete.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "S18",
+      "repository": "scorm",
+      "feature": "Learner and LMS comments",
+      "status": "partial",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMRuntimeHelper.cs",
+          "line": 80
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm_runtime.js"
+      ],
+      "verification": [],
+      "assessment": "Generic comment values persist. No instructor-supplied LMS comment interface, typed arrays or read-only LMS-comment enforcement.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "S19",
+      "repository": "scorm",
+      "feature": "Read-only, write-only, datatype and vocabulary errors",
+      "status": "partial",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMRuntimeHelper.cs",
+          "line": 42
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm_runtime.js"
+      ],
+      "verification": [],
+      "assessment": "Only six read-only fields and a basic raw-score check exist. Unknown CMI keys are accepted; most error semantics are missing.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "S20",
+      "repository": "scorm",
+      "feature": "Per-launch sessions and learner result records",
+      "status": "partial",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Data/ModelSCORM/session.cs",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "backend/training/models.py"
+      ],
+      "verification": [],
+      "assessment": "Only latest per-user/package CMI and course enrollment are stored. No separate immutable launch/session history or SCORM result analytics.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "S21",
+      "repository": "scorm",
+      "feature": "Full SCORM 2004 sequencing",
+      "status": "upstream_incomplete",
+      "source": [
+        {
+          "path": "OpenSourceSCORMLMS/Helpers/SCORMUploadHelper.cs",
+          "line": 91
+        }
+      ],
+      "implementation": [
+        "backend/training/scorm.py"
+      ],
+      "verification": [],
+      "assessment": "Not delivered by the source demo either. Generated schema classes do not implement runtime sequencing. Current importer explicitly rejects multi-SCO packages.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B01",
+      "repository": "studio",
+      "feature": "Authoring block: heading",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for heading. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B02",
+      "repository": "studio",
+      "feature": "Authoring block: paragraph",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for paragraph. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B03",
+      "repository": "studio",
+      "feature": "Authoring block: list",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for list. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B04",
+      "repository": "studio",
+      "feature": "Authoring block: note",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for note. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B05",
+      "repository": "studio",
+      "feature": "Authoring block: image",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for image. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B06",
+      "repository": "studio",
+      "feature": "Authoring block: gallery",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for gallery. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B07",
+      "repository": "studio",
+      "feature": "Authoring block: video",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for video. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B08",
+      "repository": "studio",
+      "feature": "Authoring block: audio",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for audio. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B09",
+      "repository": "studio",
+      "feature": "Authoring block: embed",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for embed. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B10",
+      "repository": "studio",
+      "feature": "Authoring block: code",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for code. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B11",
+      "repository": "studio",
+      "feature": "Authoring block: table",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for table. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B12",
+      "repository": "studio",
+      "feature": "Authoring block: quote",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for quote. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B13",
+      "repository": "studio",
+      "feature": "Authoring block: continue",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for continue. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B14",
+      "repository": "studio",
+      "feature": "Authoring block: divider",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for divider. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B15",
+      "repository": "studio",
+      "feature": "Authoring block: courseOutline",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for courseOutline. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B16",
+      "repository": "studio",
+      "feature": "Authoring block: tabs",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for tabs. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B17",
+      "repository": "studio",
+      "feature": "Authoring block: accordion",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for accordion. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B18",
+      "repository": "studio",
+      "feature": "Authoring block: flashcards",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for flashcards. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B19",
+      "repository": "studio",
+      "feature": "Authoring block: scenario",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for scenario. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B20",
+      "repository": "studio",
+      "feature": "Authoring block: quiz",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for quiz. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B21",
+      "repository": "studio",
+      "feature": "Authoring block: hotspot",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for hotspot. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B22",
+      "repository": "studio",
+      "feature": "Authoring block: timeline",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for timeline. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B23",
+      "repository": "studio",
+      "feature": "Authoring block: ordering",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for ordering. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B24",
+      "repository": "studio",
+      "feature": "Authoring block: fillBlanks",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for fillBlanks. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B25",
+      "repository": "studio",
+      "feature": "Authoring block: imageText",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for imageText. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B26",
+      "repository": "studio",
+      "feature": "Authoring block: attachment",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for attachment. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B27",
+      "repository": "studio",
+      "feature": "Authoring block: columns",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for columns. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B28",
+      "repository": "studio",
+      "feature": "Authoring block: process",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for process. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B29",
+      "repository": "studio",
+      "feature": "Authoring block: steps",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for steps. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B30",
+      "repository": "studio",
+      "feature": "Authoring block: comparison",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for comparison. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B31",
+      "repository": "studio",
+      "feature": "Authoring block: beforeAfter",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for beforeAfter. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "B32",
+      "repository": "studio",
+      "feature": "Authoring block: reflection",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/blocks/registry.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/blocks/registry.ts",
+        "vendor/scormly/src/blocks/BlockRenderer.tsx",
+        "vendor/scormly/src/preview/BlockPreview.tsx",
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [
+        "vendor/scormly/tests/registry.test.ts"
+      ],
+      "assessment": "Upstream editor, preview and exported player code retained for reflection. Registry/unit coverage exists; an individual full LMS interaction test is not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A01",
+      "repository": "studio",
+      "feature": "Inline WYSIWYG, drag/reorder and context actions",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/components/editor/BlockShell.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/components/editor/BlockShell.tsx"
+      ],
+      "verification": [],
+      "assessment": "Editor interactions retained; rich-text sanitization verified separately.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A02",
+      "repository": "studio",
+      "feature": "Lesson CRUD, ordering, draft/published status",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/store/courseStore.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/store/courseStore.ts"
+      ],
+      "verification": [],
+      "assessment": "Lesson store and sidebar retained; full CRUD browser acceptance remains to be recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A03",
+      "repository": "studio",
+      "feature": "Undo/redo, shortcuts and saved history",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/store/courseStore.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/store/courseStore.ts"
+      ],
+      "verification": [],
+      "assessment": "Upstream history/coalescing retained; no integrated undo/redo browser case yet.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A04",
+      "repository": "studio",
+      "feature": "Disk folders and recent projects",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/lib/projectService.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/lib/projectService.ts"
+      ],
+      "verification": [],
+      "assessment": "File System Access integration retained; needs real Chrome/Edge file-picker acceptance.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A05",
+      "repository": "studio",
+      "feature": "Browser OPFS and tab-only fallback",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/lib/browserProjects.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/lib/browserProjects.ts"
+      ],
+      "verification": [],
+      "assessment": "Browser projects and in-memory assets retained; cross-browser persistence acceptance not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A06",
+      "repository": "studio",
+      "feature": "Project ZIP import/export and update-vs-new repair",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/lib/importProjectZip.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/lib/importProjectZip.ts"
+      ],
+      "verification": [
+        "vendor/scormly/tests/projectZip.test.ts",
+        "vendor/scormly/tests/repairCourse.test.ts"
+      ],
+      "assessment": "Source ZIP backup download is tested; complete local project round-trip needs browser acceptance.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A07",
+      "repository": "studio",
+      "feature": "Media assets and image optimization",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/lib/assets.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/lib/assets.ts"
+      ],
+      "verification": [
+        "vendor/scormly/tests/packageCommon.test.ts"
+      ],
+      "assessment": "Asset storage and referenced-asset packaging retained.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A08",
+      "repository": "studio",
+      "feature": "SCORM 1.2 export",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "src/export/exportScorm.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/export/exportScorm.ts"
+      ],
+      "verification": [
+        "frontend/e2e/training.spec.ts::Scormly publishes a real package and editable backup to the LMS"
+      ],
+      "assessment": "Built package and editable backup publish to the LMS in the end-to-end suite.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A09",
+      "repository": "studio",
+      "feature": "SCORM 2004 export and LMS publication",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "src/export/exportScorm.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/export/exportScorm.ts",
+        "vendor/scormly/src/components/editor/PublishLms.tsx"
+      ],
+      "verification": [
+        "vendor/scormly/tests/scormManifest.test.ts",
+        "frontend/e2e/training.spec.ts::Scormly publishes a real package and editable backup to the LMS"
+      ],
+      "assessment": "Company Publish to LMS now selects SCORM 1.2 or 2004 instead of forcing 1.2. Both generated formats publish with an editable backup and pass real isolated-player bookmark save/resume tests. Complete SCORM conformance remains separate.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A10",
+      "repository": "studio",
+      "feature": "cmi5 export and xAPI handshake",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/export/exportCmi5.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/export/exportCmi5.ts"
+      ],
+      "verification": [
+        "vendor/scormly/tests/xapi.test.ts"
+      ],
+      "assessment": "Exporter/runtime and mocked tests retained. This LMS has no cmi5 import or LRS; upstream also states live-LRS validation is unfinished.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A11",
+      "repository": "studio",
+      "feature": "Free/linear navigation, completion and passing score",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/preview/progress.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/preview/progress.ts"
+      ],
+      "verification": [
+        "vendor/scormly/tests/packageCommon.test.ts"
+      ],
+      "assessment": "Settings/preview/player implementations retained; per-policy LMS browser acceptance not recorded.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A12",
+      "repository": "studio",
+      "feature": "Restricted continue and mandatory video watching",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/preview/progress.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/preview/progress.ts"
+      ],
+      "verification": [],
+      "assessment": "Upstream task/video gating retained; no company LMS proof for each gating mode yet.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A13",
+      "repository": "studio",
+      "feature": "Five quiz question kinds and feedback policies",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/types/course.ts",
+          "line": 367
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/types/course.ts"
+      ],
+      "verification": [
+        "vendor/scormly/tests/fillBlanks.test.ts",
+        "vendor/scormly/tests/ordering.test.ts"
+      ],
+      "assessment": "Single, multiple, matching, sequence and fillBlanks are studio capabilities, not independent exam types.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A14",
+      "repository": "studio",
+      "feature": "Full-screen learner preview and finish screen",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/components/preview/PreviewOverlay.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/components/preview/PreviewOverlay.tsx"
+      ],
+      "verification": [],
+      "assessment": "Preview retained; not an independent-exam preview.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A15",
+      "repository": "studio",
+      "feature": "Ten themes and custom theme",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/theme/themes.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/theme/themes.ts"
+      ],
+      "verification": [
+        "vendor/scormly/tests/customTheme.test.ts"
+      ],
+      "assessment": "Theme model, contrast and custom-theme behavior retained.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A16",
+      "repository": "studio",
+      "feature": "Cover page, typography, backgrounds, widths and motion",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/types/course.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/types/course.ts"
+      ],
+      "verification": [
+        "vendor/scormly/tests/playerCss.test.ts"
+      ],
+      "assessment": "Styling and cover settings retained in editor/preview/player. Per-variant visual acceptance remains incomplete.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A17",
+      "repository": "studio",
+      "feature": "Alt/decorative images, captions, transcripts, embed titles",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/export/courseCheck.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/export/courseCheck.ts"
+      ],
+      "verification": [
+        "vendor/scormly/tests/courseCheck.test.ts"
+      ],
+      "assessment": "Accessibility fields and pre-export checks retained; no complete accessibility certification claimed.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A18",
+      "repository": "studio",
+      "feature": "Learner accessibility menu and keyboard controls",
+      "status": "retained",
+      "source": [
+        {
+          "path": "public/scorm-player/player.js",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/public/scorm-player/player.js"
+      ],
+      "verification": [],
+      "assessment": "Text size, contrast, spacing and reduced-motion controls retained. Needs dedicated keyboard/screen-reader acceptance.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A19",
+      "repository": "studio",
+      "feature": "Author/project language and exported player languages",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "src/i18n/I18nProvider.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/i18n/I18nProvider.tsx"
+      ],
+      "verification": [
+        "vendor/scormly/tests/companyLocales.test.ts",
+        "vendor/scormly/tests/playerLanguages.test.ts",
+        "frontend/e2e/training.spec.ts::three languages default to English and preserve form state and preferences"
+      ],
+      "assessment": "Company default English plus Traditional Chinese/Spanish implemented without changing authored text; upstream Ukrainian remains in source.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A20",
+      "repository": "studio",
+      "feature": "Pre-export course diagnostics",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/export/courseCheck.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/export/courseCheck.ts"
+      ],
+      "verification": [
+        "vendor/scormly/tests/courseCheck.test.ts"
+      ],
+      "assessment": "Diagnostics retained; company publishing blocks invalid projects.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A21",
+      "repository": "studio",
+      "feature": "AI project guide and author instructions",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/lib/agentGuide.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/lib/agentGuide.ts"
+      ],
+      "verification": [
+        "vendor/scormly/tests/agentGuide.test.ts"
+      ],
+      "assessment": "Generated guide and non-overwritten author instructions retained.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A22",
+      "repository": "studio",
+      "feature": "Sample course and templates",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "src/lib/sampleCourse.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/lib/sampleCourse.ts"
+      ],
+      "verification": [
+        "vendor/scormly/tests/sampleCourse.test.ts",
+        "vendor/scormly/tests/templates.test.ts"
+      ],
+      "assessment": "Demo is opened and published during browser tests; template structure has unit coverage.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "A23",
+      "repository": "studio",
+      "feature": "Marketing landing page and release/help content",
+      "status": "retained",
+      "source": [
+        {
+          "path": "src/components/landing/Landing.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "vendor/scormly/src/components/landing/Landing.tsx"
+      ],
+      "verification": [],
+      "assessment": "Source route retained; corporate studio enters the builder at /studio/#/app. Not a company marketing-service integration.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "D01",
+      "repository": "dashboard",
+      "feature": "Role dashboards and protected navigation",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "src/middleware.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "backend/training/views.py",
+        "frontend/src/App.tsx"
+      ],
+      "verification": [
+        "backend/training/tests.py::test_dashboard_learner_only_sees_own_data"
+      ],
+      "assessment": "Admin/instructor/learner roles implemented with server authorization. Parent-to-supervisor reporting is a separate gap.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "D02",
+      "repository": "dashboard",
+      "feature": "Population/demographic cards and charts",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "src/app/components/CountChartContainer.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "frontend/src/Dashboard.tsx",
+        "backend/training/views.py"
+      ],
+      "verification": [
+        "backend/training/tests.py::test_dashboard_learner_only_sees_own_data"
+      ],
+      "assessment": "Company roles, employment and department metrics replace school demographic categories.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "D03",
+      "repository": "dashboard",
+      "feature": "Attendance charts and attendance records",
+      "status": "missing",
+      "source": [
+        {
+          "path": "src/app/components/AttendanceChartContainer.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "No scheduled session/attendance model, roster or genuine attendance chart. Course completion is not attendance.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "D04",
+      "repository": "dashboard",
+      "feature": "Financial chart",
+      "status": "upstream_placeholder",
+      "source": [
+        {
+          "path": "src/app/components/FinanceChart.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Upstream uses hard-coded income/expense arrays and has no finance model. Company training spend reporting would be a new feature, not a working upstream capability.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "D05",
+      "repository": "dashboard",
+      "feature": "Performance chart and assessment reporting",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "src/app/components/PerformanceChart.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "backend/training/reporting.py",
+        "frontend/src/Insights.tsx"
+      ],
+      "verification": [
+        "backend/training/test_reporting.py::test_question_insights_use_frozen_variants_and_normalize_shuffles"
+      ],
+      "assessment": "Upstream performance gauge is a fixed 9.2. Current exam distributions and question/department reports use real stored attempts.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "D06",
+      "repository": "dashboard",
+      "feature": "Teacher/person directory and profile editing",
+      "status": "partial",
+      "source": [
+        {
+          "path": "src/app/dashboard/list/teachers/page.tsx",
+          "line": 1
+        },
+        {
+          "path": "src/lib/actions.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "frontend/src/Management.tsx",
+        "backend/training/operations.py"
+      ],
+      "verification": [
+        "backend/training/test_operations.py::test_people_import_preview_rolls_back_and_apply_is_atomic"
+      ],
+      "assessment": "Company people CRUD and roles implemented; rich individual instructor profiles and teaching schedules are absent.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "D07",
+      "repository": "dashboard",
+      "feature": "Student directory and self/parent details",
+      "status": "partial",
+      "source": [
+        {
+          "path": "src/app/dashboard/list/students/page.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "frontend/src/Management.tsx"
+      ],
+      "verification": [],
+      "assessment": "Learner accounts exist; per-person training transcript/profile pages and supervisor relationship are incomplete.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "D08",
+      "repository": "dashboard",
+      "feature": "Parent dashboard and linked learners",
+      "status": "missing",
+      "source": [
+        {
+          "path": "src/app/dashboard/parent/page.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "For company use this maps to supervisors/direct reports; that relationship and scoped dashboard do not exist yet.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "D09",
+      "repository": "dashboard",
+      "feature": "Classes/cohorts, capacity and supervisors",
+      "status": "missing",
+      "source": [
+        {
+          "path": "src/app/dashboard/list/classes/page.tsx",
+          "line": 1
+        },
+        {
+          "path": "src/lib/actions.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Departments and assignment targets do not model named cohorts with capacity, memberships and supervisors.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "D10",
+      "repository": "dashboard",
+      "feature": "Subjects and teacher assignments",
+      "status": "partial",
+      "source": [
+        {
+          "path": "src/app/dashboard/list/subjects/page.tsx",
+          "line": 1
+        },
+        {
+          "path": "src/lib/actions.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "backend/training/models.py"
+      ],
+      "verification": [],
+      "assessment": "Course categories exist, but subject administration and many-to-many instructor allocation do not.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "D11",
+      "repository": "dashboard",
+      "feature": "Grade levels",
+      "status": "missing",
+      "source": [
+        {
+          "path": "prisma/schema.prisma",
+          "line": 108
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Corporate equivalent is a training level/path; no level/class membership model.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "D12",
+      "repository": "dashboard",
+      "feature": "Lesson schedules and week/day/calendar views",
+      "status": "missing",
+      "source": [
+        {
+          "path": "src/app/components/BigCalendarContainer.tsx",
+          "line": 1
+        },
+        {
+          "path": "src/app/components/BigCalendar.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Exam dates and assignment due dates exist, but no training session timetable/calendar.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "D13",
+      "repository": "dashboard",
+      "feature": "Event calendar and date-filtered events",
+      "status": "missing",
+      "source": [
+        {
+          "path": "src/app/components/EventList.tsx",
+          "line": 1
+        },
+        {
+          "path": "src/app/components/EventCalendarContainer.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "No company training events, calendar or audience-scoped event listing.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "D14",
+      "repository": "dashboard",
+      "feature": "Audience-scoped announcements",
+      "status": "missing",
+      "source": [
+        {
+          "path": "src/app/components/Announcemets.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "No published announcement model or scoped announcement feed.",
+      "priority": 1,
+      "routes": []
+    },
+    {
+      "id": "D15",
+      "repository": "dashboard",
+      "feature": "Exams, assignments and result lists",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "src/app/dashboard/list/results/page.tsx",
+          "line": 1
+        },
+        {
+          "path": "src/app/dashboard/list/assignments/page.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "backend/training/operations.py",
+        "backend/training/reporting.py",
+        "frontend/src/Management.tsx"
+      ],
+      "verification": [
+        "backend/training/test_reporting.py::test_filters_and_csv_match_across_all_pages"
+      ],
+      "assessment": "Independent/course exams, required training, result filters and exports are implemented with database-backed writes.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "D16",
+      "repository": "dashboard",
+      "feature": "Search and pagination across directories",
+      "status": "partial",
+      "source": [
+        {
+          "path": "src/app/components/Pagination.tsx",
+          "line": 1
+        },
+        {
+          "path": "src/app/components/TableSearch.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "frontend/src/Management.tsx",
+        "backend/training/reporting.py"
+      ],
+      "verification": [],
+      "assessment": "Results/invitations have server pagination. People/course/bank lists do not uniformly paginate all records.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "D17",
+      "repository": "dashboard",
+      "feature": "Generic entity forms and delete modals",
+      "status": "upstream_placeholder",
+      "source": [
+        {
+          "path": "src/app/components/FormModal.tsx",
+          "line": 1
+        },
+        {
+          "path": "src/lib/actions.ts",
+          "line": 1
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Only subject/class/teacher actions are implemented upstream. Most other form submits log to the console and most generic delete operations are incorrectly mapped to the subject deletion action. Do not count these as completed business workflows.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "D18",
+      "repository": "dashboard",
+      "feature": "Real-time notifications and messages",
+      "status": "upstream_placeholder",
+      "source": [
+        {
+          "path": "src/app/components/Navbar.tsx",
+          "line": 1
+        },
+        {
+          "path": "prisma/schema.prisma",
+          "line": 1
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "README claims real-time updates, but navigation badges are static and Message is commented out. No working notification transport was found.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "D19",
+      "repository": "dashboard",
+      "feature": "Responsive sidebar, cards, tables and charts",
+      "status": "implemented",
+      "source": [
+        {
+          "path": "src/app/globals.css",
+          "line": 1
+        },
+        {
+          "path": "src/app/components/Menu.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [
+        "frontend/src/style.css",
+        "frontend/src/App.tsx",
+        "frontend/src/Dashboard.tsx"
+      ],
+      "verification": [
+        "frontend/e2e/training.spec.ts::dashboard, responsive navigation, library and persisted course editor"
+      ],
+      "assessment": "Original enterprise UI uses Azure blue/teal with responsive navigation and real chart data. No reference code/assets copied.",
+      "priority": 2,
+      "routes": []
+    },
+    {
+      "id": "D20",
+      "repository": "dashboard",
+      "feature": "Teacher/student/parent schedules by current relationship",
+      "status": "missing",
+      "source": [
+        {
+          "path": "src/app/dashboard/teacher/page.tsx",
+          "line": 1
+        },
+        {
+          "path": "src/app/dashboard/student/page.tsx",
+          "line": 1
+        },
+        {
+          "path": "src/app/dashboard/parent/page.tsx",
+          "line": 1
+        }
+      ],
+      "implementation": [],
+      "verification": [],
+      "assessment": "Current role filtering covers owned/assigned training; relationship-scoped schedule views await cohorts/supervisors/sessions.",
+      "priority": 1,
+      "routes": []
+    }
+  ],
+  "yaksh_routes": [
+    {
+      "path": "yaksh/urls.py",
+      "line": 6,
+      "target": "views.index",
+      "feature": "Y01"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 7,
+      "target": "views.user_login",
+      "feature": "Y01"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 8,
+      "target": "views.user_logout",
+      "feature": "Y01"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 9,
+      "target": "views.update_email",
+      "feature": "Y03"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 10,
+      "target": "views.activate_user",
+      "feature": "Y02"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 11,
+      "target": "views.new_activation",
+      "feature": "Y02"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 12,
+      "target": "views.toggle_moderator_role",
+      "feature": "Y04"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 14,
+      "target": "views.quizlist_user",
+      "feature": "Y34"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 15,
+      "target": "views.results_user",
+      "feature": "Y41"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 16,
+      "target": "views.start",
+      "feature": "Y40"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 18,
+      "target": "views.start",
+      "feature": "Y40"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 21,
+      "target": "views.quit",
+      "feature": "Y40"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 24,
+      "target": "views.complete",
+      "feature": "Y40"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 25,
+      "target": "views.complete",
+      "feature": "Y40"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 28,
+      "target": "views.user_register",
+      "feature": "Y02"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 29,
+      "target": "views.check",
+      "feature": "Y40"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 30,
+      "target": "views.get_result",
+      "feature": "Y40"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 32,
+      "target": "views.check",
+      "feature": "Y40"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 35,
+      "target": "views.skip",
+      "feature": "Y40"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 38,
+      "target": "views.skip",
+      "feature": "Y40"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 41,
+      "target": "views.enroll_request",
+      "feature": "Y07"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 43,
+      "target": "views.self_enroll",
+      "feature": "Y06"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 45,
+      "target": "views.view_answerpaper",
+      "feature": "Y40"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 47,
+      "target": "views.download_assignment_file",
+      "feature": "Y27"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 50,
+      "target": "views.show_lesson",
+      "feature": "Y13"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 52,
+      "target": "views.view_module",
+      "feature": "Y11"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 54,
+      "target": "views.get_next_unit",
+      "feature": "Y11"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 56,
+      "target": "views.get_next_unit",
+      "feature": "Y11"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 58,
+      "target": "views.get_next_unit",
+      "feature": "Y11"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 61,
+      "target": "views.course_modules",
+      "feature": "Y11"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 63,
+      "target": "views.course_forum",
+      "feature": "Y19"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 66,
+      "target": "views.lessons_forum",
+      "feature": "Y19"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 68,
+      "target": "views.post_comments",
+      "feature": "Y19"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 71,
+      "target": "views.hide_post",
+      "feature": "Y19"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 74,
+      "target": "views.hide_comment",
+      "feature": "Y19"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 77,
+      "target": "views.prof_manage",
+      "feature": "Y01"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 78,
+      "target": "views.add_question",
+      "feature": "Y22"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 79,
+      "target": "views.add_question",
+      "feature": "Y22"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 81,
+      "target": "views.add_exercise",
+      "feature": "Y38"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 83,
+      "target": "views.add_exercise",
+      "feature": "Y38"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 85,
+      "target": "views.add_quiz",
+      "feature": "Y34"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 87,
+      "target": "views.add_quiz",
+      "feature": "Y34"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 89,
+      "target": "views.grade_user",
+      "feature": "Y41"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 90,
+      "target": "views.grade_user",
+      "feature": "Y41"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 92,
+      "target": "views.grade_user",
+      "feature": "Y41"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 95,
+      "target": "views.grade_user",
+      "feature": "Y41"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 98,
+      "target": "views.show_all_questions",
+      "feature": "Y22"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 100,
+      "target": "views.monitor",
+      "feature": "Y43"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 101,
+      "target": "views.monitor",
+      "feature": "Y43"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 103,
+      "target": "views.monitor",
+      "feature": "Y43"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 105,
+      "target": "views.user_data",
+      "feature": "Y41"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 108,
+      "target": "views.user_data",
+      "feature": "Y41"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 109,
+      "target": "views.design_questionpaper",
+      "feature": "Y39"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 112,
+      "target": "views.design_questionpaper",
+      "feature": "Y39"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 114,
+      "target": "views.show_statistics",
+      "feature": "Y44"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 117,
+      "target": "views.show_statistics",
+      "feature": "Y44"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 120,
+      "target": "views.download_quiz_csv",
+      "feature": "Y44"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 122,
+      "target": "views.duplicate_course",
+      "feature": "Y17"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 124,
+      "target": "views.courses",
+      "feature": "Y05"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 125,
+      "target": "views.add_course",
+      "feature": "Y05"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 126,
+      "target": "views.add_course",
+      "feature": "Y05"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 128,
+      "target": "views.course_detail",
+      "feature": "Y11"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 131,
+      "target": "views.enroll_reject_user",
+      "feature": "Y07"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 133,
+      "target": "views.enroll_user",
+      "feature": "Y07"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 135,
+      "target": "views.reject_user",
+      "feature": "Y07"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 137,
+      "target": "views.reject_user",
+      "feature": "Y07"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 140,
+      "target": "views.enroll_reject_user",
+      "feature": "Y07"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 143,
+      "target": "views.enroll_user",
+      "feature": "Y07"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 146,
+      "target": "views.enroll_reject_user",
+      "feature": "Y07"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 150,
+      "target": "views.upload_users",
+      "feature": "Y09"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 152,
+      "target": "views.send_mail",
+      "feature": "Y20"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 155,
+      "target": "views.toggle_course_status",
+      "feature": "Y05"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 157,
+      "target": "views.questions_filter",
+      "feature": "Y22"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 159,
+      "target": "views.edit_profile",
+      "feature": "Y03"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 160,
+      "target": "views.view_profile",
+      "feature": "Y03"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 161,
+      "target": "views.generate_qrcode",
+      "feature": "Y28"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 164,
+      "target": "views.upload_file",
+      "feature": "Y28"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 165,
+      "target": "views.search_teacher",
+      "feature": "Y10"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 167,
+      "target": "views.add_teacher",
+      "feature": "Y10"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 169,
+      "target": "views.remove_teachers",
+      "feature": "Y10"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 171,
+      "target": "views.show_all_questions",
+      "feature": "Y22"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 173,
+      "target": "views.show_all_questions",
+      "feature": "Y22"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 175,
+      "target": "views.regrade",
+      "feature": "Y42"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 178,
+      "target": "views.regrade",
+      "feature": "Y42"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 180,
+      "target": "views.regrade",
+      "feature": "Y42"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 183,
+      "target": "views.test_quiz",
+      "feature": "Y46"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 185,
+      "target": "views.create_demo_course",
+      "feature": "Y48"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 187,
+      "target": "views.download_course_csv",
+      "feature": "Y16"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 189,
+      "target": "views.download_assignment_file",
+      "feature": "Y27"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 192,
+      "target": "views.download_assignment_file",
+      "feature": "Y27"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 195,
+      "target": "views.download_yaml_template",
+      "feature": "Y33"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 197,
+      "target": "views.download_sample_csv",
+      "feature": "Y09"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 199,
+      "target": "views.edit_lesson",
+      "feature": "Y13"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 201,
+      "target": "views.edit_lesson",
+      "feature": "Y13"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 203,
+      "target": "views.design_module",
+      "feature": "Y11"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 205,
+      "target": "views.design_module",
+      "feature": "Y11"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 207,
+      "target": "views.add_module",
+      "feature": "Y11"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 209,
+      "target": "views.add_module",
+      "feature": "Y11"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 211,
+      "target": "views.design_course",
+      "feature": "Y11"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 213,
+      "target": "views.course_status",
+      "feature": "Y16"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 215,
+      "target": "views.preview_questionpaper",
+      "feature": "Y46"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 217,
+      "target": "views.get_user_data",
+      "feature": "Y16"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 219,
+      "target": "views.download_course",
+      "feature": "Y18"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 221,
+      "target": "views.download_course",
+      "feature": "Y18"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 223,
+      "target": "views.get_course_modules",
+      "feature": "Y11"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 225,
+      "target": "views.course_teachers",
+      "feature": "Y10"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 227,
+      "target": "views.download_course_progress",
+      "feature": "Y16"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 229,
+      "target": "views.download_question",
+      "feature": "Y33"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 231,
+      "target": "views.test_question",
+      "feature": "Y22"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 233,
+      "target": "views.delete_question",
+      "feature": "Y22"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 235,
+      "target": "views.search_questions_by_tags",
+      "feature": "Y22"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 237,
+      "target": "views.view_notifications",
+      "feature": "Y20"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 239,
+      "target": "views.mark_notification",
+      "feature": "Y20"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 241,
+      "target": "views.mark_notification",
+      "feature": "Y20"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 243,
+      "target": "views.allow_special_attempt",
+      "feature": "Y35"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 246,
+      "target": "views.special_start",
+      "feature": "Y35"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 248,
+      "target": "views.revoke_special_attempt",
+      "feature": "Y35"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 250,
+      "target": "views.extend_time",
+      "feature": "Y43"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 252,
+      "target": "views.add_marker",
+      "feature": "Y14"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 254,
+      "target": "views.add_topic",
+      "feature": "Y14"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 256,
+      "target": "views.add_topic",
+      "feature": "Y14"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 258,
+      "target": "views.add_marker_quiz",
+      "feature": "Y14"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 260,
+      "target": "views.add_marker_quiz",
+      "feature": "Y14"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 263,
+      "target": "views.delete_toc",
+      "feature": "Y14"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 265,
+      "target": "views.get_marker_quiz",
+      "feature": "Y14"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 267,
+      "target": "views.submit_marker_quiz",
+      "feature": "Y14"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 269,
+      "target": "views.lesson_statistics",
+      "feature": "Y14"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 271,
+      "target": "views.lesson_statistics",
+      "feature": "Y14"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 273,
+      "target": "views.download_sample_toc",
+      "feature": "Y14"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 275,
+      "target": "views.upload_marks",
+      "feature": "Y45"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 277,
+      "target": "views.upload_download_course_md",
+      "feature": "Y18"
+    },
+    {
+      "path": "yaksh/urls.py",
+      "line": 279,
+      "target": "views.download_seb_config",
+      "feature": "Y47"
+    },
+    {
+      "path": "grades/urls.py",
+      "line": 7,
+      "target": "views.grading_systems",
+      "feature": "Y21"
+    },
+    {
+      "path": "grades/urls.py",
+      "line": 8,
+      "target": "views.grading_systems",
+      "feature": "Y21"
+    },
+    {
+      "path": "grades/urls.py",
+      "line": 9,
+      "target": "views.add_grading_system",
+      "feature": "Y21"
+    },
+    {
+      "path": "grades/urls.py",
+      "line": 10,
+      "target": "views.add_grading_system",
+      "feature": "Y21"
+    },
+    {
+      "path": "stats/urls.py",
+      "line": 8,
+      "target": "views.add_tracker",
+      "feature": "Y15"
+    },
+    {
+      "path": "stats/urls.py",
+      "line": 10,
+      "target": "views.view_lesson_watch_stats",
+      "feature": "Y15"
+    },
+    {
+      "path": "api/urls.py",
+      "line": 8,
+      "target": "views.QuestionList",
+      "feature": "Y49"
+    },
+    {
+      "path": "api/urls.py",
+      "line": 9,
+      "target": "views.QuestionDetail",
+      "feature": "Y49"
+    },
+    {
+      "path": "api/urls.py",
+      "line": 11,
+      "target": "views.CourseList",
+      "feature": "Y49"
+    },
+    {
+      "path": "api/urls.py",
+      "line": 12,
+      "target": "views.StartQuiz",
+      "feature": "Y49"
+    },
+    {
+      "path": "api/urls.py",
+      "line": 14,
+      "target": "views.QuizList",
+      "feature": "Y49"
+    },
+    {
+      "path": "api/urls.py",
+      "line": 15,
+      "target": "views.QuizDetail",
+      "feature": "Y49"
+    },
+    {
+      "path": "api/urls.py",
+      "line": 16,
+      "target": "views.QuestionPaperList",
+      "feature": "Y49"
+    },
+    {
+      "path": "api/urls.py",
+      "line": 18,
+      "target": "views.QuestionPaperDetail",
+      "feature": "Y49"
+    },
+    {
+      "path": "api/urls.py",
+      "line": 20,
+      "target": "views.AnswerPaperList",
+      "feature": "Y49"
+    },
+    {
+      "path": "api/urls.py",
+      "line": 22,
+      "target": "views.AnswerValidator",
+      "feature": "Y49"
+    },
+    {
+      "path": "api/urls.py",
+      "line": 24,
+      "target": "views.AnswerValidator",
+      "feature": "Y49"
+    },
+    {
+      "path": "api/urls.py",
+      "line": 26,
+      "target": "views.GetCourse",
+      "feature": "Y49"
+    },
+    {
+      "path": "api/urls.py",
+      "line": 28,
+      "target": "views.QuitQuiz",
+      "feature": "Y49"
+    },
+    {
+      "path": "api/urls.py",
+      "line": 30,
+      "target": "views.login",
+      "feature": "Y01"
+    },
+    {
+      "path": "upload/urls.py",
+      "line": 7,
+      "target": "views.download_course_md",
+      "feature": "Y18"
+    },
+    {
+      "path": "online_test/urls.py",
+      "line": 13,
+      "target": "admin.site.urls",
+      "feature": "Y01"
+    },
+    {
+      "path": "online_test/urls.py",
+      "line": 14,
+      "target": "views.index",
+      "feature": "Y01"
+    }
+  ],
+  "studio_blocks": [
+    "heading",
+    "paragraph",
+    "list",
+    "note",
+    "image",
+    "gallery",
+    "video",
+    "audio",
+    "embed",
+    "code",
+    "table",
+    "quote",
+    "continue",
+    "divider",
+    "courseOutline",
+    "tabs",
+    "accordion",
+    "flashcards",
+    "scenario",
+    "quiz",
+    "hotspot",
+    "timeline",
+    "ordering",
+    "fillBlanks",
+    "imageText",
+    "attachment",
+    "columns",
+    "process",
+    "steps",
+    "comparison",
+    "beforeAfter",
+    "reflection"
+  ],
+  "studio_files": [
+    {
+      "path": ".claude/hooks/session-start.sh",
+      "source_sha256": "c75277077d26ae7d0bbbc3e886164bdd27b89cf560833b9bfbd22b87c9237e9e",
+      "local_sha256": "c75277077d26ae7d0bbbc3e886164bdd27b89cf560833b9bfbd22b87c9237e9e"
+    },
+    {
+      "path": ".claude/settings.json",
+      "source_sha256": "7357196f0a24db22f68992da2b196d81b31c709cd991852451b0231d8c4ed47f",
+      "local_sha256": "7357196f0a24db22f68992da2b196d81b31c709cd991852451b0231d8c4ed47f"
+    },
+    {
+      "path": ".claude/settings.local.json",
+      "source_sha256": "1c2997de69ab7cec3aff2cd8ae6833f5095b4d6abd32f0cce41ed37428a4ce6d",
+      "local_sha256": "1c2997de69ab7cec3aff2cd8ae6833f5095b4d6abd32f0cce41ed37428a4ce6d"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug_report.yml",
+      "source_sha256": "82c346b877cb919b773bb3514ebd8b0736f15944ae937fedeeef495325ac25ac",
+      "local_sha256": "82c346b877cb919b773bb3514ebd8b0736f15944ae937fedeeef495325ac25ac"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/config.yml",
+      "source_sha256": "13064e7bea658e01e718b414fbb7b3b244f36411fe25ee2055c151f7b534547a",
+      "local_sha256": "13064e7bea658e01e718b414fbb7b3b244f36411fe25ee2055c151f7b534547a"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature_request.yml",
+      "source_sha256": "f266ed45d64853dae4523947d9d5a298fa3292bf7ecdd73d0d7099cc34b9c3cb",
+      "local_sha256": "f266ed45d64853dae4523947d9d5a298fa3292bf7ecdd73d0d7099cc34b9c3cb"
+    },
+    {
+      "path": ".github/dependabot.yml",
+      "source_sha256": "11f290e15dbd7af31060674119a11ddecc0fcaf0061db836e46f14fa42507d83",
+      "local_sha256": "11f290e15dbd7af31060674119a11ddecc0fcaf0061db836e46f14fa42507d83"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "source_sha256": "df88d54740974fb3c1eed5c0a3a58b5c2bd2fd43ed5c898e09637c29cabbed79",
+      "local_sha256": "df88d54740974fb3c1eed5c0a3a58b5c2bd2fd43ed5c898e09637c29cabbed79"
+    },
+    {
+      "path": ".github/workflows/deploy.yml",
+      "source_sha256": "a879bfbb2ba528558f78d760be9159a61a61b6c17944897d3ec22bc6a280aa9e",
+      "local_sha256": "a879bfbb2ba528558f78d760be9159a61a61b6c17944897d3ec22bc6a280aa9e"
+    },
+    {
+      "path": ".gitignore",
+      "source_sha256": "4f103d378f49fa3eca8dffd8492747cd849106c3df0e75939b8e0e3e56c59e3d",
+      "local_sha256": "4f103d378f49fa3eca8dffd8492747cd849106c3df0e75939b8e0e3e56c59e3d"
+    },
+    {
+      "path": "AGENTS.md",
+      "source_sha256": "b4331e5d26f7cce60c244a30a31f9593d46fc8819a608b4857469a1ec91c4548",
+      "local_sha256": "efa14e38d6b394e2d549748f90bb25c62d07e11cb0136b525b19e3a6efde1c65"
+    },
+    {
+      "path": "CLAUDE.md",
+      "source_sha256": "26a20b44143d8d63b7f692bb4a1947786c94bbf3c995c57cf3afa7ec1fc09893",
+      "local_sha256": "21d4ef07f87e2182dc9d1ec8843537acd5219b4761adc003445f623bbebd3fb4"
+    },
+    {
+      "path": "LICENSE",
+      "source_sha256": "68e4711e4e5fb60bd2ea4dd24bb17626317379f29106449097ee1e2d1dc6ddd2",
+      "local_sha256": "68e4711e4e5fb60bd2ea4dd24bb17626317379f29106449097ee1e2d1dc6ddd2"
+    },
+    {
+      "path": "PROGRESS.md",
+      "source_sha256": "119b7f49dddff777632f64aea8aea421b6f59a42f39bed70f6c894fd2de3eb5c",
+      "local_sha256": "119b7f49dddff777632f64aea8aea421b6f59a42f39bed70f6c894fd2de3eb5c"
+    },
+    {
+      "path": "README.md",
+      "source_sha256": "bac61b4607a458ea4e563a25df5b3ebe9270e72470c901102c956623680b9839",
+      "local_sha256": "bac61b4607a458ea4e563a25df5b3ebe9270e72470c901102c956623680b9839"
+    },
+    {
+      "path": "docs/adding-blocks.md",
+      "source_sha256": "4734a5438ad66da3bd001ebe0b0537a45c7b0299cf963472375340f1529f61a7",
+      "local_sha256": "4734a5438ad66da3bd001ebe0b0537a45c7b0299cf963472375340f1529f61a7"
+    },
+    {
+      "path": "docs/architecture.md",
+      "source_sha256": "d1efb2a61fd358e72fa3bbca9b8c8aa04a80926a0a036f653bcd587e4eecf369",
+      "local_sha256": "d1efb2a61fd358e72fa3bbca9b8c8aa04a80926a0a036f653bcd587e4eecf369"
+    },
+    {
+      "path": "docs/character-brief.md",
+      "source_sha256": "639391dafb612be8a4e90463278768e12c69eb0b07d98f5a07fbfd6902f09c48",
+      "local_sha256": "639391dafb612be8a4e90463278768e12c69eb0b07d98f5a07fbfd6902f09c48"
+    },
+    {
+      "path": "index.html",
+      "source_sha256": "90945d099b049acc0176e64cc6a622669f3de960eafb718faf820782b8326635",
+      "local_sha256": "90945d099b049acc0176e64cc6a622669f3de960eafb718faf820782b8326635"
+    },
+    {
+      "path": "package-lock.json",
+      "source_sha256": "c4b1b355c8b4569e2ed49884e636ecd181e091b71fd89357f08a324457d3d577",
+      "local_sha256": "113f910dedfd124269630f0239a94aa782d17aa2e43e9abb5df121f6f9a53af8"
+    },
+    {
+      "path": "package.json",
+      "source_sha256": "cb75934d0644f4400caf508c65deb0f4cc28628e3f9b6672d7ccaf202220d8be",
+      "local_sha256": "7136350c7fc42774fce3ee0b83b79af9ad64671466068129ee51b3be8d062439"
+    },
+    {
+      "path": "public/CNAME",
+      "source_sha256": "93e9595365e960515e8f13b22745c7ea45ebbdf437844ed3a1ff325be62d906a",
+      "local_sha256": "93e9595365e960515e8f13b22745c7ea45ebbdf437844ed3a1ff325be62d906a"
+    },
+    {
+      "path": "public/favicon.svg",
+      "source_sha256": "76d486ff49104d3fa6942092445549b6186d2511d9cd080486f50d425cf3f460",
+      "local_sha256": "76d486ff49104d3fa6942092445549b6186d2511d9cd080486f50d425cf3f460"
+    },
+    {
+      "path": "public/llms.txt",
+      "source_sha256": "002d69bb269b0457ef9f44860971de189e68aa0f7ad2324b072149a5e070b0eb",
+      "local_sha256": "002d69bb269b0457ef9f44860971de189e68aa0f7ad2324b072149a5e070b0eb"
+    },
+    {
+      "path": "public/manifest.webmanifest",
+      "source_sha256": "202492c62529aac3a04f0987561c474def3b43040d042065ee0eaf74a99dbf32",
+      "local_sha256": "202492c62529aac3a04f0987561c474def3b43040d042065ee0eaf74a99dbf32"
+    },
+    {
+      "path": "public/og-image.png",
+      "source_sha256": "0f6b14c262fe38fa033818e7c7afc2c5eaad312c560ff215df6748762653adc8",
+      "local_sha256": "0f6b14c262fe38fa033818e7c7afc2c5eaad312c560ff215df6748762653adc8"
+    },
+    {
+      "path": "public/og-image.svg",
+      "source_sha256": "782e78c9618568c35e2269ec409ed1815576170fc7e5827fae6a3edeaeee6745",
+      "local_sha256": "782e78c9618568c35e2269ec409ed1815576170fc7e5827fae6a3edeaeee6745"
+    },
+    {
+      "path": "public/robots.txt",
+      "source_sha256": "2359465fd76a0c546065281573fc70b0f006a4eeadcbf6e4ae0bff04dab19bcd",
+      "local_sha256": "2359465fd76a0c546065281573fc70b0f006a4eeadcbf6e4ae0bff04dab19bcd"
+    },
+    {
+      "path": "public/scorm-player/index.html",
+      "source_sha256": "2bb54653d53ac965c3fd73f4c339ce9f05bd8ec8fd196d6d7742971685fa2ae4",
+      "local_sha256": "2bb54653d53ac965c3fd73f4c339ce9f05bd8ec8fd196d6d7742971685fa2ae4"
+    },
+    {
+      "path": "public/scorm-player/player.css",
+      "source_sha256": "3e110248f907f988d3a6ef5165fce531050f0074bcdea2a281d9a6534f19e217",
+      "local_sha256": "3e110248f907f988d3a6ef5165fce531050f0074bcdea2a281d9a6534f19e217"
+    },
+    {
+      "path": "public/scorm-player/player.js",
+      "source_sha256": "59f8e3ec1a7e332920221be83cc3a6c05c51b916375a2d88fa411b5488337b09",
+      "local_sha256": "dd064e5dd46f46f05abf392b390e85c283ddb2bad98fe78696c8d48d9777a462"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm12/adlcp_rootv1p2.xsd",
+      "source_sha256": "166397a1f52585caac857228cf2b10085a5d07c0612a3d55cb3ed108ce8b028a",
+      "local_sha256": "166397a1f52585caac857228cf2b10085a5d07c0612a3d55cb3ed108ce8b028a"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm12/ims_xml.xsd",
+      "source_sha256": "1b3a43ddef4fa814a6dce69c4dbbfc25e00e0edc76a0cccfec7ed0a59c6a37b0",
+      "local_sha256": "1b3a43ddef4fa814a6dce69c4dbbfc25e00e0edc76a0cccfec7ed0a59c6a37b0"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm12/imscp_rootv1p1p2.xsd",
+      "source_sha256": "e45606348d7f517874d70ec102796526a63a85e54a4a1db5e6a5944449674d31",
+      "local_sha256": "e45606348d7f517874d70ec102796526a63a85e54a4a1db5e6a5944449674d31"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm12/imsmd_rootv1p2p1.xsd",
+      "source_sha256": "83879be70d6bdff1d8788d4efcb12d51380de1b242f1a2a16e271a040dce8a5d",
+      "local_sha256": "83879be70d6bdff1d8788d4efcb12d51380de1b242f1a2a16e271a040dce8a5d"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/XMLSchema.dtd",
+      "source_sha256": "a5e98f4f28d11c58f132ee771350f41930a10a5d22acc280e0ce8501e5603bbe",
+      "local_sha256": "a5e98f4f28d11c58f132ee771350f41930a10a5d22acc280e0ce8501e5603bbe"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/adlcp_v1p3.xsd",
+      "source_sha256": "87cefec31b160a1ecc9ffd1475bee6cb0e2d71b2bcd76ba1a08df0ac90cf8f7d",
+      "local_sha256": "87cefec31b160a1ecc9ffd1475bee6cb0e2d71b2bcd76ba1a08df0ac90cf8f7d"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/adlnav_v1p3.xsd",
+      "source_sha256": "1fc2678e9acaee07ba8b0da93caa5f52da5167f2999c4adbd0a4ad74c15c8bfb",
+      "local_sha256": "1fc2678e9acaee07ba8b0da93caa5f52da5167f2999c4adbd0a4ad74c15c8bfb"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/adlseq_v1p3.xsd",
+      "source_sha256": "162b5ca35a3fc43107efe0f78f5216c76f6cad8e13921c8332b7b82db7c4ae08",
+      "local_sha256": "162b5ca35a3fc43107efe0f78f5216c76f6cad8e13921c8332b7b82db7c4ae08"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/common/anyElement.xsd",
+      "source_sha256": "cac6e4e3865324aa749b45d43f69f252e3447c7ab1d3a6432ed78c5388aefeea",
+      "local_sha256": "cac6e4e3865324aa749b45d43f69f252e3447c7ab1d3a6432ed78c5388aefeea"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/common/dataTypes.xsd",
+      "source_sha256": "08bc470c50bfc61c5000c2c79aade9028965495f83bb32bd4464a9a273cbef37",
+      "local_sha256": "08bc470c50bfc61c5000c2c79aade9028965495f83bb32bd4464a9a273cbef37"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/common/elementNames.xsd",
+      "source_sha256": "1e9abdb0af7896ad7856eac903d210a5235fec2bca62cbef8e45014794513636",
+      "local_sha256": "1e9abdb0af7896ad7856eac903d210a5235fec2bca62cbef8e45014794513636"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/common/elementTypes.xsd",
+      "source_sha256": "703c395e67753c1710544c668cdfdfe510a0ea7060f644b6180fbeaef48b9226",
+      "local_sha256": "703c395e67753c1710544c668cdfdfe510a0ea7060f644b6180fbeaef48b9226"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/common/rootElement.xsd",
+      "source_sha256": "85855fd15bb5029fca257cf4253cdba42cac49be7698efaaf4f81787afb7b344",
+      "local_sha256": "85855fd15bb5029fca257cf4253cdba42cac49be7698efaaf4f81787afb7b344"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/common/vocabTypes.xsd",
+      "source_sha256": "5e06bd22cf08a56d0634e73ff33e02ea2d437695a6167c275e843bdf7f5138c4",
+      "local_sha256": "5e06bd22cf08a56d0634e73ff33e02ea2d437695a6167c275e843bdf7f5138c4"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/common/vocabValues.xsd",
+      "source_sha256": "428caec4a51277aa28c571d1d488ab7ff7720d6cd90c1a87ed3a5a6e36b945a9",
+      "local_sha256": "428caec4a51277aa28c571d1d488ab7ff7720d6cd90c1a87ed3a5a6e36b945a9"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/datatypes.dtd",
+      "source_sha256": "d46c4f4c9384a0dc2f922c71af0405ebe1d64fae77cfd860b64f9600ca395427",
+      "local_sha256": "d46c4f4c9384a0dc2f922c71af0405ebe1d64fae77cfd860b64f9600ca395427"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/extend/strict.xsd",
+      "source_sha256": "b26589a6451587700b6a1e8d77c4779a58099515a36cef83391a228d484ca4f1",
+      "local_sha256": "b26589a6451587700b6a1e8d77c4779a58099515a36cef83391a228d484ca4f1"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/imscp_v1p1.xsd",
+      "source_sha256": "a5333c5b9a392d4f21d20b188eb77dec2f04021642a6232f3c07ef8032fe233e",
+      "local_sha256": "a5333c5b9a392d4f21d20b188eb77dec2f04021642a6232f3c07ef8032fe233e"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/imsss_v1p0.xsd",
+      "source_sha256": "53565d8b23842d5b667beffa4ed100e3e06cdd778b60b85efc38e7a9a1f52a90",
+      "local_sha256": "53565d8b23842d5b667beffa4ed100e3e06cdd778b60b85efc38e7a9a1f52a90"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/imsss_v1p0auxresource.xsd",
+      "source_sha256": "c0dd16d707f37c4d26484d7c233eea6d9ccbb8bad643040359f4b4f2944c057a",
+      "local_sha256": "c0dd16d707f37c4d26484d7c233eea6d9ccbb8bad643040359f4b4f2944c057a"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/imsss_v1p0control.xsd",
+      "source_sha256": "c8564177ca7b1c241d6ca893652f6946eb91fee450dce8607ba2189ba88e7969",
+      "local_sha256": "c8564177ca7b1c241d6ca893652f6946eb91fee450dce8607ba2189ba88e7969"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/imsss_v1p0delivery.xsd",
+      "source_sha256": "58d4f343e3302e2986a641b066a3f0b30bd895b62d358a184cb5c3455427392c",
+      "local_sha256": "58d4f343e3302e2986a641b066a3f0b30bd895b62d358a184cb5c3455427392c"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/imsss_v1p0limit.xsd",
+      "source_sha256": "debda0a7fe2a1ce6e063383c4efc9fbd5f2341355c85d66062742657be2418a9",
+      "local_sha256": "debda0a7fe2a1ce6e063383c4efc9fbd5f2341355c85d66062742657be2418a9"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/imsss_v1p0objective.xsd",
+      "source_sha256": "776e091df47e934432c78703e552482e83165f75c9bf89c6320ee035ecd7ae69",
+      "local_sha256": "776e091df47e934432c78703e552482e83165f75c9bf89c6320ee035ecd7ae69"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/imsss_v1p0random.xsd",
+      "source_sha256": "3442393c455d8a984853c1c7cdf1bf6ccf4d0c58452c0e39b6c0aab65339f597",
+      "local_sha256": "3442393c455d8a984853c1c7cdf1bf6ccf4d0c58452c0e39b6c0aab65339f597"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/imsss_v1p0rollup.xsd",
+      "source_sha256": "85100e4c7ba8eff77102d73d2ce265ddd803d13191a1d2b81bf3bf8bb1eac554",
+      "local_sha256": "85100e4c7ba8eff77102d73d2ce265ddd803d13191a1d2b81bf3bf8bb1eac554"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/imsss_v1p0seqrule.xsd",
+      "source_sha256": "b8fbd362e2408d318ae97cc70a7d3a8a536db29150b7ef7b355f394d06027023",
+      "local_sha256": "b8fbd362e2408d318ae97cc70a7d3a8a536db29150b7ef7b355f394d06027023"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/imsss_v1p0util.xsd",
+      "source_sha256": "b7234f3f62ede3f8dc6cd35053805ad021b4642b54f34b7960945981be95a438",
+      "local_sha256": "b7234f3f62ede3f8dc6cd35053805ad021b4642b54f34b7960945981be95a438"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/lom.xsd",
+      "source_sha256": "8052d9123f66342270f07e2b6179b2b27aa50aff372a4bd15ca588a98fb68616",
+      "local_sha256": "8052d9123f66342270f07e2b6179b2b27aa50aff372a4bd15ca588a98fb68616"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/unique/strict.xsd",
+      "source_sha256": "8d74befc30ea140b74ce501ede16fcf1b39efe3735a662d884b9e4911dd8997d",
+      "local_sha256": "8d74befc30ea140b74ce501ede16fcf1b39efe3735a662d884b9e4911dd8997d"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/vocab/strict.xsd",
+      "source_sha256": "1eaf0c81d48dd5a63aecbf65249f54fd9212e1f73b81cb63b4a00515cd60b21a",
+      "local_sha256": "1eaf0c81d48dd5a63aecbf65249f54fd9212e1f73b81cb63b4a00515cd60b21a"
+    },
+    {
+      "path": "public/scorm-player/schemas/scorm2004/xml.xsd",
+      "source_sha256": "95907dad3dea7debdd26bddeab77e3946b95370329994beefa74253be105c3e2",
+      "local_sha256": "95907dad3dea7debdd26bddeab77e3946b95370329994beefa74253be105c3e2"
+    },
+    {
+      "path": "public/scorm-player/scorm.js",
+      "source_sha256": "97b51c9d61fa65fb53a21d35cbf2ad44ad56cbf44c8feba24b78d422c061d7b0",
+      "local_sha256": "97b51c9d61fa65fb53a21d35cbf2ad44ad56cbf44c8feba24b78d422c061d7b0"
+    },
+    {
+      "path": "public/scorm-player/xapi.js",
+      "source_sha256": "2cc5e3173059c64cff5d6fd5813f3f8ad86bc10f308316b5383516de54295899",
+      "local_sha256": "2cc5e3173059c64cff5d6fd5813f3f8ad86bc10f308316b5383516de54295899"
+    },
+    {
+      "path": "public/sitemap.xml",
+      "source_sha256": "99423aeb26386459c122c49b61879660042a04dfc7e0fe614afea360c606a42c",
+      "local_sha256": "99423aeb26386459c122c49b61879660042a04dfc7e0fe614afea360c606a42c"
+    },
+    {
+      "path": "scripts/seoPrerender.ts",
+      "source_sha256": "40982b9d54811256772ed47eb792779dc0ed473eba80ad76ab0fe95a902a3b20",
+      "local_sha256": "40982b9d54811256772ed47eb792779dc0ed473eba80ad76ab0fe95a902a3b20"
+    },
+    {
+      "path": "scripts/syncPlayerCss.mjs",
+      "source_sha256": "5babbb06d482358006d35eacfc1567ed8d5ac4a8a30a73769f6d73d6ee81de71",
+      "local_sha256": "5babbb06d482358006d35eacfc1567ed8d5ac4a8a30a73769f6d73d6ee81de71"
+    },
+    {
+      "path": "src/App.tsx",
+      "source_sha256": "611871973ca1ca1b3d9071590414673b530efbe78728ad64ccd6130c92c3d531",
+      "local_sha256": "611871973ca1ca1b3d9071590414673b530efbe78728ad64ccd6130c92c3d531"
+    },
+    {
+      "path": "src/blocks/BlockIcon.tsx",
+      "source_sha256": "c74514f1aaf86cce21767769dec3559b3467cc0ed89485cb9d66a46c76f18aa3",
+      "local_sha256": "c74514f1aaf86cce21767769dec3559b3467cc0ed89485cb9d66a46c76f18aa3"
+    },
+    {
+      "path": "src/blocks/BlockRenderer.tsx",
+      "source_sha256": "a3824298a209c44e4bb28b55527c5a42f21f07d4b4ec81206f8c140e14715376",
+      "local_sha256": "a3824298a209c44e4bb28b55527c5a42f21f07d4b4ec81206f8c140e14715376"
+    },
+    {
+      "path": "src/blocks/components/AccordionBlock.tsx",
+      "source_sha256": "1aba32313e2077cea4dc11d946024a090a4fea3d5fdb9e63f4a26c8a8ea8d735",
+      "local_sha256": "1aba32313e2077cea4dc11d946024a090a4fea3d5fdb9e63f4a26c8a8ea8d735"
+    },
+    {
+      "path": "src/blocks/components/AddQuestionMenu.tsx",
+      "source_sha256": "97c3078d65c40b155e6fcdd28e63b3bbcab25be9b54ad46e25353a8455afb02f",
+      "local_sha256": "97c3078d65c40b155e6fcdd28e63b3bbcab25be9b54ad46e25353a8455afb02f"
+    },
+    {
+      "path": "src/blocks/components/AttachmentBlock.tsx",
+      "source_sha256": "cad52436ed617d79c91a3b26d6b537c1d6b24247e1482e09a81d5cb9d8fc4a54",
+      "local_sha256": "cad52436ed617d79c91a3b26d6b537c1d6b24247e1482e09a81d5cb9d8fc4a54"
+    },
+    {
+      "path": "src/blocks/components/AudioBlock.tsx",
+      "source_sha256": "bfa4b9b4e072cc8ebd22b6cb7b179c070799d7490e2f791fb055befa4721806b",
+      "local_sha256": "bfa4b9b4e072cc8ebd22b6cb7b179c070799d7490e2f791fb055befa4721806b"
+    },
+    {
+      "path": "src/blocks/components/BeforeAfterBlock.tsx",
+      "source_sha256": "b279ac35184799290dc9546f6eaeb08ec0eaeff14cf4c131fcd6c1d2eb236ef9",
+      "local_sha256": "b279ac35184799290dc9546f6eaeb08ec0eaeff14cf4c131fcd6c1d2eb236ef9"
+    },
+    {
+      "path": "src/blocks/components/CodeBlock.tsx",
+      "source_sha256": "7a71bd3d2f8ef7c0095e8b6fb7d5324743e33f7e00cbf9fa9fdeca45ad4bbf57",
+      "local_sha256": "7a71bd3d2f8ef7c0095e8b6fb7d5324743e33f7e00cbf9fa9fdeca45ad4bbf57"
+    },
+    {
+      "path": "src/blocks/components/ColumnsBlock.tsx",
+      "source_sha256": "8f6a6c878aaf5f9b765e7c8c9410d37b323234ae91e93541fd3a57a40c9768b1",
+      "local_sha256": "8f6a6c878aaf5f9b765e7c8c9410d37b323234ae91e93541fd3a57a40c9768b1"
+    },
+    {
+      "path": "src/blocks/components/ComparisonBlock.tsx",
+      "source_sha256": "87e1edf39a50463af53d8a6640ba5e0fc5267dbbabea64c69114c9e30278c8be",
+      "local_sha256": "87e1edf39a50463af53d8a6640ba5e0fc5267dbbabea64c69114c9e30278c8be"
+    },
+    {
+      "path": "src/blocks/components/ContinueBlock.tsx",
+      "source_sha256": "b7bbd5b74b4eaf33e570c9d78bda16174bd054ef27b405380ffd83b6bfaeafb9",
+      "local_sha256": "b7bbd5b74b4eaf33e570c9d78bda16174bd054ef27b405380ffd83b6bfaeafb9"
+    },
+    {
+      "path": "src/blocks/components/CourseOutlineBlock.tsx",
+      "source_sha256": "138b19d49a3140306cc5b16f3f003a3239302b42475632673ea1879a29a70a77",
+      "local_sha256": "138b19d49a3140306cc5b16f3f003a3239302b42475632673ea1879a29a70a77"
+    },
+    {
+      "path": "src/blocks/components/DividerBlock.tsx",
+      "source_sha256": "90433ee58052ac9301c38883a806904c0b88cdb6afea78e2b3c9ca1415c39bd2",
+      "local_sha256": "90433ee58052ac9301c38883a806904c0b88cdb6afea78e2b3c9ca1415c39bd2"
+    },
+    {
+      "path": "src/blocks/components/EmbedBlock.tsx",
+      "source_sha256": "b31c7e86de14a524945d964fb49061426784446e08f33c355f09078d47830169",
+      "local_sha256": "b31c7e86de14a524945d964fb49061426784446e08f33c355f09078d47830169"
+    },
+    {
+      "path": "src/blocks/components/FillBlanksBlock.tsx",
+      "source_sha256": "c85888ce95c8dacb1f3f8a9ee07bbc21ea0b465d6f9ec594dae4c96881286f60",
+      "local_sha256": "c85888ce95c8dacb1f3f8a9ee07bbc21ea0b465d6f9ec594dae4c96881286f60"
+    },
+    {
+      "path": "src/blocks/components/FlashcardsBlock.tsx",
+      "source_sha256": "5e962e7dbf90353b325d21c574b78ecacd507e68cecc2fa1b95acc117a0c28bc",
+      "local_sha256": "5e962e7dbf90353b325d21c574b78ecacd507e68cecc2fa1b95acc117a0c28bc"
+    },
+    {
+      "path": "src/blocks/components/GalleryBlock.tsx",
+      "source_sha256": "3631bc2e78c5038d107c665170c9a2c468e633b0218b145931abaf8df1024e0d",
+      "local_sha256": "3631bc2e78c5038d107c665170c9a2c468e633b0218b145931abaf8df1024e0d"
+    },
+    {
+      "path": "src/blocks/components/HeadingBlock.tsx",
+      "source_sha256": "00fb9b2df4ea938ed45f42b8eb9edea6f31c636d88fc644fc6de076f4c9e0ed5",
+      "local_sha256": "00fb9b2df4ea938ed45f42b8eb9edea6f31c636d88fc644fc6de076f4c9e0ed5"
+    },
+    {
+      "path": "src/blocks/components/HotspotBlock.tsx",
+      "source_sha256": "64a3463f2594d242690592b02243c84e71ca9b7d16814335ffaeb85d4ca2d419",
+      "local_sha256": "64a3463f2594d242690592b02243c84e71ca9b7d16814335ffaeb85d4ca2d419"
+    },
+    {
+      "path": "src/blocks/components/ImageBlock.tsx",
+      "source_sha256": "ded5dbd0f0227517023a89331508f2688e9e33ca81a637302f241d7d3fb4ec8a",
+      "local_sha256": "ded5dbd0f0227517023a89331508f2688e9e33ca81a637302f241d7d3fb4ec8a"
+    },
+    {
+      "path": "src/blocks/components/ImageTextBlock.tsx",
+      "source_sha256": "8b6074908e9685c2be34e43055b073d899bec089b8d9048f9bc2c2b28f596723",
+      "local_sha256": "8b6074908e9685c2be34e43055b073d899bec089b8d9048f9bc2c2b28f596723"
+    },
+    {
+      "path": "src/blocks/components/ItemRow.tsx",
+      "source_sha256": "8af5ec5884752e29718b30758cdb729bcf92bb388e59c4d97c1108db2df5d666",
+      "local_sha256": "8af5ec5884752e29718b30758cdb729bcf92bb388e59c4d97c1108db2df5d666"
+    },
+    {
+      "path": "src/blocks/components/ListBlock.tsx",
+      "source_sha256": "d134321f14b3b54f2b87ec652e299c2ec3b2edec9d22b7199b952e5391702076",
+      "local_sha256": "d134321f14b3b54f2b87ec652e299c2ec3b2edec9d22b7199b952e5391702076"
+    },
+    {
+      "path": "src/blocks/components/NoteBlock.tsx",
+      "source_sha256": "f7278e0eae80f64684ee43a6e8a1b19f2f034b61efe7bdff68c23d40d7f38c00",
+      "local_sha256": "f7278e0eae80f64684ee43a6e8a1b19f2f034b61efe7bdff68c23d40d7f38c00"
+    },
+    {
+      "path": "src/blocks/components/OrderingBlock.tsx",
+      "source_sha256": "e30d53685f7956ca378f419aacbe5aa335a254d308d0995eba2a629eb2d716c7",
+      "local_sha256": "e30d53685f7956ca378f419aacbe5aa335a254d308d0995eba2a629eb2d716c7"
+    },
+    {
+      "path": "src/blocks/components/ParagraphBlock.tsx",
+      "source_sha256": "14d12e35583ab787402ab1c29d6d1f88890dd8247c05ca3e9c55e159f9207c1a",
+      "local_sha256": "14d12e35583ab787402ab1c29d6d1f88890dd8247c05ca3e9c55e159f9207c1a"
+    },
+    {
+      "path": "src/blocks/components/ProcessBlock.tsx",
+      "source_sha256": "a773342d3334e12bc03f4581fb91a81d7a4a71d21adad96d0b9f053f2e7d053c",
+      "local_sha256": "fd2b2f560af5e205dfeac35f0168a0d521cc6f35d233767abbc18e3e69bca3a0"
+    },
+    {
+      "path": "src/blocks/components/QuizBlock.tsx",
+      "source_sha256": "9e3d47f91e0f41d14aa06c64620646b4a24fe3116437a87e1ee6786b08e08dcf",
+      "local_sha256": "9e3d47f91e0f41d14aa06c64620646b4a24fe3116437a87e1ee6786b08e08dcf"
+    },
+    {
+      "path": "src/blocks/components/QuoteBlock.tsx",
+      "source_sha256": "4303b1dd1f2de51d6604d9de7feaabd8528265da0b1e4b41b7bbd631aefe7906",
+      "local_sha256": "4303b1dd1f2de51d6604d9de7feaabd8528265da0b1e4b41b7bbd631aefe7906"
+    },
+    {
+      "path": "src/blocks/components/ReflectionBlock.tsx",
+      "source_sha256": "3a87c6be617da3ab9e61d323af2b543246c99754afed6a35dad6158333da9324",
+      "local_sha256": "3a87c6be617da3ab9e61d323af2b543246c99754afed6a35dad6158333da9324"
+    },
+    {
+      "path": "src/blocks/components/ScenarioBlock.tsx",
+      "source_sha256": "2a5e64ce615ee61e8d76724ae70896d157af18bf9c4d69d3139b40f3204ab8a7",
+      "local_sha256": "2a5e64ce615ee61e8d76724ae70896d157af18bf9c4d69d3139b40f3204ab8a7"
+    },
+    {
+      "path": "src/blocks/components/ScoreSettings.tsx",
+      "source_sha256": "5b15ba2ea728e6dc18f54f74240c95ca85c6df028526da04eb1b1304104197f5",
+      "local_sha256": "5b15ba2ea728e6dc18f54f74240c95ca85c6df028526da04eb1b1304104197f5"
+    },
+    {
+      "path": "src/blocks/components/StepsBlock.tsx",
+      "source_sha256": "fe5da0e0b9a38dbe0b035ca1cf0fece3a08a8ee55b370f69a55204a5cf74645c",
+      "local_sha256": "fe5da0e0b9a38dbe0b035ca1cf0fece3a08a8ee55b370f69a55204a5cf74645c"
+    },
+    {
+      "path": "src/blocks/components/TableBlock.tsx",
+      "source_sha256": "3beb20da9fd333a4de0971fe871cd3334d4b89591e06fd9c4ba6c35f8c591989",
+      "local_sha256": "3beb20da9fd333a4de0971fe871cd3334d4b89591e06fd9c4ba6c35f8c591989"
+    },
+    {
+      "path": "src/blocks/components/TabsBlock.tsx",
+      "source_sha256": "871fa2ad771940adedeee633b36a804eb86989e873022120992112aa51b7542a",
+      "local_sha256": "871fa2ad771940adedeee633b36a804eb86989e873022120992112aa51b7542a"
+    },
+    {
+      "path": "src/blocks/components/TimelineBlock.tsx",
+      "source_sha256": "e33ef42ed3f57ead5507624baa23765c8b3dcc48a1fb64e757b34395d9fa09c8",
+      "local_sha256": "e33ef42ed3f57ead5507624baa23765c8b3dcc48a1fb64e757b34395d9fa09c8"
+    },
+    {
+      "path": "src/blocks/components/VideoBlock.tsx",
+      "source_sha256": "bc4c260112813d437cf787a164fbe153e4ccff4a89fefb85ea73204194d8127c",
+      "local_sha256": "bc4c260112813d437cf787a164fbe153e4ccff4a89fefb85ea73204194d8127c"
+    },
+    {
+      "path": "src/blocks/fillBlanks.ts",
+      "source_sha256": "a204374431a81e697d2789a4f96225d3318062e5efce7d5e124292348d293917",
+      "local_sha256": "a204374431a81e697d2789a4f96225d3318062e5efce7d5e124292348d293917"
+    },
+    {
+      "path": "src/blocks/ordering.ts",
+      "source_sha256": "68aac4d5152c0189084640454affd42cc0f5822e099317656ab51ae125dddf1b",
+      "local_sha256": "68aac4d5152c0189084640454affd42cc0f5822e099317656ab51ae125dddf1b"
+    },
+    {
+      "path": "src/blocks/process.ts",
+      "source_sha256": "f5a3db560d3e6f14b56d3e456aa4a113c065cca40dd460db92a2b2bf90eef6ea",
+      "local_sha256": "f5a3db560d3e6f14b56d3e456aa4a113c065cca40dd460db92a2b2bf90eef6ea"
+    },
+    {
+      "path": "src/blocks/quizQuestions.ts",
+      "source_sha256": "8973bb81ca83b9d93cee24e1fa1a1faa1776a3ffe44fc37d04f4cfb4c94fd216",
+      "local_sha256": "8973bb81ca83b9d93cee24e1fa1a1faa1776a3ffe44fc37d04f4cfb4c94fd216"
+    },
+    {
+      "path": "src/blocks/registry.ts",
+      "source_sha256": "7d80a3b48bda1ece05460cbcef85eb044fed5f164a81d88ff39d440ab63f6ded",
+      "local_sha256": "7d80a3b48bda1ece05460cbcef85eb044fed5f164a81d88ff39d440ab63f6ded"
+    },
+    {
+      "path": "src/blocks/styleClasses.ts",
+      "source_sha256": "f4b02df0aff053f98ec801b840c6c123407d50fe8fd8c81a65bc1ec2b013a46a",
+      "local_sha256": "f4b02df0aff053f98ec801b840c6c123407d50fe8fd8c81a65bc1ec2b013a46a"
+    },
+    {
+      "path": "src/blocks/templates.ts",
+      "source_sha256": "120a594f00e7461aa4deafc81be3efbe9ab396747f826d563b5d422454dd5a8d",
+      "local_sha256": "120a594f00e7461aa4deafc81be3efbe9ab396747f826d563b5d422454dd5a8d"
+    },
+    {
+      "path": "src/blocks/types.ts",
+      "source_sha256": "5a67c8d3b63c5e605c6063c209dab262870b5cc6c67ad2127315db706875e67c",
+      "local_sha256": "5a67c8d3b63c5e605c6063c209dab262870b5cc6c67ad2127315db706875e67c"
+    },
+    {
+      "path": "src/blocks/useBlockWrapper.ts",
+      "source_sha256": "4e75bbcd9305ce0f9d6cc6d244887d96bb0f34c2239abe00b5d5e7bb90805f96",
+      "local_sha256": "4e75bbcd9305ce0f9d6cc6d244887d96bb0f34c2239abe00b5d5e7bb90805f96"
+    },
+    {
+      "path": "src/components/Builder.tsx",
+      "source_sha256": "69844c0151aee4db28d46a23c705695b9b0cb2b3b8e3432129b6e93787a724bc",
+      "local_sha256": "69844c0151aee4db28d46a23c705695b9b0cb2b3b8e3432129b6e93787a724bc"
+    },
+    {
+      "path": "src/components/editor/AddBlockMenu.tsx",
+      "source_sha256": "e2cd69a9fe19cb57bafd86ddf37aee97319b91a6904005ffa5f12b728b6b0671",
+      "local_sha256": "e2cd69a9fe19cb57bafd86ddf37aee97319b91a6904005ffa5f12b728b6b0671"
+    },
+    {
+      "path": "src/components/editor/BlockHoverPreview.tsx",
+      "source_sha256": "760d923a5d79e6c9158926b929a9a1b02e5a532f13a7b23c5d379b54e9d86b0d",
+      "local_sha256": "760d923a5d79e6c9158926b929a9a1b02e5a532f13a7b23c5d379b54e9d86b0d"
+    },
+    {
+      "path": "src/components/editor/BlockShell.tsx",
+      "source_sha256": "96e1eb43a30ed8ea382c9e8fd74f818c77b4ff88fd952d4c31c0019faa096c98",
+      "local_sha256": "96e1eb43a30ed8ea382c9e8fd74f818c77b4ff88fd952d4c31c0019faa096c98"
+    },
+    {
+      "path": "src/components/editor/BlockStylePopover.tsx",
+      "source_sha256": "e9ad49e6d500dcdcc9e42e6c384eae0f3072376ebdaa152663f1fdd179da4e3e",
+      "local_sha256": "e9ad49e6d500dcdcc9e42e6c384eae0f3072376ebdaa152663f1fdd179da4e3e"
+    },
+    {
+      "path": "src/components/editor/ContextMenu.tsx",
+      "source_sha256": "396dc41cd3f456998d580fc0ad94a403db8f77002a612f7eb08cb5d658865a48",
+      "local_sha256": "396dc41cd3f456998d580fc0ad94a403db8f77002a612f7eb08cb5d658865a48"
+    },
+    {
+      "path": "src/components/editor/ExportCheckDialog.tsx",
+      "source_sha256": "1a1242d8ac3e8d73b474ec96507ac4e9f6b22a0aef2a12bda3fc8caa4cfe4db2",
+      "local_sha256": "1a1242d8ac3e8d73b474ec96507ac4e9f6b22a0aef2a12bda3fc8caa4cfe4db2"
+    },
+    {
+      "path": "src/components/editor/ExportMenu.tsx",
+      "source_sha256": "c126076fada4ecab8bbb7e4d21fdc3718304be6277cbe9db622df6bb017d2820",
+      "local_sha256": "c126076fada4ecab8bbb7e4d21fdc3718304be6277cbe9db622df6bb017d2820"
+    },
+    {
+      "path": "src/components/editor/IntroEditor.tsx",
+      "source_sha256": "cb9cc5c2d7c657cebacf861c6f0729cf41119af41abc2055b08d8688ce3bcf34",
+      "local_sha256": "cb9cc5c2d7c657cebacf861c6f0729cf41119af41abc2055b08d8688ce3bcf34"
+    },
+    {
+      "path": "src/components/editor/LanguagePicker.tsx",
+      "source_sha256": "aad881e70039be848f4e5f75fa77fbeb1b4bc97d7e82b918f38bf54177c2aa22",
+      "local_sha256": "09e477704ddc808d3b5ceb16ba93f83d9da1d5020ff5abcd8f6e123e873fae19"
+    },
+    {
+      "path": "src/components/editor/ProjectMenu.tsx",
+      "source_sha256": "f5f31182148f4119963aee1419477ba1345440b0d90bd65a15603783fb8471c1",
+      "local_sha256": "f5f31182148f4119963aee1419477ba1345440b0d90bd65a15603783fb8471c1"
+    },
+    {
+      "path": "src/components/editor/ProjectSettings.tsx",
+      "source_sha256": "b9a00ee2c77d2ea55619fa4db003a924e25c5ef9ec6d28c9cbf3b4736fddbf92",
+      "local_sha256": "b9a00ee2c77d2ea55619fa4db003a924e25c5ef9ec6d28c9cbf3b4736fddbf92"
+    },
+    {
+      "path": "src/components/editor/RichTextEditor.tsx",
+      "source_sha256": "bc0db1d7a3dbccde0e3b1219c71cf71fbdb24471f62c66857d78952eca5bebcf",
+      "local_sha256": "56f2c5b3ba74327839c2c85644a8c76174f12cd1fceaa612e3f0bf021a7a918f"
+    },
+    {
+      "path": "src/components/editor/ShortcutsHelp.tsx",
+      "source_sha256": "21aeb057d06c980862a7e25583786170c7f37090609be44a6b053516596da007",
+      "local_sha256": "21aeb057d06c980862a7e25583786170c7f37090609be44a6b053516596da007"
+    },
+    {
+      "path": "src/components/editor/ThemeChooser.tsx",
+      "source_sha256": "d49d57e13b0bc73e55a3c31742face88f2328a357ee201265186093380b4b48f",
+      "local_sha256": "d49d57e13b0bc73e55a3c31742face88f2328a357ee201265186093380b4b48f"
+    },
+    {
+      "path": "src/components/editor/ThemePicker.tsx",
+      "source_sha256": "2816a9183530fe0844c37c1b9ffd8c5ea2fbf50f0e86764178900a18dd9ca748",
+      "local_sha256": "2816a9183530fe0844c37c1b9ffd8c5ea2fbf50f0e86764178900a18dd9ca748"
+    },
+    {
+      "path": "src/components/editor/Toaster.tsx",
+      "source_sha256": "6a76a8686339097190ed59e758b2f2e203c91a206ac0b59d5421864c14d7d7e0",
+      "local_sha256": "6a76a8686339097190ed59e758b2f2e203c91a206ac0b59d5421864c14d7d7e0"
+    },
+    {
+      "path": "src/components/editor/ZipUpdateDialog.tsx",
+      "source_sha256": "0538a04b0bda401099d53849382769f49672b3ebb4007fc4b20ba5656149b3eb",
+      "local_sha256": "0b6f99b65a8d0f78a9d31cfc73a0245660d9b45de410a7df6a848eafce45483e"
+    },
+    {
+      "path": "src/components/editor/controls.tsx",
+      "source_sha256": "66678808226d563a5c36229d92ef4a18e82a895de28d8666be2f4fc0669e2658",
+      "local_sha256": "66678808226d563a5c36229d92ef4a18e82a895de28d8666be2f4fc0669e2658"
+    },
+    {
+      "path": "src/components/editor/richTable.ts",
+      "source_sha256": "31a83bef46c0a2d9d55b4ea740940e226879a1e8016e0f94f0c1c80626deec7d",
+      "local_sha256": "31a83bef46c0a2d9d55b4ea740940e226879a1e8016e0f94f0c1c80626deec7d"
+    },
+    {
+      "path": "src/components/help/FaqDialog.tsx",
+      "source_sha256": "b9d14fcf33b998d7c57cfef1a2ee83f0bb01c9a5590b247022cf39eeaeb19255",
+      "local_sha256": "b9d14fcf33b998d7c57cfef1a2ee83f0bb01c9a5590b247022cf39eeaeb19255"
+    },
+    {
+      "path": "src/components/help/HelpDialogShell.tsx",
+      "source_sha256": "609093bd5e191d7fceb25b0e21610614e0b172105064c9f42520fe14974f5478",
+      "local_sha256": "609093bd5e191d7fceb25b0e21610614e0b172105064c9f42520fe14974f5478"
+    },
+    {
+      "path": "src/components/help/HelpLayer.tsx",
+      "source_sha256": "1d581bb79775922cb077ab5b2f1a9d89c0abc04f1e030b60824f6cc651d7017f",
+      "local_sha256": "1d581bb79775922cb077ab5b2f1a9d89c0abc04f1e030b60824f6cc651d7017f"
+    },
+    {
+      "path": "src/components/help/HelpMenu.tsx",
+      "source_sha256": "be414bfb9382cfcaf7dead02e5093a484b74add0f8458c4db70f5ae7e8ea0b25",
+      "local_sha256": "be414bfb9382cfcaf7dead02e5093a484b74add0f8458c4db70f5ae7e8ea0b25"
+    },
+    {
+      "path": "src/components/help/Tour.tsx",
+      "source_sha256": "3f125042868d1712d0063822b70909a07785fcc43838700ac6bbcf01c2e38a0e",
+      "local_sha256": "3f125042868d1712d0063822b70909a07785fcc43838700ac6bbcf01c2e38a0e"
+    },
+    {
+      "path": "src/components/help/WhatsNewDialog.tsx",
+      "source_sha256": "e1b1dc9d2a106c8d409afe2955ec5add548038619f6d654e7ac9812f4283f903",
+      "local_sha256": "e1b1dc9d2a106c8d409afe2955ec5add548038619f6d654e7ac9812f4283f903"
+    },
+    {
+      "path": "src/components/landing/Landing.tsx",
+      "source_sha256": "9f40b55f27070913426eff83e62ee433a58dc5c46ddee30de141a76bd4e5f0b2",
+      "local_sha256": "9f40b55f27070913426eff83e62ee433a58dc5c46ddee30de141a76bd4e5f0b2"
+    },
+    {
+      "path": "src/components/landing/demos/ChatDemo.tsx",
+      "source_sha256": "2b06415d5f28a7efc4746585b0880ee709537a8e291eb8becb6318864fcd22ab",
+      "local_sha256": "2b06415d5f28a7efc4746585b0880ee709537a8e291eb8becb6318864fcd22ab"
+    },
+    {
+      "path": "src/components/landing/demos/DesignShowcase.tsx",
+      "source_sha256": "98216e04330e8274a59577cf3cbf00016f73aea0f8070b3ca2ee899ab19b595f",
+      "local_sha256": "98216e04330e8274a59577cf3cbf00016f73aea0f8070b3ca2ee899ab19b595f"
+    },
+    {
+      "path": "src/components/landing/demos/FlashcardsDemo.tsx",
+      "source_sha256": "a2d416937cff7ea7b4d649cfae965362ec03be45b1ecf34e81fa11ef4c30db58",
+      "local_sha256": "a2d416937cff7ea7b4d649cfae965362ec03be45b1ecf34e81fa11ef4c30db58"
+    },
+    {
+      "path": "src/components/landing/demos/OutlineDemo.tsx",
+      "source_sha256": "1ef70fdf656d7c1ab9168806d976dff6bcce43fbebe81fdf1e2129968a4edd34",
+      "local_sha256": "1ef70fdf656d7c1ab9168806d976dff6bcce43fbebe81fdf1e2129968a4edd34"
+    },
+    {
+      "path": "src/components/landing/demos/Playground.tsx",
+      "source_sha256": "0afa81eae5ad60a637c1073166649bf5b9a49bbdaecd21640d0a570ff4530f60",
+      "local_sha256": "0afa81eae5ad60a637c1073166649bf5b9a49bbdaecd21640d0a570ff4530f60"
+    },
+    {
+      "path": "src/components/landing/demos/QuizDemo.tsx",
+      "source_sha256": "3b4b4837517c98d220e5fa9c953b36ed806c402e187d73cb39b129db425d2f35",
+      "local_sha256": "3b4b4837517c98d220e5fa9c953b36ed806c402e187d73cb39b129db425d2f35"
+    },
+    {
+      "path": "src/components/landing/demos/chatScenarios.ts",
+      "source_sha256": "27cfac558ed25b46b5c9280d9f6459597dbf74d76783a1a30662ebdd1790e256",
+      "local_sha256": "27cfac558ed25b46b5c9280d9f6459597dbf74d76783a1a30662ebdd1790e256"
+    },
+    {
+      "path": "src/components/layout/Header.tsx",
+      "source_sha256": "652b2c71d2182783bc88835b0bc14989f0abed91cae7682132cd3ec70ac6d7d1",
+      "local_sha256": "9d9ea06bd0eae50bf1ade928e0685e86609b8d8085cd35a501c56749a5b45518"
+    },
+    {
+      "path": "src/components/layout/Logo.tsx",
+      "source_sha256": "91f577102cfabf524d8107c6c6ec5cb9e36077d50fafbe51317b5e13d9416d97",
+      "local_sha256": "91f577102cfabf524d8107c6c6ec5cb9e36077d50fafbe51317b5e13d9416d97"
+    },
+    {
+      "path": "src/components/layout/Sidebar.tsx",
+      "source_sha256": "bf5bcebe7420880abd6baf3e42a8824895e11ca72a6eda3c3bea9d3ad8ae814d",
+      "local_sha256": "bf5bcebe7420880abd6baf3e42a8824895e11ca72a6eda3c3bea9d3ad8ae814d"
+    },
+    {
+      "path": "src/components/layout/Workspace.tsx",
+      "source_sha256": "191af333103c9fae41a30bfb202273196cf11fd02cf4bdeee2646b693e79336d",
+      "local_sha256": "191af333103c9fae41a30bfb202273196cf11fd02cf4bdeee2646b693e79336d"
+    },
+    {
+      "path": "src/components/preview/PreviewOverlay.tsx",
+      "source_sha256": "9161a62cd658994b57bdb99eb79d03532950ef806a9ea43bfb8d11d2c15049c0",
+      "local_sha256": "9161a62cd658994b57bdb99eb79d03532950ef806a9ea43bfb8d11d2c15049c0"
+    },
+    {
+      "path": "src/components/welcome/WelcomeScreen.tsx",
+      "source_sha256": "5f2ede4e6b8e55e6e86c18dde0dc4b95fe7fbc0329068d2d8599250067e8eb6c",
+      "local_sha256": "23b867a3a5f3aad18510c51d6689e1943d9ede6174e2b38fc4a2ba7adec88ac0"
+    },
+    {
+      "path": "src/export/cmi5Manifest.ts",
+      "source_sha256": "ae79eb42c40b285e3f3f6c262a84cf76bc6148d6e6bbba02f7f3b481008fd96c",
+      "local_sha256": "ae79eb42c40b285e3f3f6c262a84cf76bc6148d6e6bbba02f7f3b481008fd96c"
+    },
+    {
+      "path": "src/export/courseCheck.ts",
+      "source_sha256": "f61efbd6d4270bf83a8ab8eb205ab1a24b5867b09309c176751801e04c512fa5",
+      "local_sha256": "f61efbd6d4270bf83a8ab8eb205ab1a24b5867b09309c176751801e04c512fa5"
+    },
+    {
+      "path": "src/export/exportCmi5.ts",
+      "source_sha256": "e3de5d3066f704ee658545b9dd6bdbd9e34a611a8f6d9b7d1779e0464d17371f",
+      "local_sha256": "e3de5d3066f704ee658545b9dd6bdbd9e34a611a8f6d9b7d1779e0464d17371f"
+    },
+    {
+      "path": "src/export/exportScorm.ts",
+      "source_sha256": "5bcd25b22fc367cdb82e78266604e5c55e3ae405fb42408d45bb09845a2e328c",
+      "local_sha256": "6075216e7e919ff12b000848a6ebf6766a2ff28bc9638f0a3d6c36b973f6a94c"
+    },
+    {
+      "path": "src/export/packageCommon.ts",
+      "source_sha256": "f0d3aa6463a0286cac11b7fdd8ffed8df2c22f2486a023ee36de08d71be299e8",
+      "local_sha256": "f0d3aa6463a0286cac11b7fdd8ffed8df2c22f2486a023ee36de08d71be299e8"
+    },
+    {
+      "path": "src/export/runExport.ts",
+      "source_sha256": "32efe9bd647ad3b07d74f1436dd261fc98ed91cc975baf3f3ef253b7b18c1a0c",
+      "local_sha256": "32efe9bd647ad3b07d74f1436dd261fc98ed91cc975baf3f3ef253b7b18c1a0c"
+    },
+    {
+      "path": "src/export/scormManifest.ts",
+      "source_sha256": "d18d9f170f41e53c53a6dd137a62a9506ea6c8e358049256e224ae22100d1eed",
+      "local_sha256": "d18d9f170f41e53c53a6dd137a62a9506ea6c8e358049256e224ae22100d1eed"
+    },
+    {
+      "path": "src/help/helpStore.ts",
+      "source_sha256": "459507e6cde418878930b7ce7514f1b857229c9d718a78cd53474ded21d2f60c",
+      "local_sha256": "459507e6cde418878930b7ce7514f1b857229c9d718a78cd53474ded21d2f60c"
+    },
+    {
+      "path": "src/help/releaseNotes.ts",
+      "source_sha256": "d1a2f4526e56a8ad71e7d0ba5aa29b76342706a9d50b9109b9bfd53897888b33",
+      "local_sha256": "63f5783cbf304556b73ada20c3b3e035e57f31b4254fee7d4d2aaf00e0ab47af"
+    },
+    {
+      "path": "src/hooks/useAssetUrl.ts",
+      "source_sha256": "47861b1af5447a7da3c6efd9d6ace0b88553da88bfad00729e09e651c6b95834",
+      "local_sha256": "47861b1af5447a7da3c6efd9d6ace0b88553da88bfad00729e09e651c6b95834"
+    },
+    {
+      "path": "src/hooks/useAutosave.ts",
+      "source_sha256": "29d9af85c2f2908bddd6677f50a411c48ff868f7f3f2afd7a44dda849d7da46c",
+      "local_sha256": "29d9af85c2f2908bddd6677f50a411c48ff868f7f3f2afd7a44dda849d7da46c"
+    },
+    {
+      "path": "src/hooks/useDialog.ts",
+      "source_sha256": "936e0c781265d2cae1949d3cfe8cdabeeda31ca2e9bc6b391aac71448bff576b",
+      "local_sha256": "936e0c781265d2cae1949d3cfe8cdabeeda31ca2e9bc6b391aac71448bff576b"
+    },
+    {
+      "path": "src/hooks/useEditorShortcuts.ts",
+      "source_sha256": "dd0b710206a89e3d1260bf803250526af0273fc2876631b3020a85bfb2cee7a9",
+      "local_sha256": "dd0b710206a89e3d1260bf803250526af0273fc2876631b3020a85bfb2cee7a9"
+    },
+    {
+      "path": "src/hooks/useMenu.ts",
+      "source_sha256": "5329d8a6b6d4dd4465dc73a4a3a468d769b79561c28a6f6261f5a1a9b34213f7",
+      "local_sha256": "5329d8a6b6d4dd4465dc73a4a3a468d769b79561c28a6f6261f5a1a9b34213f7"
+    },
+    {
+      "path": "src/hooks/usePageWidthVar.ts",
+      "source_sha256": "cef8b2380c649fb37f17a803762bf6e426e44fad05f81750554020c288894ea8",
+      "local_sha256": "cef8b2380c649fb37f17a803762bf6e426e44fad05f81750554020c288894ea8"
+    },
+    {
+      "path": "src/hooks/useReveal.ts",
+      "source_sha256": "156fb364cc290adaf58e60900eb7d02492d6e3fa771c70701aeaf57bf81c5561",
+      "local_sha256": "156fb364cc290adaf58e60900eb7d02492d6e3fa771c70701aeaf57bf81c5561"
+    },
+    {
+      "path": "src/hooks/useRoute.ts",
+      "source_sha256": "561129910e6c429bf188b6536a8bc48347c6a110bcd908631ef206d61f376dc4",
+      "local_sha256": "561129910e6c429bf188b6536a8bc48347c6a110bcd908631ef206d61f376dc4"
+    },
+    {
+      "path": "src/hooks/useUndoRedoShortcuts.ts",
+      "source_sha256": "53dc5959c1982b2fb4be5a66f74987713019d1325a78ec94a4b0d4eb6ec44636",
+      "local_sha256": "53dc5959c1982b2fb4be5a66f74987713019d1325a78ec94a4b0d4eb6ec44636"
+    },
+    {
+      "path": "src/i18n/I18nProvider.tsx",
+      "source_sha256": "10df687369fa6d85f1399e72775e7ea725c0e9015eadd0f5caae3e80877a69c8",
+      "local_sha256": "53bf03db07106ebd57c7028c46012f9d2852ccea3f9724b6a637b6d08cc1073a"
+    },
+    {
+      "path": "src/i18n/dictionary.ts",
+      "source_sha256": "f6d682e47c856259675171a66793e36080b69ea69a062c51b04779c0584d66a1",
+      "local_sha256": "5eed5a109734113761933f4abd8f6b0d4d0792f9fab531729410216f2bcd2e5c"
+    },
+    {
+      "path": "src/i18n/locales/a11y.ts",
+      "source_sha256": "49538bb5dc607407aa06740bd78513c3af130d1a7109ada29af26eca5eb05fab",
+      "local_sha256": "49538bb5dc607407aa06740bd78513c3af130d1a7109ada29af26eca5eb05fab"
+    },
+    {
+      "path": "src/i18n/locales/assessment.ts",
+      "source_sha256": "bd28cd58e488b5366cff8177c6b4edb94d83455f7ef0986dfe8ab309da6db05a",
+      "local_sha256": "bd28cd58e488b5366cff8177c6b4edb94d83455f7ef0986dfe8ab309da6db05a"
+    },
+    {
+      "path": "src/i18n/locales/blocks.ts",
+      "source_sha256": "a478cc89f6d6409b0a60a150243f105f94a1ed6a266e451be9f876547ee47cf5",
+      "local_sha256": "a478cc89f6d6409b0a60a150243f105f94a1ed6a266e451be9f876547ee47cf5"
+    },
+    {
+      "path": "src/i18n/locales/common.ts",
+      "source_sha256": "3d76dc9cb6dd0015bb8cfdf3cd7341d225335405f20837b7f302cbd3366d3862",
+      "local_sha256": "7443d9c1033ddf9b8437e1f06358646d5322ef3d510fdd0fec5dff78206b42cd"
+    },
+    {
+      "path": "src/i18n/locales/content.ts",
+      "source_sha256": "c0bc4dc1dfd86a0dd036001297c9fb7d001c7a5df8ad5f8175971c11545d2d93",
+      "local_sha256": "c0bc4dc1dfd86a0dd036001297c9fb7d001c7a5df8ad5f8175971c11545d2d93"
+    },
+    {
+      "path": "src/i18n/locales/demo.ts",
+      "source_sha256": "f7bb00351309e72d151e027f654459cbe57d42d0b643e95126fa7493a214cfc0",
+      "local_sha256": "f7bb00351309e72d151e027f654459cbe57d42d0b643e95126fa7493a214cfc0"
+    },
+    {
+      "path": "src/i18n/locales/design.ts",
+      "source_sha256": "647a51af6ac40be4c046072f5757065707af34632c2127ec879e6c8309e05a45",
+      "local_sha256": "647a51af6ac40be4c046072f5757065707af34632c2127ec879e6c8309e05a45"
+    },
+    {
+      "path": "src/i18n/locales/explainers.ts",
+      "source_sha256": "aa73b7820140757471b4a4493a4390add95a5b54ee1455749ddc97b6340b5164",
+      "local_sha256": "aa73b7820140757471b4a4493a4390add95a5b54ee1455749ddc97b6340b5164"
+    },
+    {
+      "path": "src/i18n/locales/help.ts",
+      "source_sha256": "1f393273a11b4a6591cca45215459bb29cdf2b377ccdc3c1b8e58a5da1fe0021",
+      "local_sha256": "1f393273a11b4a6591cca45215459bb29cdf2b377ccdc3c1b8e58a5da1fe0021"
+    },
+    {
+      "path": "src/i18n/locales/hotspotTimeline.ts",
+      "source_sha256": "013cd0e6e1fd546b9ab7dae66c353c794f2f3ff6081917b3fb4adf535568b74c",
+      "local_sha256": "013cd0e6e1fd546b9ab7dae66c353c794f2f3ff6081917b3fb4adf535568b74c"
+    },
+    {
+      "path": "src/i18n/locales/interactive.ts",
+      "source_sha256": "a7011c00b74354663907108c02a7a2a67518f445f9e9a8111533b3399e3e6a7d",
+      "local_sha256": "a7011c00b74354663907108c02a7a2a67518f445f9e9a8111533b3399e3e6a7d"
+    },
+    {
+      "path": "src/i18n/locales/landing.ts",
+      "source_sha256": "5593407d259818a62d4d0a502e180067c2e870e4ac7e091c9c862047cad352d2",
+      "local_sha256": "5593407d259818a62d4d0a502e180067c2e870e4ac7e091c9c862047cad352d2"
+    },
+    {
+      "path": "src/i18n/locales/media.ts",
+      "source_sha256": "df4669aa8280e05763778495c956c1506b8898b1d88cfdadd5cb7680fe593d16",
+      "local_sha256": "df4669aa8280e05763778495c956c1506b8898b1d88cfdadd5cb7680fe593d16"
+    },
+    {
+      "path": "src/i18n/locales/newblocks.ts",
+      "source_sha256": "ddf1969619a0ace3e18059cf9a0238c5bc30a111357983a1c08ecd57a3fd5989",
+      "local_sha256": "ddf1969619a0ace3e18059cf9a0238c5bc30a111357983a1c08ecd57a3fd5989"
+    },
+    {
+      "path": "src/i18n/locales/preview.ts",
+      "source_sha256": "de826d5bfa2e646806630f6c4a79301ea2617cb668d7f23f088a8ba0e3d87fc5",
+      "local_sha256": "de826d5bfa2e646806630f6c4a79301ea2617cb668d7f23f088a8ba0e3d87fc5"
+    },
+    {
+      "path": "src/i18n/locales/quiz.ts",
+      "source_sha256": "9735e2bb11f299c52fa1080d79f763dfe38fa245e63dae6f041ac448b5ca0c03",
+      "local_sha256": "9735e2bb11f299c52fa1080d79f763dfe38fa245e63dae6f041ac448b5ca0c03"
+    },
+    {
+      "path": "src/i18n/locales/richtext.ts",
+      "source_sha256": "3222434b6a5c67d29d79ea02db9f6aed1c771f5cefe37ed1a7386c7a9535bf0b",
+      "local_sha256": "3222434b6a5c67d29d79ea02db9f6aed1c771f5cefe37ed1a7386c7a9535bf0b"
+    },
+    {
+      "path": "src/i18n/locales/scenario.ts",
+      "source_sha256": "281c94222a895cc27411d7dfd90e9a3a1a4053cab32636a120629cb78d7809f0",
+      "local_sha256": "281c94222a895cc27411d7dfd90e9a3a1a4053cab32636a120629cb78d7809f0"
+    },
+    {
+      "path": "src/i18n/locales/settings.ts",
+      "source_sha256": "af72acb968cb0423b41c58d1dc860198aaa8b432d44be4bbd474b5f2af3b1b16",
+      "local_sha256": "9201657f9ad4545aad7a4d5155c0ff1ef9ad68654b085829d87d86e3c79bc360"
+    },
+    {
+      "path": "src/i18n/locales/text.ts",
+      "source_sha256": "36001a23ab90985c23f362f1d1ee76d10773b2c4cfd32e0cbef7bce69cfdc52a",
+      "local_sha256": "36001a23ab90985c23f362f1d1ee76d10773b2c4cfd32e0cbef7bce69cfdc52a"
+    },
+    {
+      "path": "src/i18n/locales/themes.ts",
+      "source_sha256": "838e9cb3cce1d732604621906e596c203c0e5f1d3e1b7d18a362270d40f388e2",
+      "local_sha256": "838e9cb3cce1d732604621906e596c203c0e5f1d3e1b7d18a362270d40f388e2"
+    },
+    {
+      "path": "src/i18n/locales/welcome.ts",
+      "source_sha256": "9dca4d7a6a8a94fbeadcd4b3224afd5ba3c53cd23a8c6b7775ac45244f6c27f4",
+      "local_sha256": "6281f3da75ce4d6e7bbdf2481adce005f10cbaba982325b671daa4c8ee269b24"
+    },
+    {
+      "path": "src/i18n/types.ts",
+      "source_sha256": "ccd2b0a1d05b2eaf2645463350bb2ccb5e0e6174edb4605182bd4803ca56af20",
+      "local_sha256": "c835c851e0a4a1bdb2ed0fdef2a5d8ad1b3b5db972ca44f479014f195ecc5225"
+    },
+    {
+      "path": "src/index.css",
+      "source_sha256": "ddc0a62964ab55b9517ef970c981d17966ccd0fba61118f607c578942da3b2d2",
+      "local_sha256": "ddc0a62964ab55b9517ef970c981d17966ccd0fba61118f607c578942da3b2d2"
+    },
+    {
+      "path": "src/lib/agentGuide.ts",
+      "source_sha256": "823db62b2e753e34acdeac74be30b4e687f5ef74e49a2ee046157745100a43a2",
+      "local_sha256": "bab11bc4af3b148c5064a6ed5784a9a7913d7998ca354d8ec989ef4b5541a854"
+    },
+    {
+      "path": "src/lib/assets.ts",
+      "source_sha256": "f462cf8bd297c31a9e976b8a67dd2c73cab82c4b6da719607b7a6d355fea3b39",
+      "local_sha256": "f462cf8bd297c31a9e976b8a67dd2c73cab82c4b6da719607b7a6d355fea3b39"
+    },
+    {
+      "path": "src/lib/browserProjects.ts",
+      "source_sha256": "3741c13e14f42f04c1c234867988d2a9e88d1abc540ccac9772a02dbf8bae40a",
+      "local_sha256": "3741c13e14f42f04c1c234867988d2a9e88d1abc540ccac9772a02dbf8bae40a"
+    },
+    {
+      "path": "src/lib/deleteWithUndo.ts",
+      "source_sha256": "8109378bc575449c45900472d3458b31ab3b02a1a0c27dcc9347ed59ea3ba56f",
+      "local_sha256": "8109378bc575449c45900472d3458b31ab3b02a1a0c27dcc9347ed59ea3ba56f"
+    },
+    {
+      "path": "src/lib/embed.ts",
+      "source_sha256": "c9eaf14989017a22921c3fe212390c3ab0b3a464197e67264b4e056cfca234e6",
+      "local_sha256": "c9eaf14989017a22921c3fe212390c3ab0b3a464197e67264b4e056cfca234e6"
+    },
+    {
+      "path": "src/lib/exportProjectZip.ts",
+      "source_sha256": "4f07891caf24be7837e93ef3a6d3c0f4d789fe39bfd7cfdcd478ffbb065ea547",
+      "local_sha256": "4f07891caf24be7837e93ef3a6d3c0f4d789fe39bfd7cfdcd478ffbb065ea547"
+    },
+    {
+      "path": "src/lib/fileSystem.ts",
+      "source_sha256": "120d53f73d431bf810683f8d6bffd12ec4a27dbc553637060c499c6d2738bca1",
+      "local_sha256": "120d53f73d431bf810683f8d6bffd12ec4a27dbc553637060c499c6d2738bca1"
+    },
+    {
+      "path": "src/lib/fileSystemTypes.d.ts",
+      "source_sha256": "30dd2e799f31f530b6488610e1941e7e02b0273f80eee7daf5d35c5b1828f417",
+      "local_sha256": "30dd2e799f31f530b6488610e1941e7e02b0273f80eee7daf5d35c5b1828f417"
+    },
+    {
+      "path": "src/lib/files.ts",
+      "source_sha256": "1f235acf4e1ed673f6c8ca0073bcf9488a744c030a84a7425e6eb05b456c7efb",
+      "local_sha256": "1f235acf4e1ed673f6c8ca0073bcf9488a744c030a84a7425e6eb05b456c7efb"
+    },
+    {
+      "path": "src/lib/id.ts",
+      "source_sha256": "5782f28b774c162ff670898196b50c0f148d103a801361701383d7383f0807aa",
+      "local_sha256": "5782f28b774c162ff670898196b50c0f148d103a801361701383d7383f0807aa"
+    },
+    {
+      "path": "src/lib/importProjectZip.ts",
+      "source_sha256": "c98052edc5c8a17a311c2f19195e0a7f7487cd90b9e35ac75f8d23030bdb5e77",
+      "local_sha256": "c98052edc5c8a17a311c2f19195e0a7f7487cd90b9e35ac75f8d23030bdb5e77"
+    },
+    {
+      "path": "src/lib/keyboard.ts",
+      "source_sha256": "4d29bc072488a0f3c7ae14bea8f9184167602c053f12e1947c33bc1a503feb2a",
+      "local_sha256": "4d29bc072488a0f3c7ae14bea8f9184167602c053f12e1947c33bc1a503feb2a"
+    },
+    {
+      "path": "src/lib/links.ts",
+      "source_sha256": "cc79541e37b8b8de019cd6d8f3fa8bcd8ad1d3cb1c0b8ef2fea2429d846ae251",
+      "local_sha256": "cc79541e37b8b8de019cd6d8f3fa8bcd8ad1d3cb1c0b8ef2fea2429d846ae251"
+    },
+    {
+      "path": "src/lib/projectService.ts",
+      "source_sha256": "c5a28ba44cbb390e391eff4641bde27411622ca7285765da5bb3b1566d0434f0",
+      "local_sha256": "c5a28ba44cbb390e391eff4641bde27411622ca7285765da5bb3b1566d0434f0"
+    },
+    {
+      "path": "src/lib/recentProjects.ts",
+      "source_sha256": "a84c661ddf7e737181f9234404461b96525b59d55c32a02c38e3534e755fb9da",
+      "local_sha256": "a84c661ddf7e737181f9234404461b96525b59d55c32a02c38e3534e755fb9da"
+    },
+    {
+      "path": "src/lib/repairCourse.ts",
+      "source_sha256": "98d56845fbe3e0aedb4ec7a30816229be45b029b01b7cb133d7721b1288d558e",
+      "local_sha256": "98d56845fbe3e0aedb4ec7a30816229be45b029b01b7cb133d7721b1288d558e"
+    },
+    {
+      "path": "src/lib/sampleArt.ts",
+      "source_sha256": "2481e302697fdb53158a8355f8944d55c25507b7e04f177605fda32fa699c04a",
+      "local_sha256": "2481e302697fdb53158a8355f8944d55c25507b7e04f177605fda32fa699c04a"
+    },
+    {
+      "path": "src/lib/sampleCourse.ts",
+      "source_sha256": "33fc645a2e47345d97ff181aaed9cf29d893987fa183c4037ad32f0b26bcd853",
+      "local_sha256": "1b4c1f4af0b9d12268a7d6d9a61ae060ad40bfca9e234f7024d141229d79be95"
+    },
+    {
+      "path": "src/lib/userInstructions.ts",
+      "source_sha256": "abc5189b66faa04fe4a125700246bae94f19b51f18e4bc47837f5dd9de0dfbee",
+      "local_sha256": "abc5189b66faa04fe4a125700246bae94f19b51f18e4bc47837f5dd9de0dfbee"
+    },
+    {
+      "path": "src/main.tsx",
+      "source_sha256": "2586dd5cde556ee4647e1501cca5e28e7f1e900d8612121e296f7cc8b1e5b2d5",
+      "local_sha256": "2586dd5cde556ee4647e1501cca5e28e7f1e900d8612121e296f7cc8b1e5b2d5"
+    },
+    {
+      "path": "src/preview/A11yMenu.tsx",
+      "source_sha256": "2770904c63932481d0b234a38c241a34d53890f2c5597fdb249b2afe886684e0",
+      "local_sha256": "2770904c63932481d0b234a38c241a34d53890f2c5597fdb249b2afe886684e0"
+    },
+    {
+      "path": "src/preview/BlockPreview.tsx",
+      "source_sha256": "170336ecb4c35d07b89ccd64dc03e845e90d0a69b1948af54de9d698fec7a820",
+      "local_sha256": "170336ecb4c35d07b89ccd64dc03e845e90d0a69b1948af54de9d698fec7a820"
+    },
+    {
+      "path": "src/preview/IntroView.tsx",
+      "source_sha256": "c67e1d5735b601d6706d01c898f3229e5a60e377ac1633c85a6b8acd00755965",
+      "local_sha256": "c67e1d5735b601d6706d01c898f3229e5a60e377ac1633c85a6b8acd00755965"
+    },
+    {
+      "path": "src/preview/RichHtml.tsx",
+      "source_sha256": "34cbfdcceaa5bbfba64d9d0dbf3ee75b771d88c9ad9f970402eba50b65aa47e9",
+      "local_sha256": "a20a125005ab43c115c9ca1e36e3d0b2a359da98d9b43579b7b864ac5d8e7290"
+    },
+    {
+      "path": "src/preview/a11y.ts",
+      "source_sha256": "209198c93061a6dc429da50a5e2a350aad5a2c6c0d84c82f42f7c95d47333d32",
+      "local_sha256": "209198c93061a6dc429da50a5e2a350aad5a2c6c0d84c82f42f7c95d47333d32"
+    },
+    {
+      "path": "src/preview/components/AccordionPreview.tsx",
+      "source_sha256": "a1e54704d84be17f68db8d257b70515a6ccf0c8b14152e55a80e8558f5299a39",
+      "local_sha256": "a1e54704d84be17f68db8d257b70515a6ccf0c8b14152e55a80e8558f5299a39"
+    },
+    {
+      "path": "src/preview/components/AttachmentPreview.tsx",
+      "source_sha256": "7eef259c7c6cfd308688ab4dd67e7cd7a5c8ff4030639d70179dba954a99769e",
+      "local_sha256": "7eef259c7c6cfd308688ab4dd67e7cd7a5c8ff4030639d70179dba954a99769e"
+    },
+    {
+      "path": "src/preview/components/AudioPreview.tsx",
+      "source_sha256": "e86ea6dde92ba02562c985e47c1026d66ad1066eb8becb9311cbf8ae3e8a9e45",
+      "local_sha256": "e86ea6dde92ba02562c985e47c1026d66ad1066eb8becb9311cbf8ae3e8a9e45"
+    },
+    {
+      "path": "src/preview/components/BeforeAfterPreview.tsx",
+      "source_sha256": "32dacfd417ba99378cc87716b5f45ece2863e836ffc914c23206aafa088365a2",
+      "local_sha256": "32dacfd417ba99378cc87716b5f45ece2863e836ffc914c23206aafa088365a2"
+    },
+    {
+      "path": "src/preview/components/BlanksText.tsx",
+      "source_sha256": "5f97889224ed38bc80a6a20bd4c90147d73759bafc5f13c1d97f1cf5c8b82ca8",
+      "local_sha256": "5f97889224ed38bc80a6a20bd4c90147d73759bafc5f13c1d97f1cf5c8b82ca8"
+    },
+    {
+      "path": "src/preview/components/Carousel.tsx",
+      "source_sha256": "f4c69516bbe147fe9764f80a37ed479449f2d784baa35e1ff5a056a60b448d02",
+      "local_sha256": "f4c69516bbe147fe9764f80a37ed479449f2d784baa35e1ff5a056a60b448d02"
+    },
+    {
+      "path": "src/preview/components/CodePreview.tsx",
+      "source_sha256": "e831c8f14803053f1a7cec27e55bb54e6b7a208fe58873f0f45ebd797ad46ff4",
+      "local_sha256": "e831c8f14803053f1a7cec27e55bb54e6b7a208fe58873f0f45ebd797ad46ff4"
+    },
+    {
+      "path": "src/preview/components/ColumnsPreview.tsx",
+      "source_sha256": "2a01434f2625a98b294c5f26454230f9451e2ae85db1b377a0e8f348284cbdfd",
+      "local_sha256": "2a01434f2625a98b294c5f26454230f9451e2ae85db1b377a0e8f348284cbdfd"
+    },
+    {
+      "path": "src/preview/components/ComparisonPreview.tsx",
+      "source_sha256": "40641fa17cca6f6529725ab9e50b334df3a852399b3b12939daacd5a8eee826f",
+      "local_sha256": "40641fa17cca6f6529725ab9e50b334df3a852399b3b12939daacd5a8eee826f"
+    },
+    {
+      "path": "src/preview/components/CourseOutlinePreview.tsx",
+      "source_sha256": "d5e6941a238d508800eaf9552f81af35733455b98354895a8378e7e7a9a1c1f8",
+      "local_sha256": "d5e6941a238d508800eaf9552f81af35733455b98354895a8378e7e7a9a1c1f8"
+    },
+    {
+      "path": "src/preview/components/DividerView.tsx",
+      "source_sha256": "193ba24060190dae13a828d5b76f2125bf1c4fc06daf538d492a8dab68b2a73f",
+      "local_sha256": "193ba24060190dae13a828d5b76f2125bf1c4fc06daf538d492a8dab68b2a73f"
+    },
+    {
+      "path": "src/preview/components/EmbedPreview.tsx",
+      "source_sha256": "c15a04ea14ef845cff14f721be7de57ecc3700a4629ffc25be623c22239056a6",
+      "local_sha256": "c15a04ea14ef845cff14f721be7de57ecc3700a4629ffc25be623c22239056a6"
+    },
+    {
+      "path": "src/preview/components/FillBlanksPreview.tsx",
+      "source_sha256": "28651497791a85502e62ec06b6e402d03090608aa33f95e21b847b350f3f1677",
+      "local_sha256": "28651497791a85502e62ec06b6e402d03090608aa33f95e21b847b350f3f1677"
+    },
+    {
+      "path": "src/preview/components/FlashcardsPreview.tsx",
+      "source_sha256": "755cb290010418a60b8ab926874b4eb58ef191bb28116933d70d5ed288b761bc",
+      "local_sha256": "755cb290010418a60b8ab926874b4eb58ef191bb28116933d70d5ed288b761bc"
+    },
+    {
+      "path": "src/preview/components/GalleryPreview.tsx",
+      "source_sha256": "03734eec5a0f9a73ca1e7a37e7201ff3531c26e2ace398836c50576ff1552f2d",
+      "local_sha256": "03734eec5a0f9a73ca1e7a37e7201ff3531c26e2ace398836c50576ff1552f2d"
+    },
+    {
+      "path": "src/preview/components/HotspotPreview.tsx",
+      "source_sha256": "df42caef9df8e8bc1059141849df4e9726a9dd40b7f42445589f91f3b4e26b86",
+      "local_sha256": "df42caef9df8e8bc1059141849df4e9726a9dd40b7f42445589f91f3b4e26b86"
+    },
+    {
+      "path": "src/preview/components/ImagePreview.tsx",
+      "source_sha256": "77efff6708e60b48cf8c953e4fac3e40783c7efb1a75a6a1ae1a57f1dcb892d4",
+      "local_sha256": "77efff6708e60b48cf8c953e4fac3e40783c7efb1a75a6a1ae1a57f1dcb892d4"
+    },
+    {
+      "path": "src/preview/components/ImageTextPreview.tsx",
+      "source_sha256": "5ba2db6b2f311779bbee3f172974f5b8d946e948ad1c9c4f9b8db4b00a2e7611",
+      "local_sha256": "5ba2db6b2f311779bbee3f172974f5b8d946e948ad1c9c4f9b8db4b00a2e7611"
+    },
+    {
+      "path": "src/preview/components/NoteView.tsx",
+      "source_sha256": "040ac08e6f0c7a274e54a9aa0af0919b8155d120227cb986fb17abbfec442a33",
+      "local_sha256": "040ac08e6f0c7a274e54a9aa0af0919b8155d120227cb986fb17abbfec442a33"
+    },
+    {
+      "path": "src/preview/components/OrderingPreview.tsx",
+      "source_sha256": "e64b93f5555d588c60fb4f07a6d89a9ee7ab36f0af8f36129019e1e16dfbf57a",
+      "local_sha256": "e64b93f5555d588c60fb4f07a6d89a9ee7ab36f0af8f36129019e1e16dfbf57a"
+    },
+    {
+      "path": "src/preview/components/ProcessPreview.tsx",
+      "source_sha256": "37dbd0656792d80ec0f4af216d185006f820a45a83bad5b28a7a2743b3f01ef0",
+      "local_sha256": "37dbd0656792d80ec0f4af216d185006f820a45a83bad5b28a7a2743b3f01ef0"
+    },
+    {
+      "path": "src/preview/components/QuizPreview.tsx",
+      "source_sha256": "3da8f1a036db618c87e9e441dae06ee47a2346dd644e727e96cb79e7815bd838",
+      "local_sha256": "3da8f1a036db618c87e9e441dae06ee47a2346dd644e727e96cb79e7815bd838"
+    },
+    {
+      "path": "src/preview/components/QuotePreview.tsx",
+      "source_sha256": "4e69c545c03b44fe9cf12aaeaa359c225a53b9d976f57ba69399ab8f63369425",
+      "local_sha256": "4e69c545c03b44fe9cf12aaeaa359c225a53b9d976f57ba69399ab8f63369425"
+    },
+    {
+      "path": "src/preview/components/ReflectionPreview.tsx",
+      "source_sha256": "42ddfcdb8b119816f6de8562b2301255a4c0c81f1da7ddb885bf49239e4222af",
+      "local_sha256": "42ddfcdb8b119816f6de8562b2301255a4c0c81f1da7ddb885bf49239e4222af"
+    },
+    {
+      "path": "src/preview/components/ResultMark.tsx",
+      "source_sha256": "76322e3ff74f7e6054516343aa549301a6e6777300a6a775469da979c4116de9",
+      "local_sha256": "76322e3ff74f7e6054516343aa549301a6e6777300a6a775469da979c4116de9"
+    },
+    {
+      "path": "src/preview/components/ScenarioPreview.tsx",
+      "source_sha256": "66b2c48aa6513b734813b5876155a3fdc45bee6133947f148c1a9f9e58aad469",
+      "local_sha256": "66b2c48aa6513b734813b5876155a3fdc45bee6133947f148c1a9f9e58aad469"
+    },
+    {
+      "path": "src/preview/components/ScoreResult.tsx",
+      "source_sha256": "62d76bc10a3883db02498238eef39164eb8dd1538ab5ba5a6ad44524e6bf0c21",
+      "local_sha256": "62d76bc10a3883db02498238eef39164eb8dd1538ab5ba5a6ad44524e6bf0c21"
+    },
+    {
+      "path": "src/preview/components/SequenceList.tsx",
+      "source_sha256": "b76fa21106f2fafc6c910b9b94cdc57feddaa23df12356af1f60c6c3e03471a9",
+      "local_sha256": "b76fa21106f2fafc6c910b9b94cdc57feddaa23df12356af1f60c6c3e03471a9"
+    },
+    {
+      "path": "src/preview/components/StepsPreview.tsx",
+      "source_sha256": "129be24e00ab1ec05d8e49221e9d6f560c18e374dc5d4e8191caf5ec56a1c966",
+      "local_sha256": "129be24e00ab1ec05d8e49221e9d6f560c18e374dc5d4e8191caf5ec56a1c966"
+    },
+    {
+      "path": "src/preview/components/TablePreview.tsx",
+      "source_sha256": "371b2e324230ceca9f799da02d20fe05c7b399708ac088009624467e437cabe8",
+      "local_sha256": "371b2e324230ceca9f799da02d20fe05c7b399708ac088009624467e437cabe8"
+    },
+    {
+      "path": "src/preview/components/TabsPreview.tsx",
+      "source_sha256": "45826ccd9cc5c3fc0604029966eb83dbd39c8b2588cc5068eaef198aba5c398f",
+      "local_sha256": "45826ccd9cc5c3fc0604029966eb83dbd39c8b2588cc5068eaef198aba5c398f"
+    },
+    {
+      "path": "src/preview/components/TimelinePreview.tsx",
+      "source_sha256": "f00111d54541e3696f1b7f55e28b4763cea30bd6da429d18618d13b651ab1d70",
+      "local_sha256": "f00111d54541e3696f1b7f55e28b4763cea30bd6da429d18618d13b651ab1d70"
+    },
+    {
+      "path": "src/preview/components/Transcript.tsx",
+      "source_sha256": "cf40bd3f3f152feaf5209b0090158018caf7a11835ece89247ed52110eac776f",
+      "local_sha256": "cf40bd3f3f152feaf5209b0090158018caf7a11835ece89247ed52110eac776f"
+    },
+    {
+      "path": "src/preview/components/VideoPreview.tsx",
+      "source_sha256": "c541698f5d91e65a6f7d27eefe8d72a2c6e8cfb9fee5e6c8c19c8d8d8a7d765a",
+      "local_sha256": "c541698f5d91e65a6f7d27eefe8d72a2c6e8cfb9fee5e6c8c19c8d8d8a7d765a"
+    },
+    {
+      "path": "src/preview/progress.ts",
+      "source_sha256": "658ade901b0a9cecc647924e4f11f366b82ec5d785d930f387a4020cb7e37be4",
+      "local_sha256": "658ade901b0a9cecc647924e4f11f366b82ec5d785d930f387a4020cb7e37be4"
+    },
+    {
+      "path": "src/preview/types.ts",
+      "source_sha256": "248bb2db146681871d86e317abc89b6024eaf85ccaba188f64993f79a4fad901",
+      "local_sha256": "248bb2db146681871d86e317abc89b6024eaf85ccaba188f64993f79a4fad901"
+    },
+    {
+      "path": "src/store/courseStore.ts",
+      "source_sha256": "f72d3cb200f94f587457a16a10044205b605c1499a46dbb88e5f2414869752be",
+      "local_sha256": "f72d3cb200f94f587457a16a10044205b605c1499a46dbb88e5f2414869752be"
+    },
+    {
+      "path": "src/store/toastStore.ts",
+      "source_sha256": "5a1bd0f362c66a3f10e2b1c9d4903bc344196ea61252861ac5aa543f85c6131a",
+      "local_sha256": "5a1bd0f362c66a3f10e2b1c9d4903bc344196ea61252861ac5aa543f85c6131a"
+    },
+    {
+      "path": "src/styles/blocks.css",
+      "source_sha256": "a86a439023fb382a852b5b02ba4ceea838002b08b13f358650c4290e48f14106",
+      "local_sha256": "a86a439023fb382a852b5b02ba4ceea838002b08b13f358650c4290e48f14106"
+    },
+    {
+      "path": "src/theme/ThemeProvider.tsx",
+      "source_sha256": "526e4f2f71797d32ef5c2fa4166107164305850381debe62151f4db507468246",
+      "local_sha256": "526e4f2f71797d32ef5c2fa4166107164305850381debe62151f4db507468246"
+    },
+    {
+      "path": "src/theme/customTheme.ts",
+      "source_sha256": "a3c83a642c7a4ec5a6a0ebb35295f787292f3916469fc7e44fc7ca29930db804",
+      "local_sha256": "a3c83a642c7a4ec5a6a0ebb35295f787292f3916469fc7e44fc7ca29930db804"
+    },
+    {
+      "path": "src/theme/themes.ts",
+      "source_sha256": "bc0b54202068e63452e105fd0500859aea53343d87625a2107dd74e7fb94cdff",
+      "local_sha256": "bc0b54202068e63452e105fd0500859aea53343d87625a2107dd74e7fb94cdff"
+    },
+    {
+      "path": "src/types/course.ts",
+      "source_sha256": "d591bc0e08bc6299af91c5bb66eb8c0bdd425949b001e86db507bdfb9da56c04",
+      "local_sha256": "358b1cfb4792554d7aa33d936c0593147be16be5a9402d7341e029c16c1007eb"
+    },
+    {
+      "path": "src/vite-env.d.ts",
+      "source_sha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "local_sha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5"
+    },
+    {
+      "path": "tests/agentGuide.test.ts",
+      "source_sha256": "13e8352ca3ef70c9260280a85e68c67392bcf3e99d98cf5b5b9f12b778230620",
+      "local_sha256": "13e8352ca3ef70c9260280a85e68c67392bcf3e99d98cf5b5b9f12b778230620"
+    },
+    {
+      "path": "tests/courseCheck.test.ts",
+      "source_sha256": "b15c8405bbbb8151356d62ff4fb545d42c5833beb1bc628b157b673e10cd0175",
+      "local_sha256": "b15c8405bbbb8151356d62ff4fb545d42c5833beb1bc628b157b673e10cd0175"
+    },
+    {
+      "path": "tests/customTheme.test.ts",
+      "source_sha256": "8c8728bffd1c32326de2403bf1a24b7bec4f2e1c23ead13a36d4e28c51ff2418",
+      "local_sha256": "8c8728bffd1c32326de2403bf1a24b7bec4f2e1c23ead13a36d4e28c51ff2418"
+    },
+    {
+      "path": "tests/fillBlanks.test.ts",
+      "source_sha256": "c2ddf0bfb0cd870474902d04b5e4deb40f00244d9efa5348c91235f487e5896d",
+      "local_sha256": "c2ddf0bfb0cd870474902d04b5e4deb40f00244d9efa5348c91235f487e5896d"
+    },
+    {
+      "path": "tests/lms-mock.ts",
+      "source_sha256": "2f3559f51b9528a143cf0dcbdd7d798bc12374004d482639c6867bfc2dca3550",
+      "local_sha256": "2f3559f51b9528a143cf0dcbdd7d798bc12374004d482639c6867bfc2dca3550"
+    },
+    {
+      "path": "tests/ordering.test.ts",
+      "source_sha256": "b9675dc529250223f31c4b56ad6565d12f729d4cdd3110c04045fe523c65a43c",
+      "local_sha256": "b9675dc529250223f31c4b56ad6565d12f729d4cdd3110c04045fe523c65a43c"
+    },
+    {
+      "path": "tests/packageCommon.test.ts",
+      "source_sha256": "4dcce0c1e4de1e9d57f8af8aadf83e09548c023f5fde9e82e019688a72b2f46c",
+      "local_sha256": "4dcce0c1e4de1e9d57f8af8aadf83e09548c023f5fde9e82e019688a72b2f46c"
+    },
+    {
+      "path": "tests/playerCss.test.ts",
+      "source_sha256": "65fed27becddfc21e595b5c462c331a679fd734e5ace48db583cd25f4321031f",
+      "local_sha256": "65fed27becddfc21e595b5c462c331a679fd734e5ace48db583cd25f4321031f"
+    },
+    {
+      "path": "tests/playerLanguages.test.ts",
+      "source_sha256": "904f835798e65f11325bc866b79865506b71da5fb549dd40b17ef989cec51c1b",
+      "local_sha256": "904f835798e65f11325bc866b79865506b71da5fb549dd40b17ef989cec51c1b"
+    },
+    {
+      "path": "tests/projectZip.test.ts",
+      "source_sha256": "bfe37e1d1d2da424f651356c443fb364d12e708fa634d02fa4752f50db36defe",
+      "local_sha256": "bfe37e1d1d2da424f651356c443fb364d12e708fa634d02fa4752f50db36defe"
+    },
+    {
+      "path": "tests/registry.test.ts",
+      "source_sha256": "70b060cfd5ff187dc7573b46004fe66683a7595c7c39a959377b00a460bec1f5",
+      "local_sha256": "70b060cfd5ff187dc7573b46004fe66683a7595c7c39a959377b00a460bec1f5"
+    },
+    {
+      "path": "tests/repairCourse.test.ts",
+      "source_sha256": "b5ef44ae94d3856cfbe7a1bc783cf8733d06844cd1c7756707c26597bf303271",
+      "local_sha256": "b5ef44ae94d3856cfbe7a1bc783cf8733d06844cd1c7756707c26597bf303271"
+    },
+    {
+      "path": "tests/sampleCourse.test.ts",
+      "source_sha256": "2f2cfdbd0adccd04ce198a4267358c204922946eeed6d9ff67d083fad1c6c953",
+      "local_sha256": "2f2cfdbd0adccd04ce198a4267358c204922946eeed6d9ff67d083fad1c6c953"
+    },
+    {
+      "path": "tests/scorm.test.ts",
+      "source_sha256": "a2bf4d6b15e4be340a3d92a83138534bcf5cae3d3f940e4052e74ebf5735a394",
+      "local_sha256": "a2bf4d6b15e4be340a3d92a83138534bcf5cae3d3f940e4052e74ebf5735a394"
+    },
+    {
+      "path": "tests/scormManifest.test.ts",
+      "source_sha256": "eaf58d50c289f2c962cf6bed2249c5e650f55e290077c6c3a83d462b6941c989",
+      "local_sha256": "eaf58d50c289f2c962cf6bed2249c5e650f55e290077c6c3a83d462b6941c989"
+    },
+    {
+      "path": "tests/templates.test.ts",
+      "source_sha256": "8d4442cd0bd5e4650ac75f6d1782bc5f1ea3e973bf6775c3fe4be0b6ab3bcb6b",
+      "local_sha256": "8d4442cd0bd5e4650ac75f6d1782bc5f1ea3e973bf6775c3fe4be0b6ab3bcb6b"
+    },
+    {
+      "path": "tests/xapi.test.ts",
+      "source_sha256": "41afddbaab0225fbcb858eaff46c2b6e70ed061dee254a7d3ac60c8b2b7f6cc8",
+      "local_sha256": "41afddbaab0225fbcb858eaff46c2b6e70ed061dee254a7d3ac60c8b2b7f6cc8"
+    },
+    {
+      "path": "tsconfig.json",
+      "source_sha256": "02efd5b5984d1cfb17a48ed7c38347dadee4d97e6e85c829fe982d57e827d512",
+      "local_sha256": "b7efeefcbf3d034b689df3a5a8ffdef950e7ad8e6ec15977de2dc1c35ebed9ad"
+    },
+    {
+      "path": "vite.config.ts",
+      "source_sha256": "fe1597bd710a8047906d8a1c193f4f9813fd4d9ad43bef640775c69383149834",
+      "local_sha256": "fe1597bd710a8047906d8a1c193f4f9813fd4d9ad43bef640775c69383149834"
+    },
+    {
+      "path": "vitest.config.ts",
+      "source_sha256": "4e632cbc37c6b5d4b5b2bf4fd3fe74c0698f300feed4fdee25d222edaaf7b0f2",
+      "local_sha256": "4e632cbc37c6b5d4b5b2bf4fd3fe74c0698f300feed4fdee25d222edaaf7b0f2"
+    }
+  ],
+  "remediations": [
+    "Scormly company publication now offers SCORM 1.2 and 2004. Both versions have real browser coverage from demo-project publication through source ZIP download, isolated playback, durable bookmark saving and resumed playback.",
+    "The publication picker filters courses by server-provided management rights and explains when no eligible course exists. Browser coverage verifies a visible read-only course cannot be selected; upload permissions remain server-enforced.",
+    "SCORM imports now recognize CAM 1.3 declarations as 2004, including case/whitespace variants. Regression tests use actual manifest ZIPs.",
+    "SCORM launch context now supplies current learner ID/name, safely escapes embedded JSON and rejects deactivated accounts. Regression coverage includes name fallbacks and overriding stale saved identity.",
+    "English, Traditional Chinese and Spanish include the new publication controls. The studio build and 197 unit tests pass (4 upstream skips); complete per-block acceptance is still pending."
+  ],
+  "validation": [
+    {
+      "check": "Django suite on PostgreSQL 17",
+      "result": "92 passed, including attempt-budget, invitation and answer-revision concurrency races."
+    },
+    {
+      "check": "Playwright application workflows",
+      "result": "19 passed against the real API and isolated content server. Repeated local runs first exhausted the configured sign-in allowance; the complete rerun passed after resetting synthetic test counters, with security limits unchanged."
+    },
+    {
+      "check": "Scormly unit tests",
+      "result": "197 passed; 4 upstream tests skipped."
+    },
+    {
+      "check": "Frontend and Scormly production builds",
+      "result": "Both passed. Existing JavaScript chunk-size advisories remain."
+    },
+    {
+      "check": "Django configuration and migration checks",
+      "result": "Passed; no new database migration."
+    },
+    {
+      "check": "Audit evidence and pinned upstream checkouts",
+      "result": "146 feature groups, 155 Yaksh route declarations, 32 block types and 288 retained source files validated."
+    },
+    {
+      "check": "Full feature-parity gate",
+      "result": "Expected failure: 124 feature groups still require implementation, acceptance or an explicit scope decision."
+    }
+  ]
+}

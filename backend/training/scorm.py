@@ -20,7 +20,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from .i18n import translate
-from .models import Course, Enrollment, ScormPackage, ScormState
+from .models import Course, Enrollment, ScormPackage, ScormState, User
 from .services import audit
 
 MAX_BYTES = 100 * 1024 * 1024
@@ -107,7 +107,12 @@ def inspect_package(upload):
         )
         return (
             archive,
-            ("2004" if "2004" in version or version.startswith("1.3") else "1.2"),
+            (
+                "2004"
+                if "2004" in version
+                or version.strip().casefold().startswith(("1.3", "cam 1.3"))
+                else "1.2"
+            ),
             href,
             title[:200],
         )
@@ -307,12 +312,16 @@ def content_launch(request):
     except signing.BadSignature:
         return HttpResponseForbidden("Launch ticket expired or invalid.")
     package = get_object_or_404(ScormPackage, pk=payload["package"])
+    learner = get_object_or_404(User, pk=payload["user"], is_active=True)
+    learner_name = learner.display_name or learner.get_full_name() or learner.username
     state = ScormState.objects.filter(package=package, user_id=payload["user"]).first()
     cmi = state.cmi.copy() if state else {}
     cmi.update(
         {
             "cmi.core.student_id": str(payload["user"]),
             "cmi.learner_id": str(payload["user"]),
+            "cmi.core.student_name": learner_name,
+            "cmi.learner_name": learner_name,
             "cmi.core.entry": "resume" if state else "ab-initio",
             "cmi.entry": "resume" if state else "ab-initio",
             "cmi.student_preference.language": payload.get("language", "en"),

@@ -6,8 +6,10 @@ const common: LocaleTable = {
   en: {
     interfaceLanguage: 'Interface language',
     lmsPublish: 'Publish to LMS',
-    lmsIntro: 'Upload SCORM 1.2 and a source project backup to your company course. This transfers content to the company server.',
+    lmsIntro: 'Upload a SCORM package and an editable project backup to your company course. Choose SCORM 1.2 or 2004.',
     lmsCourse: 'Select a company course',
+    lmsFormat: 'LMS package format',
+    lmsNoCourses: 'Create a course you can manage before publishing.',
     lmsSignIn: 'Sign in to Evitina Learn with an instructor or admin account first.',
     lmsFixIssues: 'Resolve the course export check warnings before publishing to the LMS.',
     lmsPublished: 'Published. The package and editable project backup are saved on the LMS.',
@@ -174,8 +176,10 @@ const common: LocaleTable = {
   uk: {
     interfaceLanguage: 'Мова інтерфейсу',
     lmsPublish: 'Опублікувати в LMS',
-    lmsIntro: 'Завантажте SCORM 1.2 і резервну копію проєкту до курсу компанії. Вміст буде передано на сервер компанії.',
+    lmsIntro: 'Завантажте пакет SCORM і редаговану резервну копію проєкту до курсу компанії. Виберіть SCORM 1.2 або 2004.',
     lmsCourse: 'Виберіть курс компанії',
+    lmsFormat: 'Формат пакета LMS',
+    lmsNoCourses: 'Перед публікацією створіть курс, яким ви можете керувати.',
     lmsSignIn: 'Спочатку увійдіть до Evitina Learn як викладач або адміністратор.',
     lmsFixIssues: 'Виправте попередження перевірки курсу перед публікацією.',
     lmsPublished: 'Опубліковано. Пакет і резервну копію проєкту збережено в LMS.',

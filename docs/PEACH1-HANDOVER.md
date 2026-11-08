@@ -2,6 +2,8 @@
 
 This repository contains the company training platform. Peach1 is the target for company infrastructure configuration and Microsoft Entra / Graph integration. No tenant credentials, live directory data or email passwords belong in this public repository.
 
+**The application is not yet feature-complete against all four source repositories.** The [upstream audit](UPSTREAM-AUDIT.md) records implemented, partial, missing and unverified workflows. The working capabilities listed below are a subset of that scope; the remaining platform implementation must not be mistaken for deployment-only Entra/Graph work.
+
 ## What is ready in the application
 
 - English-default interface, with Traditional Chinese and Spanish throughout the workspace and authoring studio.
@@ -27,6 +29,10 @@ The system does not yet perform Microsoft Graph directory synchronization. Entra
 7. Configure SMTP, verify real email-code delivery, and provision local participants through **People & permissions**. CSV headers are documented in [operations](OPERATIONS.md).
 8. Run `docker compose exec api python manage.py check_deployment --strict`. Review **Settings & audit → Deployment readiness**. These checks inspect local configuration; they do not verify DNS, certificates, SMTP delivery, scheduler health or tenant access.
 9. Connect Entra and Graph following the contract below, then complete the acceptance table. Entra configuration can remain deferred during local platform validation.
+
+## Changes after v1.3
+
+Current main adds the upstream feature inventory and corrects SCORM integration: authors can publish either SCORM 1.2 or 2004, the course picker shows only manageable destinations, new imports recognize CAM 1.3 as 2004, and launches supply current learner names. Deactivated accounts cannot redeem a previously issued launch ticket. These changes add no database migration. Rebuild matching application/content and web images; existing packages and saved learning states remain stored. The v1.3 release tag predates these corrections.
 
 ## Upgrade from v1.2
 

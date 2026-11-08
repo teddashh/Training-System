@@ -9343,5 +9343,35 @@
     "en": "Validating…",
     "zh-TW": "驗證中…",
     "es": "Validando…"
+  },
+  "Upload a SCORM package and an editable project backup to your company course. Choose SCORM 1.2 or 2004.": {
+    "en": "Upload a SCORM package and an editable project backup to your company course. Choose SCORM 1.2 or 2004.",
+    "zh-TW": "將 SCORM 套件與可編輯的專案備份上傳至公司課程。可選擇 SCORM 1.2 或 2004。",
+    "es": "Sube un paquete SCORM y una copia editable del proyecto al curso de la empresa. Elige SCORM 1.2 o 2004."
+  },
+  "LMS package format": {
+    "en": "LMS package format",
+    "zh-TW": "LMS 套件格式",
+    "es": "Formato del paquete LMS"
+  },
+  "Create a course you can manage before publishing.": {
+    "en": "Create a course you can manage before publishing.",
+    "zh-TW": "發布前請先建立您可以管理的課程。",
+    "es": "Antes de publicar, crea un curso que puedas gestionar."
+  },
+  "studio.common.lmsIntro": {
+    "en": "Upload a SCORM package and an editable project backup to your company course. Choose SCORM 1.2 or 2004.",
+    "zh-TW": "將 SCORM 套件與可編輯的專案備份上傳至公司課程。可選擇 SCORM 1.2 或 2004。",
+    "es": "Sube un paquete SCORM y una copia editable del proyecto al curso de la empresa. Elige SCORM 1.2 o 2004."
+  },
+  "studio.common.lmsFormat": {
+    "en": "LMS package format",
+    "zh-TW": "LMS 套件格式",
+    "es": "Formato del paquete LMS"
+  },
+  "studio.common.lmsNoCourses": {
+    "en": "Create a course you can manage before publishing.",
+    "zh-TW": "發布前請先建立您可以管理的課程。",
+    "es": "Antes de publicar, crea un curso que puedas gestionar."
   }
 }

@@ -1,5 +1,7 @@
 # Upstream integrations and migration
 
+The [upstream feature audit](UPSTREAM-AUDIT.md) records the pinned source, active implementation, regression evidence and gaps for all four reference repositories. Full feature parity has not been achieved. The limitations below describe the current application; they do not remove the remaining workflows from the implementation plan.
+
 ## FOSSEE / online_test (Yaksh)
 
 Source commit: `336fc050cce6eab6d45475297d19f3b659491d48`.
@@ -42,16 +44,16 @@ The new integration adds ZIP path and expansion limits, signed launch tickets, p
 
 Source commit: `53c35d2753e89db5f58f07de4d6164be14359fce`.
 
-The complete MIT source is in `vendor/scormly/`, built under `/studio/`. `buildScormZip` and `PublishLms` send a SCORM 1.2 package and editable project ZIP to a selected course using the signed-in session and CSRF protection. Backups are restricted to the owning instructor/administrator, and older package files are retained.
+All 288 tracked upstream files are retained in `vendor/scormly/`, built under `/studio/`, with company integration changes recorded in the audit. `buildScormZip` and `PublishLms` send the selected SCORM 1.2 or 2004 package and editable project ZIP to a manageable course using the signed-in session and CSRF protection. Backups are restricted to the owning instructor/administrator, and older package files are retained. Source retention does not certify every block, storage backend or export workflow inside the company LMS.
 
 To restore editing, download the source project from the course card and open it in Scormly with **Open a project (.zip)**. This is not simultaneous collaborative editing or continuous server synchronization. Projects can still live in a local folder, browser storage or the tab; **Publish to LMS** explicitly uploads content and the editable backup to the company server.
 
 The platform and studio use the same English, Traditional Chinese and Spanish catalog. Existing upstream Ukrainian dictionaries are retained in source, while the company language picker exposes the three requested languages. Exported player text now includes Traditional Chinese, and automatic player language selection can use the LMS preference. Author-written content is preserved.
 
-Scormly builds, upstream unit tests, locale coverage and browser checks for publication, rich-text sanitation and language continuity run in CI. Imported/pasted HTML is sanitized before insertion into the authenticated editor; published packages run on the isolated origin.
+Scormly builds, upstream unit tests, locale coverage and browser checks for publication, isolated playback/save/resume in both SCORM versions, rich-text sanitation and language continuity run in CI. Imported/pasted HTML is sanitized before insertion into the authenticated editor; published packages run on the isolated origin. A separate audit check ensures feature evidence and retained-source inventories stay current; it is not a completeness certification.
 
 ## Visual references
 
-[School-Management-Dashboard](https://github.com/MariemMagdi/School-Management-Dashboard) informed the card, chart and table information structure. Its repository did not provide an explicit license, so its code and images were not copied.
+[School-Management-Dashboard](https://github.com/MariemMagdi/School-Management-Dashboard/tree/d249f7d7d3bfac7a652d3f54f5ed19d7b9bfe248) informed the card, chart and table information structure. Its README claims MIT, but the referenced license file is absent at this revision; its code and images were not copied. The audit reviews its database, role pages, calendars, forms and actions, including incomplete writes and static charts. Company equivalents for supervisors, cohorts, attendance, schedules and announcements remain implementation work.
 
 [Evitina](https://www.evitina.tw/) informed dark surfaces, teal accents and geometric visual motifs. The enterprise interface is an original implementation combining these cues with Azure blue. Its CSS/template and logo assets were not copied.
