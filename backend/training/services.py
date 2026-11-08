@@ -251,6 +251,7 @@ def start_attempt(exam_id, identity, invitation=None):
         number=budget.used,
         snapshot=questions,
         pass_score=exam.pass_score,
+        allow_skip=exam.allow_skip,
         deadline=deadline,
     )
     audit(
@@ -368,7 +369,67 @@ def validate_answers(answers, snapshot):
     return answers
 
 
-def public_attempt(attempt):
+def answer_provided(value):
+    # Presence is separate from correctness. Invalid numeric drafts still grade
+    # as zero; a selection at index zero must count as an answer.
+    return (
+        bool(value.strip())
+        if isinstance(value, str)
+        else bool(value)
+        if isinstance(value, list)
+        else type(value) is int
+    )
+
+
+def available_question_count(attempt):
+    return (
+        len(attempt.snapshot)
+        if attempt.allow_skip
+        else min(attempt.unlocked_question_count, len(attempt.snapshot))
+    )
+
+
+def record_answers(attempt, answers, *, submitting=False):
+    """Caller holds the attempt lock. Validate before changing any saved state."""
+    available = available_question_count(attempt)
+    answers = validate_answers(answers, attempt.snapshot[:available])
+    if (
+        submitting
+        and not attempt.allow_skip
+        and any(
+            not answer_provided(answers.get(str(question["id"])))
+            for question in attempt.snapshot
+        )
+    ):
+        raise ValidationError(
+            {
+                "code": "answers_required",
+                "detail": translate(
+                    "Answer every question before submitting this exam."
+                ),
+            }
+        )
+    attempt.answers = answers
+    attempt.answer_revision += 1
+    if not attempt.allow_skip and all(
+        answer_provided(answers.get(str(question["id"])))
+        for question in attempt.snapshot[:available]
+    ):
+        attempt.unlocked_question_count = min(available + 1, len(attempt.snapshot))
+    attempt.save(
+        update_fields=["answers", "answer_revision", "unlocked_question_count"]
+    )
+
+
+def public_attempt(attempt, *, for_review=False):
+    active = attempt.status == "in_progress"
+    review_available = not active and (for_review or attempt.exam.allow_response_review)
+    visible = active or review_available
+    questions = (
+        attempt.snapshot
+        if not active
+        else attempt.snapshot[: available_question_count(attempt)]
+    )
     return {
         "id": str(attempt.id),
         "exam_id": attempt.exam_id,
@@ -377,7 +438,10 @@ def public_attempt(attempt):
         "status": attempt.status,
         "deadline": attempt.deadline,
         "server_time": timezone.now(),
-        "answers": attempt.answers,
+        "allow_skip": attempt.allow_skip,
+        "review_available": review_available,
+        "question_count": len(attempt.snapshot),
+        "answers": attempt.answers if visible else {},
         "answer_revision": attempt.answer_revision,
         "questions": [
             {
@@ -385,10 +449,12 @@ def public_attempt(attempt):
                 for k, v in q.items()
                 if k not in ("solution", "answer_tolerances", "answer_matching")
             }
-            for q in attempt.snapshot
-        ],
+            for q in questions
+        ]
+        if visible
+        else [],
         "score": attempt.score if attempt.status == "graded" else None,
         "passed": attempt.passed,
         "pass_score": attempt.pass_score,
-        "manual_grades": attempt.manual_grades,
+        "manual_grades": attempt.manual_grades if visible else {},
     }

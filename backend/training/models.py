@@ -104,6 +104,8 @@ class Exam(models.Model):
     duration_minutes = models.PositiveIntegerField(default=30)
     max_attempts = models.PositiveSmallIntegerField(default=2)
     retry_interval_minutes = models.PositiveIntegerField(default=0)
+    allow_skip = models.BooleanField(default=True)
+    allow_response_review = models.BooleanField(default=True)
     pass_score = models.PositiveSmallIntegerField(default=70)
     published = models.BooleanField(default=False)
     audience = models.CharField(
@@ -294,6 +296,9 @@ class Attempt(models.Model):
     pass_score = models.PositiveSmallIntegerField()
     answers = models.JSONField(default=dict)
     answer_revision = models.PositiveIntegerField(default=0)
+    # Navigation is frozen at start; completed-review visibility remains live.
+    allow_skip = models.BooleanField(default=True)
+    unlocked_question_count = models.PositiveSmallIntegerField(default=1)
     manual_grades = models.JSONField(default=dict)
     score = models.FloatField(null=True, blank=True)
     passed = models.BooleanField(null=True, blank=True)
@@ -305,7 +310,13 @@ class Attempt(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["exam", "identity", "number"], name="unique_attempt_number"
-            )
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    unlocked_question_count__gte=1, unlocked_question_count__lte=200
+                ),
+                name="bounded_unlocked_questions",
+            ),
         ]
 
 

@@ -2764,6 +2764,14 @@ form > label {
 .result-celebration > .btn {
   margin-top: 15px;
 }
+.exam-policy-notice,
+.result-celebration p.exam-policy-notice {
+  color: #344c66;
+  font-size: 13px;
+}
+.attempt-shell > .exam-policy-notice {
+  margin-bottom: 16px;
+}
 /* Responsive layouts */
 @media (min-width: 1600px) {
   .sidebar {

@@ -981,9 +981,11 @@ test("changing language preserves answers and the budget of an active exam", asy
   expect((await budget.json()).attempts_used).toBe(1);
 });
 
-test("exam editor persists selected people across language switches and reloads", async ({
+test("exam policies preserve audience, enforce sequential guest access and release reviewed responses", async ({
   page,
+  browser,
 }) => {
+  test.setTimeout(120000);
   await login(page);
   const title = "Assigned assessment " + Date.now();
   const exam = await post<{ id: number }>(page, "exams/", {
@@ -995,7 +997,14 @@ test("exam editor persists selected people across language switches and reloads"
         type: "single",
         options: ["Yes", "No"],
         solution: [0],
-        points: 100,
+        points: 10,
+      },
+      {
+        description: "Explain the private release procedure",
+        type: "essay",
+        options: [],
+        solution: [],
+        points: 10,
       },
     ],
   });
@@ -1016,10 +1025,35 @@ test("exam editor persists selected people across language switches and reloads"
   const label =
     person.display_name + (person.department ? " · " + person.department : "");
   await modal.getByRole("checkbox", { name: label, exact: true }).check();
+  await modal
+    .getByRole("checkbox", {
+      name: "Allow participants to skip questions",
+      exact: true,
+    })
+    .uncheck();
+  await modal
+    .getByRole("checkbox", {
+      name: "Allow participants to review responses and feedback",
+      exact: true,
+    })
+    .uncheck();
   await modal.locator(".language-picker select").selectOption("es");
   await expect(
     modal.getByRole("checkbox", { name: label, exact: true }),
   ).toBeChecked();
+  await expect(
+    modal.getByRole("checkbox", {
+      name: "Permitir que los participantes omitan preguntas",
+      exact: true,
+    }),
+  ).not.toBeChecked();
+  await modal.locator(".language-picker select").selectOption("zh-TW");
+  await expect(
+    modal.getByRole("checkbox", {
+      name: "允許應試者檢視作答與回饋",
+      exact: true,
+    }),
+  ).not.toBeChecked();
   await modal.locator(".language-picker select").selectOption("en");
   await modal.getByRole("button", { name: "Save exam", exact: true }).click();
   await expect(modal).toHaveCount(0);
@@ -1037,6 +1071,238 @@ test("exam editor persists selected people across language switches and reloads"
     await page.request.get(`/api/exams/${exam.id}/`)
   ).json();
   expect(stored.allowed_users).toEqual([person.id]);
+  expect(stored.allow_skip).toBe(false);
+  expect(stored.allow_response_review).toBe(false);
+  await expect(
+    modal.getByRole("checkbox", {
+      name: "Allow participants to skip questions",
+      exact: true,
+    }),
+  ).not.toBeChecked();
+  await modal.getByRole("button", { name: "Cancel", exact: true }).click();
+  const invitation = await post<{ url: string }>(page, "invitations/issue/", {
+    exam: exam.id,
+    key: `policy-${Date.now()}@example.com`,
+    max_attempts: 1,
+    days: 1,
+  });
+  const context = await browser.newContext();
+  try {
+    const guest = await context.newPage();
+    await guest.goto(invitation.url);
+    await expect(
+      guest.getByText("This exam requires answers in order.", { exact: false }),
+    ).toBeVisible();
+    await guest
+      .getByRole("button", { name: "Start / resume exam", exact: true })
+      .click();
+    await expect(
+      guest.getByRole("heading", { name: "A private assessment", exact: true }),
+    ).toBeVisible();
+    const attemptId = new URL(guest.url()).pathname.split("/").pop()!;
+    const endpoint = `**/api/attempts/${attemptId}/`;
+    let release: (() => void) | undefined;
+    let firstSave = true;
+    let rejectSubmission = true;
+    await guest.route(endpoint, async (route) => {
+      if (route.request().method() === "POST" && rejectSubmission) {
+        rejectSubmission = false;
+        await route.fulfill({
+          status: 400,
+          json: {
+            code: "answers_required",
+            detail: "Answer every question before submitting this exam.",
+          },
+        });
+        return;
+      }
+      if (route.request().method() === "PATCH" && firstSave) {
+        firstSave = false;
+        const response = await route.fetch();
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        await route.fulfill({ response });
+      } else await route.continue();
+    });
+    await expect(
+      guest.getByRole("button", { name: "Go to question 2", exact: true }),
+    ).toBeDisabled();
+    await expect(
+      guest.getByRole("button", { name: "Next question", exact: true }),
+    ).toBeDisabled();
+    await expect(
+      guest.getByRole("button", { name: "Submit", exact: true }),
+    ).toBeDisabled();
+    await expect(
+      guest.getByText("Explain the private release procedure", { exact: true }),
+    ).toHaveCount(0);
+    await guest.clock.setFixedTime(new Date("2099-01-01T00:00:00Z"));
+    // Let the timer tick: changing the wall clock must neither expire nor submit.
+    await guest.waitForTimeout(1200);
+    await expect(guest.locator(".exam-timer strong")).not.toHaveText("00:00");
+    await expect(
+      guest.getByRole("heading", { name: "A private assessment", exact: true }),
+    ).toBeVisible();
+    await guest.getByRole("radio", { name: /Yes/ }).check();
+    await expect.poll(() => !!release).toBe(true);
+    await expect(
+      guest.getByRole("button", { name: "Next question", exact: true }),
+    ).toBeDisabled();
+    release!();
+    await expect(
+      guest.getByRole("button", { name: "Next question", exact: true }),
+    ).toBeEnabled();
+    await guest
+      .getByRole("button", { name: "Next question", exact: true })
+      .click();
+    await expect(
+      guest.getByRole("button", { name: "Finish and submit", exact: true }),
+    ).toBeDisabled();
+    await guest
+      .getByRole("textbox", { name: "Your answer", exact: true })
+      .fill("Saved confidential procedure");
+    await expect(guest.getByRole("status")).toContainText(
+      "Answers saved automatically",
+    );
+    await guest.reload();
+    await expect(guest.getByRole("radio", { name: /Yes/ })).toBeChecked();
+    await guest
+      .getByRole("button", { name: "Go to question 2", exact: true })
+      .click();
+    await expect(
+      guest.getByRole("textbox", { name: "Your answer", exact: true }),
+    ).toHaveValue("Saved confidential procedure");
+    // New navigation settings must not change an attempt already underway.
+    await page
+      .getByRole("button", { name: "Edit " + title, exact: true })
+      .click();
+    await modal
+      .getByRole("checkbox", {
+        name: "Allow participants to skip questions",
+        exact: true,
+      })
+      .check();
+    await modal.getByRole("button", { name: "Save exam", exact: true }).click();
+    await expect(modal).toHaveCount(0);
+    const inProgress = await guest.evaluate(
+      async (id) => (await fetch(`/api/attempts/${id}/`)).json(),
+      attemptId,
+    );
+    expect(inProgress.allow_skip).toBe(false);
+    await guest.setViewportSize({ width: 390, height: 844 });
+    expect(
+      await guest.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await guest.screenshot({
+      path: "/tmp/training-policies-sequential-mobile.png",
+      fullPage: true,
+    });
+    await guest
+      .getByRole("button", { name: "Finish and submit", exact: true })
+      .click();
+    await guest
+      .getByRole("button", { name: "Confirm submission", exact: true })
+      .click();
+    await expect(
+      guest
+        .getByRole("dialog", { name: "Confirm submission", exact: true })
+        .getByText("Answer every question before submitting this exam.", {
+          exact: true,
+        }),
+    ).toBeVisible();
+    await guest
+      .getByRole("button", { name: "Continue answering", exact: true })
+      .click();
+    await expect(
+      guest.getByRole("textbox", { name: "Your answer", exact: true }),
+    ).toBeEditable();
+    await expect(
+      guest.getByRole("textbox", { name: "Your answer", exact: true }),
+    ).toHaveValue("Saved confidential procedure");
+    await guest
+      .getByRole("button", { name: "Finish and submit", exact: true })
+      .click();
+    await guest
+      .getByRole("button", { name: "Confirm submission", exact: true })
+      .click();
+    await expect(
+      guest.getByRole("heading", {
+        name: "Submitted, awaiting instructor review",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(guest.locator(".response-item")).toHaveCount(0);
+    const hidden = await guest.evaluate(
+      async (id) => (await fetch(`/api/attempts/${id}/`)).json(),
+      attemptId,
+    );
+    expect(hidden.questions).toEqual([]);
+    expect(hidden.answers).toEqual({});
+    expect(hidden.manual_grades).toEqual({});
+    await guest.locator(".language-picker select").selectOption("es");
+    await expect(
+      guest.getByText("La revisión de respuestas está desactivada.", {
+        exact: false,
+      }),
+    ).toBeVisible();
+    await guest.locator(".language-picker select").selectOption("zh-TW");
+    await expect(
+      guest.getByText("目前未開放檢視作答。", { exact: false }),
+    ).toBeVisible();
+    await guest.locator(".language-picker select").selectOption("en");
+    const review = await (
+      await page.request.get(`/api/results/${attemptId}/review/`)
+    ).json();
+    expect(review.answers[String(review.questions[1].id)]).toBe(
+      "Saved confidential procedure",
+    );
+    await post(page, `results/${attemptId}/review/`, {
+      grades: {
+        [review.questions[1].id]: {
+          points: 9,
+          feedback: "Reviewed confidential feedback",
+        },
+      },
+    });
+    await guest
+      .getByRole("button", { name: "Refresh result", exact: true })
+      .click();
+    await expect(guest.locator(".result-score")).toContainText("95");
+    await expect(
+      guest.getByText("Reviewed confidential feedback", { exact: true }),
+    ).toHaveCount(0);
+    await guest.screenshot({
+      path: "/tmp/training-policies-hidden-result-mobile.png",
+      fullPage: true,
+    });
+    // Organizers can release completed responses without regrading or restarting.
+    await page
+      .getByRole("button", { name: "Edit " + title, exact: true })
+      .click();
+    await modal
+      .getByRole("checkbox", {
+        name: "Allow participants to review responses and feedback",
+        exact: true,
+      })
+      .check();
+    await modal.getByRole("button", { name: "Save exam", exact: true }).click();
+    await expect(modal).toHaveCount(0);
+    await guest
+      .getByRole("button", { name: "Refresh result", exact: true })
+      .click();
+    await expect(
+      guest.getByText("Reviewed confidential feedback", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      guest.getByText("Saved confidential procedure", { exact: true }),
+    ).toBeVisible();
+    await expect(guest.locator(".result-score")).toContainText("95");
+  } finally {
+    await context.close();
+  }
 });
 
 test("guest email verification unlocks the invitation without consuming an attempt", async ({

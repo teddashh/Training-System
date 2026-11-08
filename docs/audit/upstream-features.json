@@ -921,7 +921,7 @@
       "id": "Y37",
       "repository": "yaksh",
       "feature": "Answer-paper visibility policy and no-skip policy",
-      "status": "missing",
+      "status": "implemented",
       "source": [
         {
           "path": "yaksh/models.py",
@@ -930,11 +930,41 @@
         {
           "path": "yaksh/models.py",
           "line": 527
+        },
+        {
+          "path": "yaksh/views.py",
+          "line": 2264
+        },
+        {
+          "path": "yaksh/templates/exam.html",
+          "line": 52
         }
       ],
-      "implementation": [],
-      "verification": [],
-      "assessment": "Participants can review their responses and navigate questions; organizers cannot configure these policies.",
+      "implementation": [
+        "backend/training/models.py",
+        "backend/training/services.py",
+        "backend/training/views.py",
+        "backend/training/serializers.py",
+        "frontend/src/Exams.tsx",
+        "frontend/src/Attempt.tsx",
+        "frontend/src/useAttemptSession.ts",
+        "frontend/src/ExamPolicyNotice.tsx"
+      ],
+      "verification": [
+        "backend/training/test_exam_policies.py::test_defaults_editor_round_trip_and_ownership",
+        "backend/training/test_exam_policies.py::test_locked_questions_cannot_be_read_or_answered_ahead",
+        "backend/training/test_exam_policies.py::test_blank_answers_do_not_unlock_and_revisits_keep_progress",
+        "backend/training/test_exam_policies.py::test_all_question_types_unlock_on_presence_without_requiring_correctness",
+        "backend/training/test_exam_policies.py::test_navigation_policy_is_frozen_and_randomized_order_stays_stable",
+        "backend/training/test_exam_policies.py::test_completed_review_is_live_and_hides_questions_answers_and_feedback",
+        "backend/training/test_exam_policies.py::test_manager_only_review_override_and_other_participant_access",
+        "backend/training/test_exam_policies.py::test_guest_uses_sequential_access_hidden_results_and_same_budget",
+        "backend/training/test_exam_policies.py::test_expiry_finalizes_only_saved_answers_without_requiring_completion",
+        "backend/training/test_exam_policies.py::test_free_navigation_keeps_incomplete_submission_compatible",
+        "backend/training/test_exam_policies.py::test_competing_saves_unlock_only_one_question_for_one_revision",
+        "frontend/e2e/training.spec.ts::exam policies preserve audience, enforce sequential guest access and release reviewed responses"
+      ],
+      "assessment": "Organizers configure skipping and completed-response visibility independently. Compatible defaults preserve prior behavior. Sequential attempts freeze navigation, withhold future question content, unlock in saved-answer order, preserve revisits and reject incomplete manual submission; timeouts finalize saved responses. The live review policy redacts questions, answers and feedback from participant responses while authorized instructors retain access. Scores remain available after grading. Account/guest APIs, all seven question types, randomization, revision races, three languages, save-confirmed navigation, mobile layouts, device-clock changes, recoverable submission validation and later feedback release are covered. These controls do not retract content previously seen or provide proctoring.",
       "priority": 1,
       "routes": []
     },
@@ -5747,16 +5777,18 @@
     "Integer, numeric-with-tolerance and ordering questions now work through bank and exam authoring, frozen attempts, autosave/resume, automatic grading, guest limits, learner/instructor review and assessment insights. English, Traditional Chinese and Spanish have browser coverage, including keyboard ordering and mobile layout.",
     "Yaksh draft import now preserves alternative integer values and individual floating error margins. Arrange import requires an explicitly reviewed correct_order because the native export omits reliable testcase ordering metadata. Invalid imports remain atomic.",
     "Retry intervals now share one server-enforced clock across account aliases and guest links. Eligibility is measured from the previous start, active attempts resume, early starts do not consume budgets, and account/assignment/guest interfaces show localized availability. PostgreSQL concurrency and real browser workflows cover the new policy.",
-    "Yaksh string matching now preserves each accepted answer’s case and spacing policy, including multiline and Unicode distinctions. Three-language bank/exam authoring, frozen attempts, account/guest grading, labeled reviews, rule-aware analytics and atomic string imports share these rules. Historical normalized grading remains compatible."
+    "Yaksh string matching now preserves each accepted answer’s case and spacing policy, including multiline and Unicode distinctions. Three-language bank/exam authoring, frozen attempts, account/guest grading, labeled reviews, rule-aware analytics and atomic string imports share these rules. Historical normalized grading remains compatible.",
+    "Sequential exam navigation is now enforced in the API, including private future questions, persisted unlocking, incomplete-submission validation and frozen attempt rules. Completed response visibility remains a live organizer setting with no-store responses, scoped instructor access and participant refresh. Account/guest and PostgreSQL concurrency coverage preserve existing budgets, autosave and timeout behavior.",
+    "The active exam player now uses monotonic elapsed time for deadlines and save-retry delays, anchored to server timestamps. Changing the device wall clock cannot prematurely submit an exam or reset its duration; server-side expiry remains authoritative."
   ],
   "validation": [
     {
       "check": "Django suite on PostgreSQL 17",
-      "result": "127 passed, including case/spacing/Unicode text rules, alternative matching, historical snapshots, bank copies, account/guest grading, private review, distinct reporting and atomic string imports. Existing retry, budget and answer-revision concurrency tests also pass."
+      "result": "138 passed, including frozen sequential navigation, private future questions, all seven answer types, live review redaction/release, authorization, guest budgets, deadline finalization and competing unlock requests. Existing grading, retry and answer-revision tests also pass."
     },
     {
       "check": "Playwright application workflows",
-      "result": "20 passed against the real API and isolated content server. Text coverage includes alternative removal, multiline bank copies, independent per-answer rules, three languages, autosave/resume, deliberate case mismatch grading, instructor review, analytics and mobile layout. Existing retry, SCORM, invitation and conflict-recovery workflows also pass. Synthetic sign-in counters were reset before the suite; production limits are unchanged."
+      "result": "20 passed against the real API and isolated content server. Policy coverage includes three-language settings, delayed-save navigation, resume, frozen active policy, hidden guest responses, instructor grading, later feedback release, mobile layouts, a device-date jump to 2099 and recoverable incomplete-submission validation. Existing text/numeric/ordering, retry, SCORM, invitation and conflict-recovery workflows pass. Synthetic sign-in counters were reset before the suite; production limits are unchanged."
     },
     {
       "check": "Scormly unit tests",
@@ -5768,7 +5800,7 @@
     },
     {
       "check": "Django configuration and migration checks",
-      "result": "Passed. Migration 0009 adds empty text-matching lists; old questions and frozen attempts retain their prior normalization behavior. Historical responses, grades and budgets are not rewritten."
+      "result": "Passed. Migration 0010 adds compatible navigation/review defaults and a bounded unlock counter. Existing attempts remain freely navigable; historical responses, grades and budgets are not rewritten."
     },
     {
       "check": "Audit evidence and pinned upstream checkouts",
@@ -5787,8 +5819,12 @@
       "result": "Verified database/media backup before upgrade. All 13 existing data groups matched before/after hashes, including 108 historical attempts and 103 attempt budgets. All 24 exam questions and 2 bank questions received empty matching rules, preserving their prior defaults. All application services are healthy. The mixed numeric/ordering/text browser workflow also passed against the built Docker site."
     },
     {
+      "check": "Docker upgrade from migration 0009 to 0010",
+      "result": "Verified database/media backup before upgrade. All 13 existing data groups matched before/after hashes, including 109 historical attempts and 104 attempt budgets. All 13 existing exams received enabled navigation/review defaults; all 109 attempts retained free navigation with an initial unlock count of one. Both origins and all application services are healthy. The sequential-policy, private-review, clock-change and feedback-release browser workflow also passed against the built Docker site."
+    },
+    {
       "check": "Full feature-parity gate",
-      "result": "Expected failure: 120 feature groups still require implementation, acceptance or an explicit scope decision."
+      "result": "Expected failure: 119 feature groups still require implementation, acceptance or an explicit scope decision."
     }
   ]
 }

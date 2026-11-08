@@ -64,7 +64,7 @@ export function useAttemptSession(id: string) {
         reason instanceof ApiError && reason.retryAfter
           ? reason.retryAfter * 1000
           : Math.min(30000, 2000 * 2 ** Math.min(failures, 4));
-      retryAt = Date.now() + delay;
+      retryAt = performance.now() + delay;
       if (!blocked) schedule(delay);
     }
     function schedule(delay = 600) {
@@ -74,7 +74,7 @@ export function useAttemptSession(id: string) {
           () => {
             void save();
           },
-          Math.max(delay, retryAt - Date.now()),
+          Math.max(delay, retryAt - performance.now()),
         );
     }
     async function save(): Promise<void> {
@@ -143,10 +143,21 @@ export function useAttemptSession(id: string) {
           failures = 0;
         }
       } catch (reason) {
-        if (alive) fail(reason);
+        if (alive) {
+          if (
+            reason instanceof ApiError &&
+            reason.code === "answers_required"
+          ) {
+            setError(reason.message);
+            setSaveState(
+              dirty ? "Unsaved changes" : "Answers saved automatically",
+            );
+          } else fail(reason);
+        }
       } finally {
         submitting = false;
         if (alive) setBusy(false);
+        if (alive && dirty && !blocked && !failures) schedule();
       }
     }
     async function reload() {
@@ -162,8 +173,10 @@ export function useAttemptSession(id: string) {
         blocked = false;
         failures = 0;
         retryAt = 0;
+        // Server timestamps establish the remaining duration; elapsed time must
+        // not jump if the participant changes the device wall clock.
         deadline =
-          Date.now() +
+          performance.now() +
           new Date(data.deadline).getTime() -
           new Date(data.server_time).getTime();
         accept(data);
@@ -171,7 +184,9 @@ export function useAttemptSession(id: string) {
         setError("");
         setConflict(false);
         setSaveState("Saved answers loaded");
-        setRemaining(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+        setRemaining(
+          Math.max(0, Math.ceil((deadline - performance.now()) / 1000)),
+        );
       } catch (reason) {
         if (alive) {
           setError((reason as Error).message);
@@ -184,7 +199,7 @@ export function useAttemptSession(id: string) {
     }
     function retry() {
       retryAt = 0;
-      if (Date.now() >= deadline && current) void submit();
+      if (performance.now() >= deadline && current) void submit();
       else void save();
     }
     actions.current = {
@@ -195,7 +210,7 @@ export function useAttemptSession(id: string) {
           blocked ||
           submitting ||
           loading ||
-          Date.now() >= deadline
+          performance.now() >= deadline
         )
           return;
         latest = { ...latest, [key]: value };
@@ -212,9 +227,12 @@ export function useAttemptSession(id: string) {
     };
     const tick = setInterval(() => {
       if (!current || current.status !== "in_progress") return;
-      const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      const left = Math.max(
+        0,
+        Math.ceil((deadline - performance.now()) / 1000),
+      );
       setRemaining(left);
-      if (!left && Date.now() >= retryAt && !blocked) void submit();
+      if (!left && performance.now() >= retryAt && !blocked) void submit();
     }, 1000);
     const before = (event: BeforeUnloadEvent) => {
       if (current?.status === "in_progress") {

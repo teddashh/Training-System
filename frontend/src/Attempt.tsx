@@ -14,7 +14,8 @@ import { api } from "./api";
 import { useAttemptSession } from "./useAttemptSession";
 import type { Attempt as Data, Guest, GuestChallenge } from "./types";
 import { Spinner, ErrorBox, Modal, Badge } from "./ui";
-import { questionTypes, answerText } from "./questionTypes";
+import { questionTypes, answerText, answerProvided } from "./questionTypes";
+import ExamPolicyNotice from "./ExamPolicyNotice";
 import OrderingAnswer from "./OrderingAnswer";
 import { RetryNotice, useRetryAvailability } from "./RetryAvailability";
 export function GuestExam({ go }: { go: (p: string) => void }) {
@@ -114,6 +115,7 @@ export function GuestExam({ go }: { go: (p: string) => void }) {
               ) + " "}
             </p>
             <RetryNotice value={guest} />
+            <ExamPolicyNotice value={guest} />
             {guest.retry_interval_minutes > 0 && (
               <button
                 className="text-btn"
@@ -254,6 +256,10 @@ export default function Attempt({
   } = useAttemptSession(id);
   const [index, setIndex] = useState(0),
     [confirm, setConfirm] = useState(false);
+  useEffect(() => {
+    setIndex(0);
+    setConfirm(false);
+  }, [id]);
   if (!attempt)
     return (
       <div className="attempt-shell">
@@ -304,38 +310,50 @@ export default function Attempt({
                   : t("Review the course and prepare for your next attempt."),
               })}
         </p>
-        <section
-          className="response-review"
-          aria-label={t("Your responses and feedback")}
-        >
-          <h2>{t("Your responses and feedback")}</h2>
-          {attempt.questions.map((question, i) => {
-            const answer = attempt.answers[String(question.id)];
-            const grade = attempt.manual_grades[String(question.id)];
-            const response = answerText(question, answer);
-            return (
-              <article className="response-item" key={question.id}>
-                <h3>
-                  {i + 1}. {question.description}
-                </h3>
-                <p className="review-answer">
-                  {response.trim() || t("No answer provided")}
-                </p>
-                {grade && (
-                  <div className="instructor-feedback">
-                    <strong>
-                      {t("Instructor review")} · {grade.points} /{" "}
-                      {question.points} {t("points")}
-                    </strong>
-                    {grade.feedback && (
-                      <p className="review-answer">{grade.feedback}</p>
-                    )}
-                  </div>
-                )}
-              </article>
-            );
-          })}
-        </section>
+        {attempt.review_available ? (
+          <section
+            className="response-review"
+            aria-label={t("Your responses and feedback")}
+          >
+            <h2>{t("Your responses and feedback")}</h2>
+            {attempt.questions.map((question, i) => {
+              const answer = attempt.answers[String(question.id)];
+              const grade = attempt.manual_grades[String(question.id)];
+              const response = answerText(question, answer);
+              return (
+                <article className="response-item" key={question.id}>
+                  <h3>
+                    {i + 1}. {question.description}
+                  </h3>
+                  <p className="review-answer">
+                    {response.trim() || t("No answer provided")}
+                  </p>
+                  {grade && (
+                    <div className="instructor-feedback">
+                      <strong>
+                        {t("Instructor review")} · {grade.points} /{" "}
+                        {question.points} {t("points")}
+                      </strong>
+                      {grade.feedback && (
+                        <p className="review-answer">{grade.feedback}</p>
+                      )}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </section>
+        ) : (
+          <p className="notice exam-policy-notice">
+            {t(
+              "Response review is currently disabled. Your score will remain available after grading.",
+            )}
+          </p>
+        )}
+        <ErrorBox message={error} />
+        <button className="btn" onClick={reload} disabled={busy}>
+          {t("Refresh result")}
+        </button>
         <button
           className="btn primary"
           onClick={() => go(guest ? "/invite" : "/results")}
@@ -346,9 +364,11 @@ export default function Attempt({
       </div>
     );
   const q = attempt.questions[index],
-    answered = Object.values(answers).filter((v) =>
-      Array.isArray(v) ? v.length : String(v).trim(),
-    ).length;
+    total = attempt.question_count,
+    answered = attempt.questions.filter((question) =>
+      answerProvided(answers[String(question.id)]),
+    ).length,
+    incompleteRequired = !attempt.allow_skip && answered < total;
   const setAnswer = (value: string | number | number[]) => {
     change(String(q.id), value);
   };
@@ -375,6 +395,13 @@ export default function Attempt({
         </div>
       </div>
       <ErrorBox message={error} />
+      {!attempt.allow_skip && (
+        <p className="notice exam-policy-notice" id="sequential-rules">
+          {t(
+            "Questions unlock in order after answers are saved. You can revisit unlocked questions. Answer every question before submitting; the timer still applies.",
+          )}
+        </p>
+      )}
       {error && (
         <div className="save-recovery">
           {conflict && (
@@ -398,23 +425,29 @@ export default function Attempt({
           <h3>
             {t("Your progress")}{" "}
             <span>
-              {answered}/{attempt.questions.length}
+              {answered}/{total}
             </span>
           </h3>
           <div className="progress">
             <i
               style={{
-                width: (answered / attempt.questions.length) * 100 + "%",
+                width: (answered / total) * 100 + "%",
               }}
             />
           </div>
           <div className="question-dots">
-            {attempt.questions.map((question, i) => (
+            {Array.from({ length: total }, (_, i) => (
               <button
-                key={question.id}
+                key={i}
                 className={
                   (i === index ? "current " : "") +
-                  (answers[String(question.id)] !== undefined ? "answered" : "")
+                  (answerProvided(answers[String(attempt.questions[i]?.id)])
+                    ? "answered"
+                    : "")
+                }
+                disabled={i >= attempt.questions.length}
+                aria-describedby={
+                  !attempt.allow_skip ? "sequential-rules" : undefined
                 }
                 onClick={() => setIndex(i)}
                 aria-label={t("Go to question {v0}", { v0: i + 1 })}
@@ -548,10 +581,13 @@ export default function Attempt({
               <ArrowLeft size={16} />
               {t("Previous question") + " "}
             </button>
-            {index < attempt.questions.length - 1 ? (
+            {index < total - 1 ? (
               <button
                 className="btn primary"
                 onClick={() => setIndex(index + 1)}
+                disabled={
+                  index + 1 >= attempt.questions.length || busy || conflict
+                }
               >
                 {t("Next question") + " "}
                 <ArrowRight size={16} />
@@ -560,7 +596,7 @@ export default function Attempt({
               <button
                 className="btn primary"
                 onClick={() => setConfirm(true)}
-                disabled={busy || conflict}
+                disabled={busy || conflict || incompleteRequired}
               >
                 <Send size={16} />
                 {t("Finish and submit") + " "}
@@ -572,7 +608,7 @@ export default function Attempt({
       <button
         className="btn submit-fixed"
         onClick={() => setConfirm(true)}
-        disabled={busy || conflict}
+        disabled={busy || conflict || incompleteRequired}
       >
         <FileCheck2 size={17} />
         {t("Submit") + " "}
@@ -585,11 +621,11 @@ export default function Attempt({
           <div className="modal-form">
             <p>
               {t("Answered") + " "}
-              {answered} / {attempt.questions.length}{" "}
+              {answered} / {total}{" "}
               {t("questions. Answers cannot be changed after submission.") +
                 " "}
             </p>
-            {answered < attempt.questions.length && (
+            {answered < total && (
               <p className="notice">
                 {t(
                   "Some questions are unanswered. You can return to complete them.",
@@ -604,7 +640,7 @@ export default function Attempt({
               <button
                 className="btn primary"
                 onClick={submit}
-                disabled={busy || conflict}
+                disabled={busy || conflict || incompleteRequired}
               >
                 {busy ? t("Submitting\u2026") : t("Confirm submission")}
               </button>

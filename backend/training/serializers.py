@@ -308,6 +308,8 @@ class ExamSerializer(serializers.ModelSerializer):
             "duration_minutes",
             "max_attempts",
             "retry_interval_minutes",
+            "allow_skip",
+            "allow_response_review",
             "pass_score",
             "published",
             "starts_at",

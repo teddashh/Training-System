@@ -58,6 +58,8 @@ export type Exam = {
   duration_minutes: number;
   max_attempts: number;
   retry_interval_minutes: number;
+  allow_skip: boolean;
+  allow_response_review: boolean;
   next_attempt_at: string | null;
   server_time: string;
   pass_score: number;
@@ -82,6 +84,9 @@ export type Exam = {
   can_manage: boolean;
 };
 export type Attempt = {
+  allow_skip: boolean;
+  review_available: boolean;
+  question_count: number;
   answer_revision: number;
   id: string;
   exam_id: number;
@@ -146,6 +151,8 @@ export type Dashboard = {
   distribution: number[];
 };
 export type Guest = {
+  allow_skip: boolean;
+  allow_response_review: boolean;
   verification_required?: false;
   exam_id: number;
   title: string;

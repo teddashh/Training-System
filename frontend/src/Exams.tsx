@@ -68,6 +68,10 @@ function ExamEditor({
     ),
     [pass, setPass] = useState(exam?.pass_score || 70),
     [published, setPublished] = useState(exam?.published || false),
+    [allowSkip, setAllowSkip] = useState(exam?.allow_skip ?? true),
+    [allowReview, setAllowReview] = useState(
+      exam?.allow_response_review ?? true,
+    ),
     [start, setStart] = useState(
       exam?.starts_at
         ? new Date(
@@ -119,6 +123,8 @@ function ExamEditor({
           duration_minutes: minutes,
           max_attempts: limit,
           retry_interval_minutes: retryInterval,
+          allow_skip: allowSkip,
+          allow_response_review: allowReview,
           pass_score: pass,
           published,
           audience,
@@ -250,6 +256,35 @@ function ExamEditor({
               onChange={(e) => setEnd(e.target.value)}
             />
           </label>
+        </div>
+        <div className="exam-randomization">
+          <h3>{t("Navigation and response review")}</h3>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={allowSkip}
+              onChange={(event) => setAllowSkip(event.target.checked)}
+            />
+            {t("Allow participants to skip questions")}
+          </label>
+          <p className="field-hint">
+            {t(
+              "When disabled, questions unlock in order after answers are saved. Every question needs an answer before manual submission. This setting applies to new attempts.",
+            )}
+          </p>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={allowReview}
+              onChange={(event) => setAllowReview(event.target.checked)}
+            />
+            {t("Allow participants to review responses and feedback")}
+          </label>
+          <p className="field-hint">
+            {t(
+              "Controls future access to completed attempts. Scores remain visible. Instructors retain full review access.",
+            )}
+          </p>
         </div>
         <div className="form-section">
           <h3>{t("Exam audience")}</h3>

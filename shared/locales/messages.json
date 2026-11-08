@@ -9608,5 +9608,55 @@
     "en": "Choose one valid matching rule for each accepted text answer.",
     "zh-TW": "請為每個可接受的文字答案選擇一個有效的比對規則。",
     "es": "Elige una regla de comparación válida para cada respuesta de texto aceptada."
+  },
+  "Navigation and response review": {
+    "en": "Navigation and response review",
+    "zh-TW": "題目導覽與作答檢視",
+    "es": "Navegación y revisión de respuestas"
+  },
+  "Allow participants to skip questions": {
+    "en": "Allow participants to skip questions",
+    "zh-TW": "允許應試者跳過題目",
+    "es": "Permitir que los participantes omitan preguntas"
+  },
+  "When disabled, questions unlock in order after answers are saved. Every question needs an answer before manual submission. This setting applies to new attempts.": {
+    "en": "When disabled, questions unlock in order after answers are saved. Every question needs an answer before manual submission. This setting applies to new attempts.",
+    "zh-TW": "停用時，答案儲存後會依序解鎖題目。手動交卷前須回答所有題目。此設定適用於新的應試。",
+    "es": "Si se desactiva, las preguntas se desbloquean en orden después de guardar las respuestas. Deben responderse todas antes de entregar manualmente. Este ajuste se aplica a nuevos intentos."
+  },
+  "Allow participants to review responses and feedback": {
+    "en": "Allow participants to review responses and feedback",
+    "zh-TW": "允許應試者檢視作答與回饋",
+    "es": "Permitir que los participantes revisen sus respuestas y comentarios"
+  },
+  "This exam requires answers in order. Questions unlock after each answer is saved; all questions need an answer before submission.": {
+    "en": "This exam requires answers in order. Questions unlock after each answer is saved; all questions need an answer before submission.",
+    "zh-TW": "此考試須依序作答。每次儲存答案後會解鎖下一題，交卷前須回答所有題目。",
+    "es": "Este examen requiere responder en orden. Las preguntas se desbloquean al guardar cada respuesta; deben responderse todas antes de entregar."
+  },
+  "Response review is currently disabled. Your score will remain available after grading.": {
+    "en": "Response review is currently disabled. Your score will remain available after grading.",
+    "zh-TW": "目前未開放檢視作答。評分後仍可查看您的分數。",
+    "es": "La revisión de respuestas está desactivada. Tu puntuación estará disponible después de la evaluación."
+  },
+  "Questions unlock in order after answers are saved. You can revisit unlocked questions. Answer every question before submitting; the timer still applies.": {
+    "en": "Questions unlock in order after answers are saved. You can revisit unlocked questions. Answer every question before submitting; the timer still applies.",
+    "zh-TW": "答案儲存後會依序解鎖題目，您可返回已解鎖的題目。交卷前須回答所有題目；考試計時仍會持續。",
+    "es": "Las preguntas se desbloquean en orden al guardar las respuestas. Puedes volver a las preguntas desbloqueadas. Responde todas antes de entregar; el tiempo sigue contando."
+  },
+  "Answer every question before submitting this exam.": {
+    "en": "Answer every question before submitting this exam.",
+    "zh-TW": "請回答所有題目後再交卷。",
+    "es": "Responde todas las preguntas antes de entregar este examen."
+  },
+  "Refresh result": {
+    "en": "Refresh result",
+    "zh-TW": "重新整理結果",
+    "es": "Actualizar resultado"
+  },
+  "Controls future access to completed attempts. Scores remain visible. Instructors retain full review access.": {
+    "en": "Controls future access to completed attempts. Scores remain visible. Instructors retain full review access.",
+    "zh-TW": "控制已完成應試的後續檢視權限。分數仍可查看，講師保有完整閱卷權限。",
+    "es": "Controla el acceso futuro a los intentos completados. Las puntuaciones siguen visibles y los instructores conservan acceso a la revisión completa."
   }
 }

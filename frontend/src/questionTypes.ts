@@ -7,6 +7,12 @@ export const textMatchingModes = (): [TextMatchingMode, string][] => [
   ["exact", t("Match case and spacing")],
 ];
 
+export function answerProvided(value: unknown): boolean {
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
 export const questionTypes = (): [Question["type"], string][] => [
   ["single", t("Single choice")],
   ["multiple", t("Multiple choice")],

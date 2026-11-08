@@ -7,6 +7,7 @@ from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.cache import never_cache
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -43,7 +44,7 @@ from .services import (
     public_attempt,
     resolve_identity,
     start_attempt,
-    validate_answers,
+    record_answers,
 )
 
 
@@ -224,7 +225,8 @@ class Exams(viewsets.ModelViewSet):
     def start(self, request, pk=None):
         exam = self.get_object()
         return Response(
-            public_attempt(start_attempt(exam.id, identity_for_user(request.user)))
+            public_attempt(start_attempt(exam.id, identity_for_user(request.user))),
+            headers={"Cache-Control": "no-store"},
         )
 
     @action(detail=True, methods=["post"])
@@ -436,6 +438,8 @@ def guest_info(inv):
         "description": inv.exam.description,
         "duration_minutes": inv.exam.duration_minutes,
         "retry_interval_minutes": inv.exam.retry_interval_minutes,
+        "allow_skip": inv.exam.allow_skip,
+        "allow_response_review": inv.exam.allow_response_review,
         "next_attempt_at": next_attempt_at(inv.exam, last_started_at),
         "server_time": now,
         "active_attempt_id": str(active.pk) if active else None,
@@ -445,6 +449,7 @@ def guest_info(inv):
     }
 
 
+@never_cache
 @csrf_protect
 @api_view(["GET", "POST"])
 @permission_classes([AllowAny])
@@ -465,6 +470,7 @@ def accessible_attempt(request, attempt):
         raise PermissionDenied()
 
 
+@never_cache
 @csrf_protect
 @api_view(["GET", "PATCH", "POST"])
 @permission_classes([AllowAny])
@@ -494,11 +500,11 @@ def attempt_detail(request, pk):
                         },
                         status=409,
                     )
-            attempt.answers = validate_answers(
-                request.data.get("answers", attempt.answers), attempt.snapshot
+            record_answers(
+                attempt,
+                request.data.get("answers", attempt.answers),
+                submitting=request.method == "POST",
             )
-            attempt.answer_revision += 1
-            attempt.save(update_fields=["answers", "answer_revision"])
             if request.method == "POST":
                 finalize(attempt)
         return Response(public_attempt(attempt))
@@ -515,6 +521,7 @@ def scoped_attempts(user):
     return qs.filter(identity__user=user)
 
 
+@never_cache
 @api_view(["GET", "POST"])
 def review(request, pk):
     with transaction.atomic():
@@ -549,7 +556,7 @@ def review(request, pk):
             audit(request.user, "attempt.reviewed", attempt.id, {"grades": marks})
         return Response(
             {
-                **public_attempt(attempt),
+                **public_attempt(attempt, for_review=True),
                 "questions": attempt.snapshot,
                 "person": attempt.identity.label,
             }

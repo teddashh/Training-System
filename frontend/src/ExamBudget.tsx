@@ -1,6 +1,7 @@
 import { t, useLocale } from "./i18n";
 import type { Exam } from "./types";
 import { RetryNotice } from "./RetryAvailability";
+import ExamPolicyNotice from "./ExamPolicyNotice";
 
 export default function ExamBudget({ exam }: { exam: Exam }) {
   const locale = useLocale();
@@ -32,6 +33,7 @@ export default function ExamBudget({ exam }: { exam: Exam }) {
         </small>
       )}
       <RetryNotice value={exam} />
+      <ExamPolicyNotice value={exam} />
       {exam.starts_at && (
         <small>
           {t("Opens at")}: {new Date(exam.starts_at).toLocaleString(locale)}
