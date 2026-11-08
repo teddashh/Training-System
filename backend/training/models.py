@@ -151,11 +151,15 @@ class Question(models.Model):
             ("multiple", "Multiple choice"),
             ("short", "Short answer"),
             ("essay", "Written response"),
+            ("integer", "Integer answer"),
+            ("numeric", "Numeric answer"),
+            ("ordering", "Ordering"),
         ],
         default="single",
     )
     options = models.JSONField(default=list, blank=True)
     solution = models.JSONField(default=list, blank=True)
+    answer_tolerances = models.JSONField(default=list, blank=True)
     points = models.PositiveIntegerField(default=10)
     position = models.PositiveIntegerField(default=0)
 
@@ -174,6 +178,7 @@ class BankQuestion(models.Model):
     )
     options = models.JSONField(default=list, blank=True)
     solution = models.JSONField(default=list, blank=True)
+    answer_tolerances = models.JSONField(default=list, blank=True)
     points = models.PositiveIntegerField(default=10)
     archived = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

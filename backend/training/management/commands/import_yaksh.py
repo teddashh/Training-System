@@ -12,14 +12,21 @@ from training.services import audit
 def convert_question(data):
     """Adapt Yaksh Question.dump_questions JSON-equivalent records.
 
-    Preserve MCQ/MCC correct-option semantics from Yaksh's AnswerPaper.
-    Other legacy evaluators are explicitly rejected instead of silently
-    changing integer, float-tolerance, case-sensitive, or code grading.
+    Preserve choice, integer and per-answer absolute-tolerance semantics.
+    Arrange records require explicit correct_order indexes because Yaksh's
+    export omits testcase IDs and does not guarantee their database ordering.
     """
     kind = data.get("type")
-    if kind not in ("mcq", "mcc"):
+    kinds = {
+        "mcq": "single",
+        "mcc": "multiple",
+        "integer": "integer",
+        "float": "numeric",
+        "arrange": "ordering",
+    }
+    if kind not in kinds:
         raise ValueError(
-            f"Unsupported Yaksh type: {kind}. Only mcq/mcc are migrated automatically."
+            f"Unsupported Yaksh type: {kind}. Supported types: mcq, mcc, integer, float, arrange."
         )
     points = float(data.get("points", 1))
     if not points.is_integer():
@@ -27,22 +34,46 @@ def convert_question(data):
             "Fractional Yaksh points require an explicit grading migration."
         )
     cases = data.get("testcase", [])
+    if (
+        not isinstance(cases, list)
+        or not cases
+        or any(not isinstance(case, dict) for case in cases)
+    ):
+        raise ValueError("Provide a non-empty testcase list.")
     result = {
         "description": unescape(
             strip_tags(data.get("description") or data.get("summary", ""))
         ),
-        "type": "single" if kind == "mcq" else "multiple",
+        "type": kinds[kind],
         "points": int(points),
-        "options": [unescape(strip_tags(c["options"])) for c in cases],
-        "solution": [i for i, c in enumerate(cases) if c.get("correct") is True],
+        "options": [],
+        "solution": [],
     }
+    if kind in ("mcq", "mcc", "arrange"):
+        result["options"] = [unescape(strip_tags(c["options"])) for c in cases]
+        if kind == "arrange":
+            if "correct_order" not in data:
+                raise ValueError(
+                    "Arrange questions require reviewed correct_order indexes; the original export omits reliable ordering metadata."
+                )
+            result["solution"] = data["correct_order"]
+        else:
+            result["solution"] = [
+                i for i, c in enumerate(cases) if c.get("correct") is True
+            ]
+    else:
+        result["solution"] = [str(c["correct"]) for c in cases]
+        if kind == "float":
+            result["answer_tolerances"] = [
+                str(c.get("error_margin") or 0) for c in cases
+            ]
     serializer = QuestionSerializer(data=result)
     serializer.is_valid(raise_exception=True)
     return serializer.validated_data
 
 
 class Command(BaseCommand):
-    help = "Import Yaksh MCQ/MCC JSON export records into a draft independent exam (atomic)."
+    help = "Import reviewed Yaksh choice, integer, float and arrange JSON records into a draft exam (atomic)."
 
     def add_arguments(self, parser):
         parser.add_argument("file")

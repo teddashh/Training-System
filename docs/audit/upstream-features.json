@@ -587,7 +587,7 @@
       "id": "Y25",
       "repository": "yaksh",
       "feature": "Integer and floating answers with error margins",
-      "status": "missing",
+      "status": "implemented",
       "source": [
         {
           "path": "yaksh/models.py",
@@ -598,9 +598,25 @@
           "line": 2824
         }
       ],
-      "implementation": [],
-      "verification": [],
-      "assessment": "Text equality is not numeric grading with a configurable tolerance.",
+      "implementation": [
+        "backend/training/question_rules.py",
+        "backend/training/serializers.py",
+        "backend/training/services.py",
+        "frontend/src/StructuredQuestionFields.tsx",
+        "frontend/src/Attempt.tsx",
+        "frontend/src/Management.tsx",
+        "backend/training/reporting.py"
+      ],
+      "verification": [
+        "backend/training/test_question_types.py::test_numeric_boundaries_multiple_rules_and_scientific_notation",
+        "backend/training/test_question_types.py::test_numeric_grading_preserves_precision_beyond_binary_float",
+        "backend/training/test_question_types.py::test_integer_answers_accept_alternatives_and_reject_nonintegers",
+        "backend/training/test_question_types.py::test_malformed_and_unbounded_numbers_never_receive_credit",
+        "backend/training/test_question_types.py::test_attempt_freezes_rules_and_order_with_private_answers",
+        "backend/training/test_question_types.py::test_guest_link_grades_new_types_and_preserves_attempt_budget",
+        "frontend/e2e/training.spec.ts::numeric and ordering questions round-trip through authoring, resume, grading and reports"
+      ],
+      "assessment": "Integer and numeric questions support 1–20 accepted values, with individual inclusive absolute tolerances for numeric answers. Bounded decimal arithmetic preserves boundary and large-integer precision. Bank reuse, exam authoring, private frozen rules, autosave/resume, account/guest grading, reviews and analytics are covered. All three interface languages are exercised; grades are all-or-nothing. Numeric format and magnitude limits are documented in operations.",
       "priority": 1,
       "routes": []
     },
@@ -608,16 +624,30 @@
       "id": "Y26",
       "repository": "yaksh",
       "feature": "Arrange/ordered answer questions",
-      "status": "missing",
+      "status": "implemented",
       "source": [
         {
           "path": "yaksh/models.py",
           "line": 2839
         }
       ],
-      "implementation": [],
-      "verification": [],
-      "assessment": "Scormly ordering is a learning block; the independent exam bank/player has no ordering question type.",
+      "implementation": [
+        "backend/training/serializers.py",
+        "backend/training/services.py",
+        "frontend/src/StructuredQuestionFields.tsx",
+        "frontend/src/OrderingAnswer.tsx",
+        "frontend/src/questionTypes.ts",
+        "backend/training/reporting.py"
+      ],
+      "verification": [
+        "backend/training/test_question_types.py::test_ordering_requires_the_correct_sequence_not_just_the_same_set",
+        "backend/training/test_question_types.py::test_configuration_rejects_invalid_numeric_rules_and_orderings",
+        "backend/training/test_question_types.py::test_attempt_freezes_rules_and_order_with_private_answers",
+        "backend/training/test_question_types.py::test_autosave_preserves_incomplete_numbers_and_rejects_invalid_orders",
+        "backend/training/test_question_types.py::test_reporting_normalizes_order_shuffle_but_preserves_changed_rules",
+        "frontend/e2e/training.spec.ts::numeric and ordering questions round-trip through authoring, resume, grading and reports"
+      ],
+      "assessment": "Independent exams and the question bank support 2–20 distinct ordered items. Each attempt shuffles once and remaps the private solution; resume preserves that permutation and the saved order. Keyboard-accessible movement, explicit initial-order selection, mobile layout and three locales have browser acceptance. Exact-sequence grading, malformed-order rejection and shuffle-independent analytics have API coverage. No partial credit is awarded.",
       "priority": 1,
       "routes": []
     },
@@ -751,9 +781,11 @@
         "backend/training/management/commands/import_yaksh.py"
       ],
       "verification": [
-        "backend/training/tests.py::test_yaksh_adapter_preserves_correct_options"
+        "backend/training/tests.py::test_yaksh_adapter_preserves_correct_options",
+        "backend/training/test_question_types.py::test_yaksh_numeric_rules_and_explicit_order_migrate_without_guessing",
+        "backend/training/test_question_types.py::test_invalid_legacy_import_is_atomic"
       ],
-      "assessment": "Command-line import supports only equivalent MCQ/MCC JSON. Native YAML/ZIP, attachments, other types and UI round-trip are absent.",
+      "assessment": "Atomic command-line JSON import supports mcq, mcc, integer, float with per-answer error margins, and arrange with operator-reviewed correct_order indexes. Native arrange exports lack reliable ordering metadata, so implicit ordering is rejected. Native YAML/ZIP, attachments, remaining evaluator types and UI round-trip are absent.",
       "priority": 2,
       "routes": [
         "yaksh:download_question",
@@ -5654,16 +5686,18 @@
     "The publication picker filters courses by server-provided management rights and explains when no eligible course exists. Browser coverage verifies a visible read-only course cannot be selected; upload permissions remain server-enforced.",
     "SCORM imports now recognize CAM 1.3 declarations as 2004, including case/whitespace variants. Regression tests use actual manifest ZIPs.",
     "SCORM launch context now supplies current learner ID/name, safely escapes embedded JSON and rejects deactivated accounts. Regression coverage includes name fallbacks and overriding stale saved identity.",
-    "English, Traditional Chinese and Spanish include the new publication controls. The studio build and 197 unit tests pass (4 upstream skips); complete per-block acceptance is still pending."
+    "English, Traditional Chinese and Spanish include the new publication controls. The studio build and 197 unit tests pass (4 upstream skips); complete per-block acceptance is still pending.",
+    "Integer, numeric-with-tolerance and ordering questions now work through bank and exam authoring, frozen attempts, autosave/resume, automatic grading, guest limits, learner/instructor review and assessment insights. English, Traditional Chinese and Spanish have browser coverage, including keyboard ordering and mobile layout.",
+    "Yaksh draft import now preserves alternative integer values and individual floating error margins. Arrange import requires an explicitly reviewed correct_order because the native export omits reliable testcase ordering metadata. Invalid imports remain atomic."
   ],
   "validation": [
     {
       "check": "Django suite on PostgreSQL 17",
-      "result": "92 passed, including attempt-budget, invitation and answer-revision concurrency races."
+      "result": "105 passed, including numeric precision/boundary checks, ordering validation, frozen grading rules, guest limits and attempt-budget/invitation/answer-revision concurrency races."
     },
     {
       "check": "Playwright application workflows",
-      "result": "19 passed against the real API and isolated content server. Repeated local runs first exhausted the configured sign-in allowance; the complete rerun passed after resetting synthetic test counters, with security limits unchanged."
+      "result": "20 passed against the real API and isolated content server, including numeric/ordering authoring, bank reuse, three-language controls, keyboard operation, mobile layout, autosave/resume, grading and insights. Synthetic test sign-in counters were reset before the suite; production limits are unchanged."
     },
     {
       "check": "Scormly unit tests",
@@ -5675,15 +5709,19 @@
     },
     {
       "check": "Django configuration and migration checks",
-      "result": "Passed; no new database migration."
+      "result": "Passed. Migration 0007 adds question tolerance lists and expands question types; it does not rewrite historical attempt snapshots."
     },
     {
       "check": "Audit evidence and pinned upstream checkouts",
       "result": "146 feature groups, 155 Yaksh route declarations, 32 block types and 288 retained source files validated."
     },
     {
+      "check": "Docker upgrade from migration 0006 to 0007",
+      "result": "Verified database/media backup before upgrade. All 13 existing data groups matched before/after hashes, including 104 historical attempts and 100 attempt budgets. Both origins and all application services are healthy."
+    },
+    {
       "check": "Full feature-parity gate",
-      "result": "Expected failure: 124 feature groups still require implementation, acceptance or an explicit scope decision."
+      "result": "Expected failure: 122 feature groups still require implementation, acceptance or an explicit scope decision."
     }
   ]
 }

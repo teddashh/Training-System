@@ -30,7 +30,32 @@ DEBUG=true .venv/bin/python backend/manage.py import_yaksh questions.json \
   --owner demo.admin --title 'Legacy question-bank review'
 ```
 
-Yaksh's native YAML export can be converted to a JSON array with `list(yaml.safe_load_all(...))` in a controlled environment with PyYAML. Do not use unsafe YAML loading or execute legacy HookTestCase code. The adapter accepts `mcq`/`mcc` with integer points, strips HTML display tags and validates options/solutions before creating the entire draft. Other question types, attachments, users, courses and historical results require a separate mapped migration. Do not attach a legacy database directly to the new app.
+Yaksh's native YAML export can be converted to a JSON array with `list(yaml.safe_load_all(...))` in a controlled environment with PyYAML. Do not use unsafe YAML loading or execute legacy HookTestCase code. The adapter accepts `mcq`, `mcc`, `integer`, `float` and `arrange` with whole-number points, strips HTML display tags and validates all questions before creating the entire draft atomically. Unsupported types and fractional points fail the import. Attachments, users, courses and historical results require a separate mapped migration. Do not attach a legacy database directly to the new app.
+
+Integer testcases provide alternative `correct` values. Float testcases provide a `correct` value and an individual `error_margin`; an absent or null margin becomes zero. Use strings to preserve exact decimal values through JSON conversion. The active numeric limits and grading rules are documented in [training operations](OPERATIONS.md#integer-numeric-and-ordering-questions).
+
+```json
+[
+  {
+    "type": "integer", "description": "Enter the batch count", "points": 5,
+    "testcase": [{"correct": "42"}, {"correct": "43"}]
+  },
+  {
+    "type": "float", "description": "Enter an allowed calibration value", "points": 10,
+    "testcase": [
+      {"correct": "12.5", "error_margin": "0.05"},
+      {"correct": "-12.5", "error_margin": "0.01"}
+    ]
+  },
+  {
+    "type": "arrange", "description": "Order the safety procedure", "points": 10,
+    "testcase": [{"options": "Maintain"}, {"options": "Isolate"}, {"options": "Verify"}],
+    "correct_order": [1, 2, 0]
+  }
+]
+```
+
+Yaksh grades arrange answers by testcase ID order, but its native export omits those IDs and does not guarantee the testcase list order. An operator must review the original answer and add `correct_order` indexes referring to the supplied testcase array. The adapter refuses arrange records without that metadata. Review the resulting draft before publishing. Native YAML/ZIP round-trip and the remaining question evaluators are still incomplete.
 
 ## dhodges47 / SCORM-LearningManagementSystem
 

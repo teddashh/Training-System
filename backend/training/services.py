@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from .i18n import translate
+from .question_rules import numeric_matches
 from .models import (
     Attempt,
     AttemptBudget,
@@ -176,7 +177,13 @@ def start_attempt(exam_id, identity, invitation=None):
         raise PermissionDenied(translate("This invitation has no remaining attempts."))
     questions = list(
         exam.questions.values(
-            "id", "description", "type", "options", "solution", "points"
+            "id",
+            "description",
+            "type",
+            "options",
+            "solution",
+            "answer_tolerances",
+            "points",
         )
     )
     if not questions:
@@ -193,13 +200,14 @@ def start_attempt(exam_id, identity, invitation=None):
         questions = [q for index, q in enumerate(questions) if index in selected]
     if exam.shuffle_questions:
         random.shuffle(questions)
-    if exam.shuffle_options:
-        for question in questions:
-            if question["type"] in ("single", "multiple"):
-                order = list(range(len(question["options"])))
-                random.shuffle(order)
-                question["options"] = [question["options"][i] for i in order]
-                question["solution"] = [order.index(i) for i in question["solution"]]
+    for question in questions:
+        if question["type"] == "ordering" or (
+            exam.shuffle_options and question["type"] in ("single", "multiple")
+        ):
+            order = list(range(len(question["options"])))
+            random.shuffle(order)
+            question["options"] = [question["options"][i] for i in order]
+            question["solution"] = [order.index(i) for i in question["solution"]]
     deadline = now + timedelta(minutes=exam.duration_minutes)
     if exam.ends_at:
         deadline = min(deadline, exam.ends_at)
@@ -230,6 +238,18 @@ def question_points(question, answer, manual_grade=None):
     """One grading rule shared by attempt scoring and reporting."""
     if question["type"] == "essay":
         return None if manual_grade is None else manual_grade["points"]
+    if question["type"] in ("integer", "numeric"):
+        return question["points"] if numeric_matches(question, answer) else 0
+    if question["type"] == "ordering":
+        return (
+            question["points"]
+            if (
+                isinstance(answer, list)
+                and all(type(value) is int for value in answer)
+                and answer == question["solution"]
+            )
+            else 0
+        )
     if question["type"] in ("single", "multiple"):
         submitted = (
             answer
@@ -289,7 +309,14 @@ def validate_answers(answers, snapshot):
                 translate("The answers contain questions outside this attempt.")
             )
         q = valid[key]
-        if q["type"] in ("short", "essay"):
+        if q["type"] in ("integer", "numeric"):
+            # Preserve incomplete input (e.g. '-' or '1e') during autosave.
+            # Invalid numeric expressions receive zero credit when submitted.
+            if not isinstance(value, str) or len(value) > 128:
+                raise ValidationError(
+                    translate("Numeric answers must be text of at most 128 characters.")
+                )
+        elif q["type"] in ("short", "essay"):
             if not isinstance(value, str) or len(value) > 20000:
                 raise ValidationError(
                     translate("The text answer exceeds the length limit.")
@@ -304,6 +331,15 @@ def validate_answers(answers, snapshot):
                 type(v) is not int or v < 0 or v >= len(q["options"]) for v in values
             ):
                 raise ValidationError(translate("This option does not exist."))
+            if q["type"] == "ordering" and (
+                not isinstance(value, list)
+                or (value and sorted(value) != list(range(len(q["options"]))))
+            ):
+                raise ValidationError(
+                    translate(
+                        "An ordering answer must contain every item exactly once."
+                    )
+                )
     return answers
 
 
@@ -319,7 +355,8 @@ def public_attempt(attempt):
         "answers": attempt.answers,
         "answer_revision": attempt.answer_revision,
         "questions": [
-            {k: v for k, v in q.items() if k != "solution"} for q in attempt.snapshot
+            {k: v for k, v in q.items() if k not in ("solution", "answer_tolerances")}
+            for q in attempt.snapshot
         ],
         "score": attempt.score if attempt.status == "graded" else None,
         "passed": attempt.passed,

@@ -198,6 +198,14 @@ def question_variant(question):
             (text, index in question["solution"])
             for index, text in enumerate(question["options"])
         )
+    elif question["type"] == "ordering":
+        shape["solution"] = [
+            question["options"][index] for index in question["solution"]
+        ]
+    elif question["type"] == "numeric":
+        shape["rules"] = sorted(
+            zip(question["solution"], question.get("answer_tolerances", []))
+        )
     else:
         shape["solution"] = sorted(str(value) for value in question["solution"])
     return hashlib.sha256(

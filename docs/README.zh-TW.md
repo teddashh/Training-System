@@ -29,6 +29,8 @@ docker compose exec api python manage.py shell -c \
 
 ## 公司部署交接
 
+目前主分支加入整數題、各答案可設定容許誤差的數值題，以及排序題，完整支援題庫、試卷編輯、帳號與訪客作答、自動儲存、檢視答案和成績分析。`0007` 遷移新增容許誤差欄位，不改寫歷史作答與成績。請參閱[題型操作說明](OPERATIONS.md#integer-numeric-and-ordering-questions)及 [v1.3 後續升級說明](PEACH1-HANDOVER.md#changes-after-v13)。預設介面仍為英文。
+
 v1.3 加入最多 200 人的 CSV 批次邀請、收件者與登入別名驗證、整批建立，以及回應遺失後十分鐘內的相同請求復原。關閉前可下載個人連結；邀請紀錄支援搜尋、狀態篩選與分頁。停用帳號也會封鎖其既有訪客連結與工作階段，保留已儲存答案和應試次數。請參閱 [v1.2 升級說明](PEACH1-HANDOVER.md#upgrade-from-v12) 與[邀請操作說明](OPERATIONS.md#guest-invitation-cohorts)。公司 Entra／Graph 串接仍留待 Peach1。
 
 v1.2 強化自動儲存順序、斷線重試與多視窗衝突處理，並讓學員查看自己的作答及講師回饋。SCORM 課程關閉前會等待儲存確認，題庫選擇視窗支援鍵盤操作。升級會套用答案版本欄位的資料庫遷移；請參閱 [Peach1 升級說明](PEACH1-HANDOVER.md#upgrade-from-v11)。Entra／Graph 串接仍留待 Peach1。

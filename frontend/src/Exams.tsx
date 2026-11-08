@@ -16,6 +16,8 @@ import { api } from "./api";
 import type { Exam, Course, Question, User, Attempt } from "./types";
 import { Modal, Badge, ErrorBox, Empty } from "./ui";
 import { BankPicker } from "./QuestionBank";
+import { questionTypes, questionTypeDefaults } from "./questionTypes";
+import StructuredQuestionFields from "./StructuredQuestionFields";
 function ExamEditor({
   exam,
   courses,
@@ -316,7 +318,7 @@ function ExamEditor({
           </h3>
           <p>
             {t(
-              "Choice and short-answer questions are graded automatically. Written responses are reviewed by an instructor.",
+              "Choice, short-answer, numeric and ordering questions are graded automatically. Written responses are reviewed by an instructor.",
             )}
           </p>
         </div>
@@ -375,19 +377,14 @@ function ExamEditor({
                 value={q.type}
                 onChange={(e) => {
                   const type = e.target.value as Question["type"];
-                  patch(i, {
-                    type,
-                    solution:
-                      type === "short" ? [""] : type === "essay" ? [] : [0],
-                    options:
-                      type === "single" || type === "multiple" ? ["", ""] : [],
-                  });
+                  patch(i, questionTypeDefaults(type));
                 }}
               >
-                <option value="single">{t("Single choice")}</option>
-                <option value="multiple">{t("Multiple choice")}</option>
-                <option value="short">{t("Short answer")}</option>
-                <option value="essay">{t("Written response")}</option>
+                {questionTypes().map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
               <label className="inline-label">
                 {t("Points") + " "}
@@ -482,6 +479,10 @@ function ExamEditor({
                 />
               </label>
             )}
+            <StructuredQuestionFields
+              question={q}
+              onChange={(values) => patch(i, values)}
+            />
             {q.type === "essay" && (
               <p className="notice">
                 {t(

@@ -4,17 +4,13 @@ import { api } from "./api";
 import { t, useLocale } from "./i18n";
 import type { Question } from "./types";
 import { Badge, Empty, ErrorBox, Modal } from "./ui";
+import { questionTypes, questionTypeDefaults } from "./questionTypes";
+import StructuredQuestionFields from "./StructuredQuestionFields";
 export type BankQuestion = Question & {
   id: number;
   category: string;
   archived: boolean;
 };
-const questionTypes = () => [
-  ["single", t("Single choice")],
-  ["multiple", t("Multiple choice")],
-  ["short", t("Short answer")],
-  ["essay", t("Written response")],
-];
 
 export function BankPicker({
   onAdd,
@@ -107,6 +103,7 @@ export function BankPicker({
                       type: q.type,
                       options: [...q.options],
                       solution: [...(q.solution || [])],
+                      answer_tolerances: [...(q.answer_tolerances || [])],
                       points: q.points,
                     })),
                 );
@@ -313,13 +310,7 @@ function BankEditor({
               value={draft.type}
               onChange={(e) => {
                 const type = e.target.value as Question["type"];
-                patch({
-                  type,
-                  options:
-                    type === "single" || type === "multiple" ? ["", ""] : [],
-                  solution:
-                    type === "short" ? [""] : type === "essay" ? [] : [0],
-                });
+                patch(questionTypeDefaults(type));
               }}
             >
               {questionTypes().map(([value, label]) => (
@@ -423,6 +414,7 @@ function BankEditor({
             />
           </label>
         )}
+        <StructuredQuestionFields question={draft} onChange={patch} />
         {draft.type === "essay" && (
           <p className="notice">
             {t("This question needs manual grading, with points and feedback.")}

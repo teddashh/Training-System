@@ -17,6 +17,7 @@ import {
 } from "recharts";
 import { api } from "./api";
 import { t, useLocale } from "./i18n";
+import { questionTypes } from "./questionTypes";
 import { Badge, Empty, ErrorBox, Spinner } from "./ui";
 import type { Exam, ExamInsights } from "./types";
 
@@ -306,12 +307,9 @@ export default function Insights({ exams }: { exams: Exam[] }) {
                         <strong>{q.description}</strong>
                         <small className="cell-note">
                           {
-                            {
-                              single: t("Single choice"),
-                              multiple: t("Multiple choice"),
-                              short: t("Short answer"),
-                              essay: t("Written response"),
-                            }[q.type]
+                            questionTypes().find(
+                              ([value]) => value === q.type,
+                            )?.[1]
                           }{" "}
                           · {t("Question version")} {q.question_id} ·{" "}
                           {q.variant.slice(0, 6)}

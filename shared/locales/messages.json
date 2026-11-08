@@ -9373,5 +9373,140 @@
     "en": "Create a course you can manage before publishing.",
     "zh-TW": "發布前請先建立您可以管理的課程。",
     "es": "Antes de publicar, crea un curso que puedas gestionar."
+  },
+  "Integer answer": {
+    "en": "Integer answer",
+    "zh-TW": "整數作答",
+    "es": "Respuesta entera"
+  },
+  "Numeric answer": {
+    "en": "Numeric answer",
+    "zh-TW": "數值作答",
+    "es": "Respuesta numérica"
+  },
+  "Ordering": {
+    "en": "Ordering",
+    "zh-TW": "排序",
+    "es": "Ordenación"
+  },
+  "Items in the correct order (one per line)": {
+    "en": "Items in the correct order (one per line)",
+    "zh-TW": "依正確順序輸入項目（每行一項）",
+    "es": "Elementos en el orden correcto (uno por línea)"
+  },
+  "Use 2–20 distinct items. Participants receive a shuffled order that stays fixed when resumed.": {
+    "en": "Use 2–20 distinct items. Participants receive a shuffled order that stays fixed when resumed.",
+    "zh-TW": "請輸入 2–20 個不同項目。應試者會收到打亂的順序，續考時維持不變。",
+    "es": "Usa entre 2 y 20 elementos distintos. El orden inicial se mezcla y se conserva al reanudar."
+  },
+  "Accepted numeric answers": {
+    "en": "Accepted numeric answers",
+    "zh-TW": "可接受的數值答案",
+    "es": "Respuestas numéricas aceptadas"
+  },
+  "Enter whole numbers. Any listed answer earns full credit.": {
+    "en": "Enter whole numbers. Any listed answer earns full credit.",
+    "zh-TW": "請輸入整數。符合任一列出的答案即可獲得該題全部分數。",
+    "es": "Introduce números enteros. Cualquier respuesta de la lista obtiene la puntuación completa."
+  },
+  "Each accepted answer has an absolute tolerance (±). Boundary values are included; use 0 for an exact match.": {
+    "en": "Each accepted answer has an absolute tolerance (±). Boundary values are included; use 0 for an exact match.",
+    "zh-TW": "每個答案均可設定絕對容許誤差（±），包含邊界值；設為 0 表示必須完全符合。",
+    "es": "Cada respuesta tiene una tolerancia absoluta (±), con los límites incluidos. Usa 0 para una coincidencia exacta."
+  },
+  "Accepted number {number}": {
+    "en": "Accepted number {number}",
+    "zh-TW": "可接受數值 {number}",
+    "es": "Número aceptado {number}"
+  },
+  "Tolerance for answer {number}": {
+    "en": "Tolerance for answer {number}",
+    "zh-TW": "答案 {number} 的容許誤差",
+    "es": "Tolerancia de la respuesta {number}"
+  },
+  "Remove accepted answer {number}": {
+    "en": "Remove accepted answer {number}",
+    "zh-TW": "移除可接受答案 {number}",
+    "es": "Eliminar respuesta aceptada {number}"
+  },
+  "Add accepted answer": {
+    "en": "Add accepted answer",
+    "zh-TW": "新增可接受答案",
+    "es": "Añadir respuesta aceptada"
+  },
+  "Use a decimal point (for example, 12.5). Scientific notation is supported.": {
+    "en": "Use a decimal point (for example, 12.5). Scientific notation is supported.",
+    "zh-TW": "請使用小數點（例如 12.5），亦支援科學記號。",
+    "es": "Usa un punto decimal (por ejemplo, 12.5). Se admite la notación científica."
+  },
+  "Your ordered answer": {
+    "en": "Your ordered answer",
+    "zh-TW": "您的排序答案",
+    "es": "Tu respuesta ordenada"
+  },
+  "Arrange the items from first to last using the arrow buttons. If this order is already correct, choose Use this order.": {
+    "en": "Arrange the items from first to last using the arrow buttons. If this order is already correct, choose Use this order.",
+    "zh-TW": "使用箭頭按鈕將項目由第一項排至最後一項。若目前順序已正確，請選擇「使用此順序」。",
+    "es": "Ordena los elementos de primero a último con los botones de flecha. Si el orden ya es correcto, elige Usar este orden."
+  },
+  "Move item {number} up": {
+    "en": "Move item {number} up",
+    "zh-TW": "將第 {number} 項上移",
+    "es": "Subir el elemento {number}"
+  },
+  "Move item {number} down": {
+    "en": "Move item {number} down",
+    "zh-TW": "將第 {number} 項下移",
+    "es": "Bajar el elemento {number}"
+  },
+  "Order selected. You can still move items before submitting.": {
+    "en": "Order selected. You can still move items before submitting.",
+    "zh-TW": "已選定順序，提交前仍可移動項目。",
+    "es": "Orden seleccionado. Puedes seguir moviendo elementos antes de entregar."
+  },
+  "Use this order": {
+    "en": "Use this order",
+    "zh-TW": "使用此順序",
+    "es": "Usar este orden"
+  },
+  "Enter a whole number.": {
+    "en": "Enter a whole number.",
+    "zh-TW": "請輸入整數。",
+    "es": "Introduce un número entero."
+  },
+  "Choice, short-answer, numeric and ordering questions are graded automatically. Written responses are reviewed by an instructor.": {
+    "en": "Choice, short-answer, numeric and ordering questions are graded automatically. Written responses are reviewed by an instructor.",
+    "zh-TW": "選擇、簡答、數值與排序題會自動評分；申論題由講師審閱。",
+    "es": "Las preguntas de opción, respuesta corta, numéricas y de ordenación se califican automáticamente. Las respuestas escritas las revisa un instructor."
+  },
+  "Use a finite number with a decimal point, up to 100 significant digits and an exponent from -100 to 100.": {
+    "en": "Use a finite number with a decimal point, up to 100 significant digits and an exponent from -100 to 100.",
+    "zh-TW": "請使用有限數值與小數點，最多 100 位有效數字，指數介於 -100 至 100。",
+    "es": "Usa un número finito con punto decimal, hasta 100 cifras significativas y un exponente entre -100 y 100."
+  },
+  "Provide 1–20 accepted whole-number answers.": {
+    "en": "Provide 1–20 accepted whole-number answers.",
+    "zh-TW": "請提供 1–20 個可接受的整數答案。",
+    "es": "Proporciona entre 1 y 20 respuestas enteras aceptadas."
+  },
+  "Provide one finite, non-negative tolerance for each accepted numeric answer.": {
+    "en": "Provide one finite, non-negative tolerance for each accepted numeric answer.",
+    "zh-TW": "請為每個可接受的數值答案提供一個有限且非負的容許誤差。",
+    "es": "Proporciona una tolerancia finita y no negativa para cada respuesta numérica aceptada."
+  },
+  "Provide 2–20 distinct items and a correct order containing every item exactly once.": {
+    "en": "Provide 2–20 distinct items and a correct order containing every item exactly once.",
+    "zh-TW": "請提供 2–20 個不同項目，且正確順序必須包含每個項目各一次。",
+    "es": "Proporciona entre 2 y 20 elementos distintos y un orden correcto que incluya cada elemento una sola vez."
+  },
+  "Numeric answers must be text of at most 128 characters.": {
+    "en": "Numeric answers must be text of at most 128 characters.",
+    "zh-TW": "數值答案必須是最多 128 個字元的文字。",
+    "es": "Las respuestas numéricas deben ser texto de hasta 128 caracteres."
+  },
+  "An ordering answer must contain every item exactly once.": {
+    "en": "An ordering answer must contain every item exactly once.",
+    "zh-TW": "排序答案必須包含每個項目各一次。",
+    "es": "Una respuesta de ordenación debe incluir cada elemento una sola vez."
   }
 }

@@ -1,4 +1,5 @@
 import Readiness from "./Readiness";
+import { answerText, acceptedAnswerText } from "./questionTypes";
 import InvitationBatch from "./InvitationBatch";
 import { PeopleImport, PersonEditor } from "./PeopleTools";
 import { t, useLocale } from "./i18n";
@@ -578,15 +579,8 @@ function ReviewModal({
                   </Badge>
                   <h3>{q.description}</h3>
                   <p className="review-answer">
-                    {Array.isArray(attempt.answers[String(q.id)])
-                      ? (attempt.answers[String(q.id)] as number[])
-                          .map((v) => q.options[v])
-                          .join("、")
-                      : typeof attempt.answers[String(q.id)] === "number"
-                        ? q.options[attempt.answers[String(q.id)] as number]
-                        : String(
-                            attempt.answers[String(q.id)] || t("(Unanswered)"),
-                          )}
+                    {answerText(q, attempt.answers[String(q.id)]) ||
+                      t("(Unanswered)")}
                   </p>
                 </div>
                 {q.type === "essay" ? (
@@ -630,9 +624,9 @@ function ReviewModal({
                 ) : (
                   <small className="muted">
                     {t("Auto-graded \u00B7 Accepted answer:") + " "}
-                    {q.solution
-                      ?.map((v) => (typeof v === "number" ? q.options[v] : v))
-                      .join("、")}
+                    <span className="review-answer">
+                      {acceptedAnswerText(q)}
+                    </span>
                   </small>
                 )}
               </div>

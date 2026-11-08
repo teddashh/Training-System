@@ -14,6 +14,8 @@ import { api } from "./api";
 import { useAttemptSession } from "./useAttemptSession";
 import type { Attempt as Data, Guest, GuestChallenge } from "./types";
 import { Spinner, ErrorBox, Modal, Badge } from "./ui";
+import { questionTypes, answerText } from "./questionTypes";
+import OrderingAnswer from "./OrderingAnswer";
 export function GuestExam({ go }: { go: (p: string) => void }) {
   useLocale();
   const [guest, setGuest] = useState<Guest | GuestChallenge | null>(null),
@@ -284,17 +286,7 @@ export default function Attempt({
           {attempt.questions.map((question, i) => {
             const answer = attempt.answers[String(question.id)];
             const grade = attempt.manual_grades[String(question.id)];
-            const response =
-              question.type === "single" || question.type === "multiple"
-                ? (Array.isArray(answer)
-                    ? answer
-                    : typeof answer === "number"
-                      ? [answer]
-                      : []
-                  )
-                    .map((option) => question.options[option])
-                    .join("\n")
-                : String(answer ?? "");
+            const response = answerText(question, answer);
             return (
               <article className="response-item" key={question.id}>
                 <h3>
@@ -426,15 +418,8 @@ export default function Attempt({
               {t("Question")} {String(index + 1).padStart(2, "0")}
             </span>
             <Badge tone="neutral">
-              {
-                {
-                  single: t("Single choice"),
-                  multiple: t("Multiple choice"),
-                  short: t("Short answer"),
-                  essay: t("Written response"),
-                }[q.type]
-              }{" "}
-              · {q.points}
+              {questionTypes().find(([value]) => value === q.type)?.[1]} ·{" "}
+              {q.points}
               {" " + t("points") + " "}
             </Badge>
           </div>
@@ -473,6 +458,32 @@ export default function Attempt({
                   </label>
                 );
               })}
+            </div>
+          ) : q.type === "ordering" ? (
+            <OrderingAnswer
+              options={q.options}
+              answer={answers[String(q.id)]}
+              disabled={busy || conflict || remaining === 0}
+              onChange={setAnswer}
+            />
+          ) : q.type === "integer" || q.type === "numeric" ? (
+            <div className="numeric-answer">
+              <p className="field-hint">
+                {q.type === "integer"
+                  ? t("Enter a whole number.")
+                  : t(
+                      "Use a decimal point (for example, 12.5). Scientific notation is supported.",
+                    )}
+              </p>
+              <input
+                type="text"
+                aria-label={t("Your answer")}
+                maxLength={128}
+                readOnly={conflict}
+                disabled={busy || remaining === 0}
+                value={String(answers[String(q.id)] ?? "")}
+                onChange={(event) => setAnswer(event.target.value)}
+              />
             </div>
           ) : (
             <textarea

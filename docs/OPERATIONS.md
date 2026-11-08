@@ -14,11 +14,23 @@ CSV exports include all assignments within the manager's ownership scope, includ
 
 ## Question bank and exam variation
 
-Create single-choice, multiple-choice, short-answer or written-response questions in **Question bank**. Set the category, points and accepted answers. Instructors see their own bank; administrators see all. Archive a question to remove it from future selection without affecting existing exams.
+Create single-choice, multiple-choice, short-answer, written-response, integer, numeric or ordering questions in **Question bank**. Set the category, points and accepted answers. Instructors see their own bank; administrators see all. Archive a question to remove it from future selection without affecting existing exams.
 
 In the exam editor, **Add from question bank** copies selected questions into the exam. Changes to the source bank never mutate those copies. The editor can shuffle question order, shuffle choice options, or select a random number of questions per attempt. Leave the count empty to use all questions. Ensure every random combination has an appropriate difficulty and point distribution for the assessment.
 
-Question sampling and option permutation occur once at attempt creation. The frozen snapshot includes remapped correct answers, weights and the pass threshold. Resuming keeps the same questions and ordering. Later bank/exam edits cannot change an active or completed attempt's grading.
+Question sampling and option permutation occur once at attempt creation. The frozen snapshot includes remapped correct answers, numeric tolerances, weights and the pass threshold. Resuming keeps the same questions and ordering. Later bank/exam edits cannot change an active or completed attempt's grading.
+
+### Integer, numeric and ordering questions
+
+**Integer answer** accepts 1–20 alternative whole numbers. Leading signs and surrounding spaces are allowed; decimal points and scientific notation are not accepted for this type. An exact match to any accepted value earns full credit. Large integers remain text throughout the player and API to preserve precision.
+
+**Numeric answer** accepts 1–20 alternative values, each with its own non-negative absolute tolerance. A value of `12.5` with tolerance `0.05` accepts `12.45` through `12.55`, including both boundaries. Use `0` for an exact match. Any matching alternative earns full credit. Use a decimal point, including in Spanish, or scientific notation such as `1.25e1`; commas, expressions, NaN and infinity are not accepted. Values and tolerances use decimal arithmetic, up to 100 coefficient digits and a normalized exponent from −100 to 100, with a maximum input length of 128 characters. Zero is accepted. These are absolute margins, not percentages.
+
+**Ordering** accepts 2–20 distinct, non-empty items. Enter them in the correct order, one per line. The player shuffles these items when each attempt starts, independently of the exam's choice-option shuffle setting. Learners use keyboard-accessible up/down buttons and can select **Use this order** when the displayed order is already correct. Only the complete correct sequence earns credit; no partial credit is assigned. Resuming an attempt preserves both its item permutation and saved answer.
+
+All three types auto-grade for account and guest attempts. Autosave permits incomplete numeric drafts such as `-` or `1e`; submitting an invalid or unanswered value earns zero points. Question values, tolerances and solution order remain private to instructors. Learners can review their submitted responses after submission, and assessment insights include these question types.
+
+For API clients, integer/numeric `solution` values are strings, and numeric `answer_tolerances` is an equally sized list of strings. For example, `{"type":"numeric","options":[],"solution":["12.5","-12.5"],"answer_tolerances":["0.05","0.01"]}` defines two accepted intervals. Ordering solutions and answers are arrays of zero-based option indexes, with each item present exactly once. An empty answer array represents an unanswered ordering question. Attempt saves still require the current `answer_revision` for conflict protection.
 
 ## Assessment results and insights
 

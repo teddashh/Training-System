@@ -31,9 +31,17 @@ export type Course = {
 export type Question = {
   id?: number;
   description: string;
-  type: "single" | "multiple" | "short" | "essay";
+  type:
+    | "single"
+    | "multiple"
+    | "short"
+    | "essay"
+    | "integer"
+    | "numeric"
+    | "ordering";
   options: string[];
   solution?: (number | string)[];
+  answer_tolerances?: string[];
   points: number;
   position?: number;
 };

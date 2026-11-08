@@ -26,7 +26,7 @@ This v1.3 handover release runs with a real database and tested end-to-end workf
 | Required training | Assign courses or exams to people, departments or employment groups; due dates, learner worklists, completion/overdue reports and CSV |
 | SCORM | ZIP validation/import, isolated content origin, SCORM 1.2/2004 single-SCO runtime subset, progress, suspend-data persistence and confirmed save on close |
 | Authoring | Integrated Scormly with English, Traditional Chinese and Spanish; **Publish to LMS** uploads the selected SCORM 1.2 or 2004 format and an editable project backup to a course the author can manage |
-| Exams | Standalone or course-linked; four question types; question banks, random subsets and shuffled options; scheduling, duration and passing score |
+| Exams | Standalone or course-linked; seven question types, including integer, numeric with per-answer tolerance and ordering; question banks, random subsets and shuffled options; scheduling, duration and passing score |
 | Audience | All accounts, employees, contractors, selected departments, selected people or invitation only; enforced by the API |
 | Attempts | Default and individual budgets; invitation-specific caps; shared account/guest identity; PostgreSQL locking prevents concurrent overuse |
 | Guest access | Unique expiring/revocable links bound to an email/account key; CSV batch preview/issuance with retry recovery and link download; searchable, paginated history; recipient email verification enabled by default in organizer forms |
@@ -128,7 +128,7 @@ GitHub Actions checks PostgreSQL authorization/budget/grading tests, both fronte
 
 ## Integration and scope
 
-Yaksh Git history and its original source remain in `legacy/yaksh/`. The supported enterprise API is a modern rebuild; the archived Django application and code sandbox are not deployed. The `import_yaksh` adapter accepts equivalent JSON for Yaksh `mcq`/`mcc` exports. Full historical migration and isolated programming assessments remain unfinished; see the [feature audit and completion workstreams](docs/UPSTREAM-AUDIT.md), [integration details](docs/INTEGRATIONS.md), [third-party notices](THIRD_PARTY_NOTICES.md) and [security scope](SECURITY.md).
+Yaksh Git history and its original source remain in `legacy/yaksh/`. The supported enterprise API is a modern rebuild; the archived Django application and code sandbox are not deployed. The `import_yaksh` adapter accepts reviewed JSON for Yaksh `mcq`, `mcc`, `integer`, `float` and `arrange` questions; arrange imports require an explicit correct order. Full historical migration and isolated programming assessments remain unfinished; see the [feature audit and completion workstreams](docs/UPSTREAM-AUDIT.md), [integration details](docs/INTEGRATIONS.md), [third-party notices](THIRD_PARTY_NOTICES.md) and [security scope](SECURITY.md).
 
 - SCORM supports a single-SCO runtime subset, without full certification, multi-SCO sequencing or a cmi5/xAPI LRS. Scormly can export cmi5, but this LMS does not accept it.
 - A link issued with email verification disabled is a bearer credential. Verified links require the configured recipient mailbox before guest access. Neither mode provides exam proctoring.

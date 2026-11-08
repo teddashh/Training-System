@@ -508,10 +508,16 @@ for (const version of ["1.2", "2004"] as const) {
     await page.getByRole("button", { name: /Explore the demo course/ }).click();
     // Catalog visibility does not imply publication rights. Exercise the picker
     // with a visible course the current author cannot manage.
-    await page.route("**/api/courses/", async route => {
+    await page.route("**/api/courses/", async (route) => {
       const response = await route.fetch();
       const courses = await response.json();
-      await route.fulfill({ response, json: [...courses, { id: -1, title: "Read-only course", can_manage: false }] });
+      await route.fulfill({
+        response,
+        json: [
+          ...courses,
+          { id: -1, title: "Read-only course", can_manage: false },
+        ],
+      });
     });
     await expect(
       page
@@ -526,12 +532,15 @@ for (const version of ["1.2", "2004"] as const) {
     await page
       .getByLabel("Select a company course")
       .selectOption(String(course.id));
-    await expect(page.getByLabel("Select a company course").locator('option[value="-1"]')).toHaveCount(0);
+    await expect(
+      page.getByLabel("Select a company course").locator('option[value="-1"]'),
+    ).toHaveCount(0);
     await page.unroute("**/api/courses/");
     await page.getByLabel("LMS package format").selectOption(version);
-    const published = page.waitForResponse(response =>
-      response.url().endsWith(`/api/courses/${course.id}/upload/`) &&
-      response.request().method() === "POST",
+    const published = page.waitForResponse(
+      (response) =>
+        response.url().endsWith(`/api/courses/${course.id}/upload/`) &&
+        response.request().method() === "POST",
     );
     await page
       .getByRole("button", { name: "Publish to LMS", exact: true })
@@ -545,7 +554,9 @@ for (const version of ["1.2", "2004"] as const) {
     await expect(
       page.getByRole("status").filter({ hasText: "Published. The package" }),
     ).toBeVisible({ timeout: 20000 });
-    const response = await page.request.get(`/api/courses/${course.id}/source/`);
+    const response = await page.request.get(
+      `/api/courses/${course.id}/source/`,
+    );
     expect(response.ok()).toBeTruthy();
     expect(response.headers()["content-type"]).toBe("application/zip");
 
@@ -553,22 +564,36 @@ for (const version of ["1.2", "2004"] as const) {
     // version-specific bookmark survives a confirmed save and relaunch.
     await page.goto("/courses");
     const card = page.locator("article").filter({ hasText: title });
-    await card.getByRole("button", { name: "Start learning", exact: true }).click();
-    const sco = page.frameLocator('iframe[title="SCORM course player"]').frameLocator("#sco");
-    await expect(sco.getByRole("button", { name: /^Start course/ })).toBeVisible();
-    const bookmark = version === "2004" ? "cmi.location" : "cmi.core.lesson_location";
-    const saved = page.waitForResponse(response =>
-      response.url().endsWith(`/api/scorm/${packageInfo.id}/commit/`) &&
-      response.request().postDataJSON()?.cmi?.[bookmark] === "0",
+    await card
+      .getByRole("button", { name: "Start learning", exact: true })
+      .click();
+    const sco = page
+      .frameLocator('iframe[title="SCORM course player"]')
+      .frameLocator("#sco");
+    await expect(
+      sco.getByRole("button", { name: /^Start course/ }),
+    ).toBeVisible();
+    const bookmark =
+      version === "2004" ? "cmi.location" : "cmi.core.lesson_location";
+    const saved = page.waitForResponse(
+      (response) =>
+        response.url().endsWith(`/api/scorm/${packageInfo.id}/commit/`) &&
+        response.request().postDataJSON()?.cmi?.[bookmark] === "0",
     );
     await sco.getByRole("button", { name: /^Start course/ }).click();
     await expect(sco.locator(".lesson-title")).toBeVisible();
-    await page.getByRole("button", { name: "Save and close", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Save and close", exact: true })
+      .click();
     expect((await saved).ok()).toBeTruthy();
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    await card.getByRole("button", { name: "Continue learning", exact: true }).click();
+    await card
+      .getByRole("button", { name: "Continue learning", exact: true })
+      .click();
     await expect(sco.locator(".lesson-title")).toBeVisible();
-    await expect(sco.getByRole("button", { name: /^Start course/ })).toHaveCount(0);
+    await expect(
+      sco.getByRole("button", { name: /^Start course/ }),
+    ).toHaveCount(0);
     const restored = await sco.locator("body").evaluate(() => {
       const player = window as typeof window & {
         __SCORMLY_SCORM__: string;
@@ -583,7 +608,9 @@ for (const version of ["1.2", "2004"] as const) {
     expect(restored.version).toBe(version);
     expect(restored.connected).toBe(true);
     expect(restored.progress.l).toBe(0);
-    await page.getByRole("button", { name: "Save and close", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Save and close", exact: true })
+      .click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 }
@@ -1092,6 +1119,194 @@ test("question bank creates reusable questions and randomized exam settings pers
   await expect(
     page.getByRole("heading", { name: "Congratulations, you passed" }),
   ).toBeVisible();
+});
+
+test("numeric and ordering questions round-trip through authoring, resume, grading and reports", async ({
+  page,
+}) => {
+  test.setTimeout(90000);
+  await login(page);
+  const suffix = Date.now();
+  const bankTitle = `Calibration alternatives ${suffix}`;
+  const examTitle = `Numeric and procedure assessment ${suffix}`;
+  await page.goto("/question-bank");
+  await page
+    .getByRole("button", { name: "Create question", exact: true })
+    .click();
+  const modal = page.getByRole("dialog");
+  await modal.getByLabel("Question text", { exact: true }).fill(bankTitle);
+  await modal
+    .getByRole("combobox", { name: "Question type", exact: true })
+    .selectOption("numeric");
+  await modal.getByLabel("Accepted number 1", { exact: true }).fill("12.5");
+  await modal
+    .getByLabel("Tolerance for answer 1", { exact: true })
+    .fill("0.05");
+  await modal
+    .getByRole("button", { name: "Add accepted answer", exact: true })
+    .click();
+  await modal.getByLabel("Accepted number 2", { exact: true }).fill("-12.5");
+  await modal
+    .getByLabel("Tolerance for answer 2", { exact: true })
+    .fill("0.01");
+  await modal.locator(".language-picker select").selectOption("es");
+  await expect(
+    modal.getByLabel("Número aceptado 2", { exact: true }),
+  ).toHaveValue("-12.5");
+  await expect(
+    modal.getByLabel("Tolerancia de la respuesta 2", { exact: true }),
+  ).toHaveValue("0.01");
+  await modal.locator(".language-picker select").selectOption("zh-TW");
+  await expect(
+    modal.getByLabel("答案 1 的容許誤差", { exact: true }),
+  ).toHaveValue("0.05");
+  await modal.locator(".language-picker select").selectOption("en");
+  await modal
+    .getByRole("button", { name: "Save question", exact: true })
+    .click();
+  const bankRow = page.getByRole("row").filter({ hasText: bankTitle });
+  await bankRow.getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(
+    modal.getByLabel("Tolerance for answer 2", { exact: true }),
+  ).toHaveValue("0.01");
+  await modal.getByRole("button", { name: "Cancel", exact: true }).click();
+
+  await page.goto("/exams");
+  await page.getByRole("button", { name: "Create exam", exact: true }).click();
+  await modal.getByLabel("Exam title", { exact: true }).fill(examTitle);
+  await modal.getByLabel("Question 1 type").selectOption("integer");
+  await modal
+    .getByLabel("Question 1 content")
+    .fill("Enter the exact equipment count");
+  await modal
+    .getByLabel("Accepted number 1", { exact: true })
+    .fill("9007199254740993");
+  await modal.getByRole("button", { name: "Add from question bank" }).click();
+  const picker = page.getByRole("dialog", {
+    name: "Add from question bank",
+    exact: true,
+  });
+  await picker.getByLabel("Search question bank").fill(bankTitle);
+  await picker.getByRole("checkbox", { name: new RegExp(bankTitle) }).check();
+  await picker.getByRole("button", { name: /Add selected questions/ }).click();
+  await modal
+    .getByRole("button", { name: "Add question", exact: true })
+    .click();
+  await modal.getByLabel("Question 3 type").selectOption("ordering");
+  await modal
+    .getByLabel("Question 3 content")
+    .fill("Arrange the safety procedure");
+  await modal
+    .getByLabel("Items in the correct order (one per line)")
+    .fill("Isolate\nVerify\nMaintain");
+  await modal.getByLabel("Publish exam", { exact: true }).check();
+  await modal.getByRole("button", { name: "Save exam", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: examTitle, exact: true }),
+  ).toBeVisible();
+  const exam = (await (await page.request.get("/api/exams/")).json()).find(
+    (row: { title: string }) => row.title === examTitle,
+  );
+  expect(exam.questions.map((q: { type: string }) => q.type)).toEqual([
+    "integer",
+    "numeric",
+    "ordering",
+  ]);
+  expect(exam.questions[1].answer_tolerances).toEqual(["0.05", "0.01"]);
+  const attempt = await post<{
+    id: string;
+    questions: { solution?: unknown; answer_tolerances?: unknown }[];
+  }>(page, `exams/${exam.id}/start/`, {});
+  for (const question of attempt.questions) {
+    expect(question.solution).toBeUndefined();
+    expect(question.answer_tolerances).toBeUndefined();
+  }
+  await page.goto(`/attempt/${attempt.id}`);
+  await page
+    .getByLabel("Your answer", { exact: true })
+    .fill("9007199254740993");
+  await page
+    .getByRole("button", { name: "Next question", exact: true })
+    .click();
+  // The second allowed value has its own tolerance; this is its inclusive boundary.
+  await page.getByLabel("Your answer", { exact: true }).fill("-12.51");
+  await page
+    .getByRole("button", { name: "Next question", exact: true })
+    .click();
+  const ordered = page.getByRole("group", { name: "Your ordered answer" });
+  const targets = ["Isolate", "Verify", "Maintain"];
+  for (let target = 0; target < targets.length; target++) {
+    for (let moves = 0; moves < targets.length; moves++) {
+      const current = await ordered.locator(".order-text").allTextContents();
+      const position = current.indexOf(targets[target]);
+      if (position === target) break;
+      const button = ordered
+        .getByRole("listitem")
+        .nth(position)
+        .getByRole("button", { name: / up$/ });
+      await button.focus();
+      await page.keyboard.press("Enter");
+    }
+  }
+  const confirmOrder = ordered.getByRole("button", {
+    name: "Use this order",
+    exact: true,
+  });
+  if (await confirmOrder.isVisible()) await confirmOrder.click();
+  await expect(ordered.locator(".order-text")).toHaveText(targets);
+  await expect(page.getByRole("status")).toContainText(
+    "Answers saved automatically",
+  );
+  await page.reload();
+  await expect(page.getByLabel("Your answer", { exact: true })).toHaveValue(
+    "9007199254740993",
+  );
+  await page
+    .getByRole("button", { name: "Next question", exact: true })
+    .click();
+  await expect(page.getByLabel("Your answer", { exact: true })).toHaveValue(
+    "-12.51",
+  );
+  await page
+    .getByRole("button", { name: "Next question", exact: true })
+    .click();
+  await expect(ordered.locator(".order-text")).toHaveText(targets);
+  await page.locator(".language-picker select").selectOption("es");
+  await expect(
+    page.getByRole("group", { name: "Tu respuesta ordenada" }),
+  ).toBeVisible();
+  await page.locator(".language-picker select").selectOption("zh-TW");
+  await expect(page.getByRole("group", { name: "您的排序答案" })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.locator(".language-picker select").selectOption("en");
+  await page
+    .getByRole("button", { name: "Finish and submit", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Confirm submission", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Congratulations, you passed" }),
+  ).toBeVisible();
+  await expect(page.locator(".result-score")).toContainText("100");
+  await expect(page.locator(".response-item").last()).toContainText(
+    "1. Isolate\n2. Verify\n3. Maintain",
+  );
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const reviewed = await (
+    await page.request.get(`/api/results/${attempt.id}/review/`)
+  ).json();
+  expect(reviewed.questions[1].answer_tolerances).toEqual(["0.05", "0.01"]);
+  await page.goto("/insights");
+  await page.getByLabel("Select assessment").selectOption(String(exam.id));
+  const analysis = page.getByRole("row").filter({ hasText: bankTitle });
+  await expect(analysis).toContainText("Numeric answer");
+  await expect(analysis).toContainText("100%");
 });
 
 test("CSV preview imports learners, profile edits persist, and new pages translate", async ({

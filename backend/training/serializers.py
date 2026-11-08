@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from .i18n import translate
 from .models import BankQuestion, Course, Exam, Invitation, Question, User
+from .question_rules import NUMBER_ERROR, parse_number
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -152,6 +153,7 @@ class QuestionSerializer(serializers.ModelSerializer):
             "type",
             "options",
             "solution",
+            "answer_tolerances",
             "points",
             "position",
         ]
@@ -160,6 +162,9 @@ class QuestionSerializer(serializers.ModelSerializer):
         kind = data.get("type", getattr(self.instance, "type", "single"))
         options = data.get("options", getattr(self.instance, "options", []))
         solution = data.get("solution", getattr(self.instance, "solution", []))
+        tolerances = data.get(
+            "answer_tolerances", getattr(self.instance, "answer_tolerances", [])
+        )
         if not isinstance(options, list) or not all(
             isinstance(v, str) and len(v) <= 4000 for v in options
         ):
@@ -187,6 +192,55 @@ class QuestionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 translate("Short-answer questions need at least one accepted answer.")
             )
+        if kind in ("integer", "numeric"):
+            try:
+                if not 1 <= len(solution) <= 20:
+                    raise ValueError("Provide 1–20 accepted values")
+                expected = [
+                    parse_number(value, integer=kind == "integer") for value in solution
+                ]
+            except ValueError:
+                raise serializers.ValidationError(
+                    translate(
+                        "Provide 1–20 accepted whole-number answers."
+                        if kind == "integer"
+                        else NUMBER_ERROR
+                    )
+                )
+            data["solution"] = [str(value) for value in expected]
+            data["options"] = []
+        if kind == "numeric":
+            try:
+                if not isinstance(tolerances, list) or len(tolerances) != len(solution):
+                    raise ValueError(
+                        "One tolerance is required for each accepted value"
+                    )
+                margins = [parse_number(value) for value in tolerances]
+                if any(value < 0 for value in margins):
+                    raise ValueError("Negative tolerance")
+            except ValueError:
+                raise serializers.ValidationError(
+                    translate(
+                        "Provide one finite, non-negative tolerance for each accepted numeric answer."
+                    )
+                )
+            data["answer_tolerances"] = [str(value) for value in margins]
+        else:
+            data["answer_tolerances"] = []
+        if kind == "ordering":
+            if (
+                not 2 <= len(options) <= 20
+                or any(not option.strip() for option in options)
+                or len({option.strip() for option in options}) != len(options)
+                or any(type(index) is not int for index in solution)
+                or sorted(solution) != list(range(len(options)))
+            ):
+                raise serializers.ValidationError(
+                    translate(
+                        "Provide 2–20 distinct items and a correct order containing every item exactly once."
+                    )
+                )
+            data["options"] = [option.strip() for option in options]
         return data
 
 
@@ -199,6 +253,7 @@ class BankQuestionSerializer(QuestionSerializer):
             "type",
             "options",
             "solution",
+            "answer_tolerances",
             "points",
             "category",
             "archived",

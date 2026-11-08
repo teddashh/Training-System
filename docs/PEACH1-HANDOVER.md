@@ -11,7 +11,7 @@ This repository contains the company training platform. Peach1 is the target for
 - Single-tenant Entra OIDC sign-in, with stable `tenant-id:object-id` subjects and explicit linking for existing local accounts.
 - Courses, block lessons, Scormly authoring, SCORM import/publication, isolated course execution, saved progress and editable authoring source downloads.
 - Required training assignments, deadlines, learner worklists, instructor-scoped completion reports and CSV exports. A passing exam or completed course fulfills the requirement, including prior completion. Reassignment updates the requirement; it does not reset progress or attempt budgets.
-- Independent and course-linked exams, question banks, question/option shuffling, random subsets, audience restrictions, timing, automatic/manual grading and review feedback.
+- Independent and course-linked exams, seven question types, question banks, question/option shuffling, random subsets, audience restrictions, timing, automatic/manual grading and review feedback. Integer, numeric-with-tolerance and ordering questions work in authoring, guest/account attempts and reporting.
 - Personal guest links with email/account-bound identity, expiry, revocation, optional email verification and per-link plus per-identity attempt limits.
 - CSV invitation cohorts with preview validation, atomic issuance, retry recovery, link download and searchable, paginated history. Disabling a linked account blocks its guest links and active guest attempts.
 - Performance dashboards, filtered results pagination and matching exports, assessment/question insights, individual attempt-budget preflight, audit history, expiry scheduler, Docker deployment and backup/restore tooling.
@@ -32,7 +32,11 @@ The system does not yet perform Microsoft Graph directory synchronization. Entra
 
 ## Changes after v1.3
 
-Current main adds the upstream feature inventory and corrects SCORM integration: authors can publish either SCORM 1.2 or 2004, the course picker shows only manageable destinations, new imports recognize CAM 1.3 as 2004, and launches supply current learner names. Deactivated accounts cannot redeem a previously issued launch ticket. These changes add no database migration. Rebuild matching application/content and web images; existing packages and saved learning states remain stored. The v1.3 release tag predates these corrections.
+Current main adds integer, numeric-with-tolerance and ordering questions throughout authoring, bank reuse, account/guest attempts, autosave, reviews and analytics. The Yaksh draft importer also accepts reviewed integer, float and arrange records. See [question operations](OPERATIONS.md#integer-numeric-and-ordering-questions) for accepted formats and limits.
+
+Back up database and media, then rebuild matching application/content and web images outside active examinations. Migration `0007_numeric_and_ordering_questions` adds an empty `answer_tolerances` list to existing exam and bank questions and expands the allowed question types. It does not rewrite existing attempt snapshots, answers, grades or attempt budgets. Compose applies it during API startup. Reload open application tabs after upgrading. Rolling back to v1.3 application code after creating new question types is unsupported; retain the pre-upgrade backup for a full restoration if needed.
+
+Main also adds the upstream feature inventory and corrects SCORM integration: authors can publish either SCORM 1.2 or 2004, the course picker shows only manageable destinations, new imports recognize CAM 1.3 as 2004, and launches supply current learner names. Deactivated accounts cannot redeem a previously issued launch ticket. Those SCORM corrections require no additional migration; existing packages and saved learning states remain stored. The v1.3 release tag predates these changes.
 
 ## Upgrade from v1.2
 
