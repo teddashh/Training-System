@@ -1280,13 +1280,14 @@ test("question bank creates reusable questions and randomized exam settings pers
   ).toBeVisible();
 });
 
-test("numeric and ordering questions round-trip through authoring, resume, grading and reports", async ({
+test("numeric, ordering and text rules round-trip through authoring, resume, grading and reports", async ({
   page,
 }) => {
-  test.setTimeout(90000);
+  test.setTimeout(120000);
   await login(page);
   const suffix = Date.now();
   const bankTitle = `Calibration alternatives ${suffix}`;
+  const textTitle = `Release phrase ${suffix}`;
   const examTitle = `Numeric and procedure assessment ${suffix}`;
   await page.goto("/question-bank");
   await page
@@ -1330,6 +1331,80 @@ test("numeric and ordering questions round-trip through authoring, resume, gradi
   ).toHaveValue("0.01");
   await modal.getByRole("button", { name: "Cancel", exact: true }).click();
 
+  await page
+    .getByRole("button", { name: "Create question", exact: true })
+    .click();
+  await modal.getByLabel("Question text", { exact: true }).fill(textTitle);
+  await modal
+    .getByRole("combobox", { name: "Question type", exact: true })
+    .selectOption("short");
+  await modal
+    .getByRole("textbox", { name: "Accepted text 1", exact: true })
+    .fill("Release  Ready\nChecked");
+  await modal
+    .getByRole("combobox", { name: "Matching rule for answer 1", exact: true })
+    .selectOption("exact");
+  await modal
+    .getByRole("button", { name: "Add accepted answer", exact: true })
+    .click();
+  await modal
+    .getByRole("textbox", { name: "Accepted text 2", exact: true })
+    .fill("Approved");
+  await modal
+    .getByRole("combobox", { name: "Matching rule for answer 2", exact: true })
+    .selectOption("lower");
+  // Removing an alternative must remove its matching rule at the same index.
+  await modal
+    .getByRole("button", { name: "Add accepted answer", exact: true })
+    .click();
+  await modal
+    .getByRole("button", { name: "Remove accepted answer 3", exact: true })
+    .click();
+  await modal.locator(".language-picker select").selectOption("es");
+  await expect(
+    modal.getByRole("combobox", {
+      name: "Regla de comparación de la respuesta 2",
+      exact: true,
+    }),
+  ).toHaveValue("lower");
+  await expect(
+    modal.getByRole("textbox", { name: "Texto aceptado 1", exact: true }),
+  ).toHaveValue("Release  Ready\nChecked");
+  await modal.locator(".language-picker select").selectOption("zh-TW");
+  await expect(
+    modal.getByRole("combobox", { name: "答案 1 的比對規則", exact: true }),
+  ).toHaveValue("exact");
+  await modal.locator(".language-picker select").selectOption("en");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: "/tmp/training-text-authoring-mobile.png",
+    fullPage: true,
+  });
+  await modal
+    .getByRole("button", { name: "Save question", exact: true })
+    .click();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page
+    .getByRole("row")
+    .filter({ hasText: textTitle })
+    .getByRole("button", { name: "Edit", exact: true })
+    .click();
+  await expect(
+    modal.getByRole("textbox", { name: "Accepted text 1", exact: true }),
+  ).toHaveValue("Release  Ready\nChecked");
+  await expect(
+    modal.getByRole("combobox", {
+      name: "Matching rule for answer 2",
+      exact: true,
+    }),
+  ).toHaveValue("lower");
+  await modal.getByRole("button", { name: "Cancel", exact: true }).click();
+
   await page.goto("/exams");
   await page.getByRole("button", { name: "Create exam", exact: true }).click();
   await modal.getByLabel("Exam title", { exact: true }).fill(examTitle);
@@ -1358,6 +1433,24 @@ test("numeric and ordering questions round-trip through authoring, resume, gradi
   await modal
     .getByLabel("Items in the correct order (one per line)")
     .fill("Isolate\nVerify\nMaintain");
+  await modal.getByRole("button", { name: "Add from question bank" }).click();
+  await picker.getByLabel("Search question bank").fill(textTitle);
+  await picker.getByRole("checkbox", { name: new RegExp(textTitle) }).check();
+  await picker.getByRole("button", { name: /Add selected questions/ }).click();
+  await modal
+    .getByRole("button", { name: "Add question", exact: true })
+    .click();
+  await modal.getByLabel("Question 5 type").selectOption("short");
+  await modal
+    .getByLabel("Question 5 content")
+    .fill("Enter CaseID with exact capitalization");
+  const strict = modal.locator(".question-editor").last();
+  await strict
+    .getByRole("textbox", { name: "Accepted text 1", exact: true })
+    .fill("CaseID");
+  await strict
+    .getByRole("combobox", { name: "Matching rule for answer 1", exact: true })
+    .selectOption("exact");
   await modal.getByLabel("Publish exam", { exact: true }).check();
   await modal.getByRole("button", { name: "Save exam", exact: true }).click();
   await expect(
@@ -1370,15 +1463,23 @@ test("numeric and ordering questions round-trip through authoring, resume, gradi
     "integer",
     "numeric",
     "ordering",
+    "short",
+    "short",
   ]);
   expect(exam.questions[1].answer_tolerances).toEqual(["0.05", "0.01"]);
+  expect(exam.questions[3].answer_matching).toEqual(["exact", "lower"]);
   const attempt = await post<{
     id: string;
-    questions: { solution?: unknown; answer_tolerances?: unknown }[];
+    questions: {
+      solution?: unknown;
+      answer_tolerances?: unknown;
+      answer_matching?: unknown;
+    }[];
   }>(page, `exams/${exam.id}/start/`, {});
   for (const question of attempt.questions) {
     expect(question.solution).toBeUndefined();
     expect(question.answer_tolerances).toBeUndefined();
+    expect(question.answer_matching).toBeUndefined();
   }
   await page.goto(`/attempt/${attempt.id}`);
   await page
@@ -1416,6 +1517,17 @@ test("numeric and ordering questions round-trip through authoring, resume, gradi
   await expect(page.getByRole("status")).toContainText(
     "Answers saved automatically",
   );
+  await page
+    .getByRole("button", { name: "Next question", exact: true })
+    .click();
+  await page.getByLabel("Your answer", { exact: true }).fill("APPROVED");
+  await page
+    .getByRole("button", { name: "Next question", exact: true })
+    .click();
+  await page.getByLabel("Your answer", { exact: true }).fill("caseid");
+  await expect(page.getByRole("status")).toContainText(
+    "Answers saved automatically",
+  );
   await page.reload();
   await expect(page.getByLabel("Your answer", { exact: true })).toHaveValue(
     "9007199254740993",
@@ -1444,6 +1556,18 @@ test("numeric and ordering questions round-trip through authoring, resume, gradi
   ).toBe(true);
   await page.locator(".language-picker select").selectOption("en");
   await page
+    .getByRole("button", { name: "Next question", exact: true })
+    .click();
+  await expect(page.getByLabel("Your answer", { exact: true })).toHaveValue(
+    "APPROVED",
+  );
+  await page
+    .getByRole("button", { name: "Next question", exact: true })
+    .click();
+  await expect(page.getByLabel("Your answer", { exact: true })).toHaveValue(
+    "caseid",
+  );
+  await page
     .getByRole("button", { name: "Finish and submit", exact: true })
     .click();
   await page
@@ -1452,8 +1576,8 @@ test("numeric and ordering questions round-trip through authoring, resume, gradi
   await expect(
     page.getByRole("heading", { name: "Congratulations, you passed" }),
   ).toBeVisible();
-  await expect(page.locator(".result-score")).toContainText("100");
-  await expect(page.locator(".response-item").last()).toContainText(
+  await expect(page.locator(".result-score")).toContainText("80");
+  await expect(page.locator(".response-item").nth(2)).toContainText(
     "1. Isolate\n2. Verify\n3. Maintain",
   );
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -1461,6 +1585,7 @@ test("numeric and ordering questions round-trip through authoring, resume, gradi
     await page.request.get(`/api/results/${attempt.id}/review/`)
   ).json();
   expect(reviewed.questions[1].answer_tolerances).toEqual(["0.05", "0.01"]);
+  expect(reviewed.questions[3].answer_matching).toEqual(["exact", "lower"]);
   await page.goto("/results");
   await page.getByLabel("Filter by exam").selectOption(String(exam.id));
   await page
@@ -1476,7 +1601,14 @@ test("numeric and ordering questions round-trip through authoring, resume, gradi
     "9007199254740993",
     "12.5 ± 0.05\n-12.5 ± 0.01",
     "1. Isolate\n2. Verify\n3. Maintain",
+    "Match case and spacing:\nRelease  Ready\nChecked\nIgnore case; preserve spacing:\nApproved",
+    "Match case and spacing:\nCaseID",
   ]);
+  await review.locator(".accepted-answer").nth(3).scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: "/tmp/training-text-review.png",
+    fullPage: true,
+  });
   await review
     .getByRole("button", { name: "Close", exact: true })
     .last()
@@ -1486,6 +1618,14 @@ test("numeric and ordering questions round-trip through authoring, resume, gradi
   const analysis = page.getByRole("row").filter({ hasText: bankTitle });
   await expect(analysis).toContainText("Numeric answer");
   await expect(analysis).toContainText("100%");
+  await expect(
+    page.getByRole("row").filter({ hasText: textTitle }),
+  ).toContainText("100%");
+  const strictAnalysis = page
+    .getByRole("row")
+    .filter({ hasText: "Enter CaseID with exact capitalization" });
+  await expect(strictAnalysis).toContainText("Short answer");
+  await expect(strictAnalysis.getByText("0%", { exact: true })).toBeVisible();
 });
 
 test("CSV preview imports learners, profile edits persist, and new pages translate", async ({

@@ -42,9 +42,11 @@ export type Question = {
   options: string[];
   solution?: (number | string)[];
   answer_tolerances?: string[];
+  answer_matching?: TextMatchingMode[];
   points: number;
   position?: number;
 };
+export type TextMatchingMode = "normalized" | "lower" | "exact";
 export type Exam = {
   shuffle_questions: boolean;
   shuffle_options: boolean;

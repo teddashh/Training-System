@@ -18,7 +18,23 @@ Create single-choice, multiple-choice, short-answer, written-response, integer, 
 
 In the exam editor, **Add from question bank** copies selected questions into the exam. Changes to the source bank never mutate those copies. The editor can shuffle question order, shuffle choice options, or select a random number of questions per attempt. Leave the count empty to use all questions. Ensure every random combination has an appropriate difficulty and point distribution for the assessment.
 
-Question sampling and option permutation occur once at attempt creation. The frozen snapshot includes remapped correct answers, numeric tolerances, weights and the pass threshold. Resuming keeps the same questions and ordering. Later bank/exam edits cannot change an active or completed attempt's grading.
+Question sampling and option permutation occur once at attempt creation. The frozen snapshot includes remapped correct answers, text matching rules, numeric tolerances, weights and the pass threshold. Resuming keeps the same questions and ordering. Later bank/exam edits cannot change an active or completed attempt's grading.
+
+### Text answer matching
+
+**Short answer** accepts 1–20 alternative text answers, each up to 20,000 characters. Each alternative has its own text box, so an answer can contain multiple lines. Any matching alternative earns full credit. Choose its rule in **Question bank** or the exam editor:
+
+| Matching rule | Behavior |
+| --- | --- |
+| Ignore case and surrounding whitespace | Default and previous platform behavior: trims whitespace at both ends and compares Unicode case-folded text. Internal spaces and line breaks still matter. |
+| Ignore case; preserve spacing | Yaksh `lower`: compares lowercase text line by line, preserving spaces and blank lines. Unicode lowercase is intentionally distinct from case folding: `Straße` matches `STRAẞE`, but not `STRASSE`. |
+| Match case and spacing | Yaksh `exact`: compares text line by line with case, spaces and blank lines preserved. |
+
+For both Yaksh modes, line-ending formats (such as Windows CRLF and LF) are equivalent, and a single final line break is ignored by the source's `splitlines()` comparison. An additional blank line is significant. No regular expressions, substring matching or partial credit are used. Empty or whitespace-only answers earn zero credit. State the required capitalization and formatting in the question so participants know what is expected.
+
+Copying a bank question preserves its alternatives and rules. Each attempt freezes them at its start; subsequent authoring changes do not regrade existing attempts. Rules and accepted values remain private to instructors. Instructor review labels each accepted answer with its matching rule, and insights keep versions with different rules separate. Older saved questions and attempts without rules retain their previous normalization behavior.
+
+API example: `{"type":"short","options":[],"solution":["Release  Ready\nChecked","Approved"],"answer_matching":["exact","lower"]}`. `answer_matching` contains one of `normalized`, `lower` or `exact` for each solution. Missing/empty rules default to `normalized`; when updating an existing rule list, keep its length aligned with the alternatives. Text is preserved verbatim. Yaksh string imports require an explicit `lower` or `exact` on every testcase; unknown or missing modes reject the entire draft import for review.
 
 ### Integer, numeric and ordering questions
 

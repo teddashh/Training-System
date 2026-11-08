@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from .i18n import translate
 from .models import BankQuestion, Course, Exam, Invitation, Question, User
-from .question_rules import NUMBER_ERROR, parse_number
+from .question_rules import NUMBER_ERROR, TEXT_MATCHING_MODES, parse_number
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -154,6 +154,7 @@ class QuestionSerializer(serializers.ModelSerializer):
             "options",
             "solution",
             "answer_tolerances",
+            "answer_matching",
             "points",
             "position",
         ]
@@ -186,12 +187,35 @@ class QuestionSerializer(serializers.ModelSerializer):
                         "Provide at least two options and valid correct-answer indexes."
                     )
                 )
-        if kind == "short" and (
-            not solution or not all(isinstance(v, str) and v.strip() for v in solution)
-        ):
-            raise serializers.ValidationError(
-                translate("Short-answer questions need at least one accepted answer.")
+        if kind == "short":
+            if not 1 <= len(solution) <= 20 or not all(
+                isinstance(value, str) and value.strip() and len(value) <= 20000
+                for value in solution
+            ):
+                raise serializers.ValidationError(
+                    translate(
+                        "Provide 1–20 non-empty accepted text answers, each at most 20,000 characters."
+                    )
+                )
+            modes = data.get(
+                "answer_matching", getattr(self.instance, "answer_matching", [])
             )
+            if modes == []:
+                modes = ["normalized"] * len(solution)
+            if (
+                not isinstance(modes, list)
+                or len(modes) != len(solution)
+                or any(mode not in TEXT_MATCHING_MODES for mode in modes)
+            ):
+                raise serializers.ValidationError(
+                    translate(
+                        "Choose one valid matching rule for each accepted text answer."
+                    )
+                )
+            data["answer_matching"] = modes
+            data["options"] = []
+        else:
+            data["answer_matching"] = []
         if kind in ("integer", "numeric"):
             try:
                 if not 1 <= len(solution) <= 20:
@@ -254,6 +278,7 @@ class BankQuestionSerializer(QuestionSerializer):
             "options",
             "solution",
             "answer_tolerances",
+            "answer_matching",
             "points",
             "category",
             "archived",

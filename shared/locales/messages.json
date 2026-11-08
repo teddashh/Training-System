@@ -9553,5 +9553,60 @@
     "en": "Refresh availability",
     "zh-TW": "重新檢查作答資格",
     "es": "Actualizar disponibilidad"
+  },
+  "Ignore case and surrounding whitespace": {
+    "en": "Ignore case and surrounding whitespace",
+    "zh-TW": "忽略大小寫與前後空白",
+    "es": "Ignorar mayúsculas y espacios al principio y al final"
+  },
+  "Ignore case; preserve spacing": {
+    "en": "Ignore case; preserve spacing",
+    "zh-TW": "忽略大小寫；保留空白",
+    "es": "Ignorar mayúsculas; conservar espacios"
+  },
+  "Match case and spacing": {
+    "en": "Match case and spacing",
+    "zh-TW": "符合大小寫與空白",
+    "es": "Respetar mayúsculas y espacios"
+  },
+  "Accepted text answers": {
+    "en": "Accepted text answers",
+    "zh-TW": "可接受的文字答案",
+    "es": "Respuestas de texto aceptadas"
+  },
+  "Accepted text {number}": {
+    "en": "Accepted text {number}",
+    "zh-TW": "可接受的文字 {number}",
+    "es": "Texto aceptado {number}"
+  },
+  "Matching rule for answer {number}": {
+    "en": "Matching rule for answer {number}",
+    "zh-TW": "答案 {number} 的比對規則",
+    "es": "Regla de comparación de la respuesta {number}"
+  },
+  "Any accepted answer earns full credit. Set its matching rule and describe the required format in the question.": {
+    "en": "Any accepted answer earns full credit. Set its matching rule and describe the required format in the question.",
+    "zh-TW": "符合任一可接受答案即可獲得全部分數。請設定各答案的比對規則，並在題目中說明所需格式。",
+    "es": "Cualquier respuesta aceptada obtiene la puntuación completa. Configura su regla de comparación y describe el formato requerido en la pregunta."
+  },
+  "Spacing rules preserve spaces and blank lines. Line-ending formats and a single final line break are equivalent.": {
+    "en": "Spacing rules preserve spaces and blank lines. Line-ending formats and a single final line break are equivalent.",
+    "zh-TW": "保留空白的規則會保留空格與空白行。不同的換行格式與單一結尾換行視為相同。",
+    "es": "Las reglas de espaciado conservan los espacios y las líneas en blanco. Los formatos de fin de línea y un único salto de línea final se consideran equivalentes."
+  },
+  "Follow the format requested in the question. Capitalization, spaces and line breaks may affect your score.": {
+    "en": "Follow the format requested in the question. Capitalization, spaces and line breaks may affect your score.",
+    "zh-TW": "請依照題目要求的格式作答。大小寫、空格與換行可能影響您的分數。",
+    "es": "Sigue el formato solicitado en la pregunta. Las mayúsculas, los espacios y los saltos de línea pueden afectar tu puntuación."
+  },
+  "Provide 1–20 non-empty accepted text answers, each at most 20,000 characters.": {
+    "en": "Provide 1–20 non-empty accepted text answers, each at most 20,000 characters.",
+    "zh-TW": "請提供 1–20 個非空白的可接受文字答案，每個最多 20,000 個字元。",
+    "es": "Introduce entre 1 y 20 respuestas de texto aceptadas no vacías, de hasta 20.000 caracteres cada una."
+  },
+  "Choose one valid matching rule for each accepted text answer.": {
+    "en": "Choose one valid matching rule for each accepted text answer.",
+    "zh-TW": "請為每個可接受的文字答案選擇一個有效的比對規則。",
+    "es": "Elige una regla de comparación válida para cada respuesta de texto aceptada."
   }
 }

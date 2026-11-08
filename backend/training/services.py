@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from .i18n import translate
-from .question_rules import numeric_matches
+from .question_rules import numeric_matches, text_matches
 from .models import (
     Attempt,
     AttemptBudget,
@@ -210,6 +210,7 @@ def start_attempt(exam_id, identity, invitation=None):
             "options",
             "solution",
             "answer_tolerances",
+            "answer_matching",
             "points",
         )
     )
@@ -289,11 +290,8 @@ def question_points(question, answer, manual_grade=None):
             str(value) for value in question["solution"]
         ):
             return question["points"]
-    elif question["type"] == "short" and isinstance(answer, str):
-        if answer.strip().casefold() in [
-            str(value).strip().casefold() for value in question["solution"]
-        ]:
-            return question["points"]
+    elif question["type"] == "short":
+        return question["points"] if text_matches(question, answer) else 0
     return 0
 
 
@@ -382,7 +380,11 @@ def public_attempt(attempt):
         "answers": attempt.answers,
         "answer_revision": attempt.answer_revision,
         "questions": [
-            {k: v for k, v in q.items() if k not in ("solution", "answer_tolerances")}
+            {
+                k: v
+                for k, v in q.items()
+                if k not in ("solution", "answer_tolerances", "answer_matching")
+            }
             for q in attempt.snapshot
         ],
         "score": attempt.score if attempt.status == "graded" else None,

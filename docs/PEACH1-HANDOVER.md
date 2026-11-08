@@ -32,6 +32,10 @@ The system does not yet perform Microsoft Graph directory synchronization. Entra
 
 ## Changes after v1.3
 
+Short answers now support per-alternative text matching: the existing normalization default, Yaksh case-insensitive matching with preserved spacing, and case-sensitive matching. Multiline authoring, bank reuse, frozen account/guest grading, instructor review and rule-aware insights share these semantics. Reviewed Yaksh `string` records import with each testcase's explicit mode. See [text answer operations](OPERATIONS.md#text-answer-matching).
+
+Migration `0009_text_answer_matching` adds an empty `answer_matching` list to existing bank and exam questions. Empty or absent rules preserve the previous normalization behavior, including historical attempt snapshots. The migration does not rewrite responses, grades or budgets. Deploy matching API/web images after backing up database/media; Compose applies migrations through 0009 during startup. Reload open tabs. Once strict text rules are configured, rolling back to older application code would change their grading semantics: use the matching pre-upgrade backup for restoration.
+
 Main also supports a configurable waiting period between attempt starts, shared by account and guest access. Fresh start dialogs show the next eligible time in English, Traditional Chinese or Spanish. Reissued links and additional attempt allowances do not bypass the interval; active attempts still resume. [Operations](OPERATIONS.md#waiting-periods-between-exam-attempts) explains the timing and policy-change behavior.
 
 Migration `0008_exam_retry_interval` adds `retry_interval_minutes` with default 0 and a database upper bound of 525600 minutes. Existing exams retain immediate retry behavior, and historical attempts, grades and budgets are not rewritten. Back up before upgrading, deploy matching API/web images outside active exams, and reload open tabs. Compose applies migration 0007 followed by 0008 as needed. If rolling back to code without retry enforcement, restore the matching pre-upgrade backup rather than silently dropping configured waiting periods.

@@ -1,4 +1,4 @@
-"""Bounded decimal parsing for assessment configuration and grading."""
+"""Shared numeric and text rules for assessment configuration and grading."""
 
 from decimal import Decimal, InvalidOperation, localcontext
 import re
@@ -6,6 +6,42 @@ import re
 NUMBER = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?\Z")
 INTEGER = re.compile(r"[+-]?[0-9]+\Z")
 NUMBER_ERROR = "Use a finite number with a decimal point, up to 100 significant digits and an exponent from -100 to 100."
+TEXT_MATCHING_MODES = ("normalized", "lower", "exact")
+
+
+def text_matching_modes(question):
+    # Missing/empty rules retain the behavior of pre-migration questions and
+    # frozen attempts. Explicit malformed rules must never silently downgrade.
+    modes = question.get("answer_matching", [])
+    return ["normalized"] * len(question["solution"]) if modes == [] else modes
+
+
+def text_matches(question, answer):
+    if not isinstance(answer, str) or not answer.strip():
+        return False
+    expected = question.get("solution", [])
+    modes = text_matching_modes(question)
+    if (
+        not isinstance(expected, list)
+        or not isinstance(modes, list)
+        or len(modes) != len(expected)
+        or any(mode not in TEXT_MATCHING_MODES for mode in modes)
+        or any(not isinstance(value, str) or not value.strip() for value in expected)
+    ):
+        return False
+    for value, mode in zip(expected, modes):
+        if mode == "normalized":
+            matches = answer.strip().casefold() == value.strip().casefold()
+        elif mode == "lower":
+            # Yaksh compares lower().splitlines(), not Unicode casefold. Keep
+            # spaces and blank lines; line separators and one final newline are
+            # equivalent under its documented source behavior.
+            matches = answer.lower().splitlines() == value.lower().splitlines()
+        else:
+            matches = answer.splitlines() == value.splitlines()
+        if matches:
+            return True
+    return False
 
 
 def parse_number(value, *, integer=False):

@@ -568,18 +568,51 @@
       "id": "Y24",
       "repository": "yaksh",
       "feature": "String answers and matching rules",
-      "status": "partial",
+      "status": "implemented",
       "source": [
         {
           "path": "yaksh/models.py",
           "line": 2812
+        },
+        {
+          "path": "yaksh/models.py",
+          "line": 99
+        },
+        {
+          "path": "yaksh/models.py",
+          "line": 2564
+        },
+        {
+          "path": "yaksh/models.py",
+          "line": 3170
         }
       ],
       "implementation": [
-        "backend/training/services.py"
+        "backend/training/question_rules.py",
+        "backend/training/serializers.py",
+        "backend/training/services.py",
+        "backend/training/reporting.py",
+        "backend/training/management/commands/import_yaksh.py",
+        "frontend/src/TextAnswerFields.tsx",
+        "frontend/src/questionTypes.ts",
+        "frontend/src/Exams.tsx",
+        "frontend/src/QuestionBank.tsx"
       ],
-      "verification": [],
-      "assessment": "Short answers compare normalized case/whitespace. Upstream configurable string matching modes are not exposed.",
+      "verification": [
+        "backend/training/test_text_answers.py::test_yaksh_modes_preserve_case_spacing_and_line_semantics",
+        "backend/training/test_text_answers.py::test_legacy_normalization_stays_distinct_from_yaksh_lower",
+        "backend/training/test_text_answers.py::test_invalid_text_rules_are_rejected_without_silent_fallback",
+        "backend/training/test_text_answers.py::test_reporting_separates_rule_changes_and_normalizes_alternative_order",
+        "backend/training/test_text_answers.py::test_yaksh_string_import_preserves_each_testcase_rule_and_text",
+        "backend/training/test_text_answers.py::test_bank_copy_and_partial_updates_keep_text_and_rules_paired",
+        "backend/training/test_text_answers.py::test_account_autosave_resume_and_grading_use_private_frozen_rules",
+        "backend/training/test_text_answers.py::test_pre_migration_snapshots_keep_normalized_grading",
+        "backend/training/test_text_answers.py::test_guest_grading_honors_rules_and_shared_budget",
+        "backend/training/test_text_answers.py::test_invalid_text_and_localized_configuration_errors_do_not_write",
+        "backend/training/test_text_answers.py::test_string_import_is_atomic_and_preserves_draft_rules",
+        "frontend/e2e/training.spec.ts::numeric, ordering and text rules round-trip through authoring, resume, grading and reports"
+      ],
+      "assessment": "Short answers accept 1–20 multiline alternatives with individual normalized, lower or exact matching. Yaksh lowercase/case-sensitive splitlines semantics preserve spaces and blank lines; the prior Unicode casefold-and-trim default remains compatible with old questions and snapshots. Bank copying, frozen private rules, autosave/resume, account/guest grading, localized authoring, instructor review, distinct report variants and atomic reviewed string imports are covered. Rule and text limits are documented; no regex or partial credit is implied.",
       "priority": 2,
       "routes": []
     },
@@ -614,7 +647,7 @@
         "backend/training/test_question_types.py::test_malformed_and_unbounded_numbers_never_receive_credit",
         "backend/training/test_question_types.py::test_attempt_freezes_rules_and_order_with_private_answers",
         "backend/training/test_question_types.py::test_guest_link_grades_new_types_and_preserves_attempt_budget",
-        "frontend/e2e/training.spec.ts::numeric and ordering questions round-trip through authoring, resume, grading and reports"
+        "frontend/e2e/training.spec.ts::numeric, ordering and text rules round-trip through authoring, resume, grading and reports"
       ],
       "assessment": "Integer and numeric questions support 1–20 accepted values, with individual inclusive absolute tolerances for numeric answers. Bounded decimal arithmetic preserves boundary and large-integer precision. Bank reuse, exam authoring, private frozen rules, autosave/resume, account/guest grading, reviews and analytics are covered. All three interface languages are exercised; grades are all-or-nothing. Numeric format and magnitude limits are documented in operations.",
       "priority": 1,
@@ -645,7 +678,7 @@
         "backend/training/test_question_types.py::test_attempt_freezes_rules_and_order_with_private_answers",
         "backend/training/test_question_types.py::test_autosave_preserves_incomplete_numbers_and_rejects_invalid_orders",
         "backend/training/test_question_types.py::test_reporting_normalizes_order_shuffle_but_preserves_changed_rules",
-        "frontend/e2e/training.spec.ts::numeric and ordering questions round-trip through authoring, resume, grading and reports"
+        "frontend/e2e/training.spec.ts::numeric, ordering and text rules round-trip through authoring, resume, grading and reports"
       ],
       "assessment": "Independent exams and the question bank support 2–20 distinct ordered items. Each attempt shuffles once and remaps the private solution; resume preserves that permutation and the saved order. Keyboard-accessible movement, explicit initial-order selection, mobile layout and three locales have browser acceptance. Exact-sequence grading, malformed-order rejection and shuffle-independent analytics have API coverage. No partial credit is awarded.",
       "priority": 1,
@@ -783,9 +816,10 @@
       "verification": [
         "backend/training/tests.py::test_yaksh_adapter_preserves_correct_options",
         "backend/training/test_question_types.py::test_yaksh_numeric_rules_and_explicit_order_migrate_without_guessing",
-        "backend/training/test_question_types.py::test_invalid_legacy_import_is_atomic"
+        "backend/training/test_question_types.py::test_invalid_legacy_import_is_atomic",
+        "backend/training/test_text_answers.py::test_string_import_is_atomic_and_preserves_draft_rules"
       ],
-      "assessment": "Atomic command-line JSON import supports mcq, mcc, integer, float with per-answer error margins, and arrange with operator-reviewed correct_order indexes. Native arrange exports lack reliable ordering metadata, so implicit ordering is rejected. Native YAML/ZIP, attachments, remaining evaluator types and UI round-trip are absent.",
+      "assessment": "Atomic command-line JSON import supports mcq, mcc, string with explicit per-testcase matching, integer, float with per-answer error margins, and arrange with operator-reviewed correct_order indexes. Native arrange exports lack reliable ordering metadata, so implicit ordering is rejected. Native YAML/ZIP, attachments, remaining evaluator types and UI round-trip are absent.",
       "priority": 2,
       "routes": [
         "yaksh:download_question",
@@ -5712,16 +5746,17 @@
     "English, Traditional Chinese and Spanish include the new publication controls. The studio build and 197 unit tests pass (4 upstream skips); complete per-block acceptance is still pending.",
     "Integer, numeric-with-tolerance and ordering questions now work through bank and exam authoring, frozen attempts, autosave/resume, automatic grading, guest limits, learner/instructor review and assessment insights. English, Traditional Chinese and Spanish have browser coverage, including keyboard ordering and mobile layout.",
     "Yaksh draft import now preserves alternative integer values and individual floating error margins. Arrange import requires an explicitly reviewed correct_order because the native export omits reliable testcase ordering metadata. Invalid imports remain atomic.",
-    "Retry intervals now share one server-enforced clock across account aliases and guest links. Eligibility is measured from the previous start, active attempts resume, early starts do not consume budgets, and account/assignment/guest interfaces show localized availability. PostgreSQL concurrency and real browser workflows cover the new policy."
+    "Retry intervals now share one server-enforced clock across account aliases and guest links. Eligibility is measured from the previous start, active attempts resume, early starts do not consume budgets, and account/assignment/guest interfaces show localized availability. PostgreSQL concurrency and real browser workflows cover the new policy.",
+    "Yaksh string matching now preserves each accepted answer’s case and spacing policy, including multiline and Unicode distinctions. Three-language bank/exam authoring, frozen attempts, account/guest grading, labeled reviews, rule-aware analytics and atomic string imports share these rules. Historical normalized grading remains compatible."
   ],
   "validation": [
     {
       "check": "Django suite on PostgreSQL 17",
-      "result": "116 passed, including retry boundaries, alias/link identity continuity, expired attempts, localized errors and competing account/guest starts, plus existing grading and answer-revision races."
+      "result": "127 passed, including case/spacing/Unicode text rules, alternative matching, historical snapshots, bank copies, account/guest grading, private review, distinct reporting and atomic string imports. Existing retry, budget and answer-revision concurrency tests also pass."
     },
     {
       "check": "Playwright application workflows",
-      "result": "20 passed against the real API and isolated content server. Retry coverage includes editor persistence, three languages, device-clock skew, automatic button enabling, authoritative early-start rejection, assignment preflight, guest links, policy refresh and mobile layout. Numeric/ordering, SCORM, autosave and invitation regressions also pass. Synthetic sign-in counters were reset before the suite; production limits are unchanged."
+      "result": "20 passed against the real API and isolated content server. Text coverage includes alternative removal, multiline bank copies, independent per-answer rules, three languages, autosave/resume, deliberate case mismatch grading, instructor review, analytics and mobile layout. Existing retry, SCORM, invitation and conflict-recovery workflows also pass. Synthetic sign-in counters were reset before the suite; production limits are unchanged."
     },
     {
       "check": "Scormly unit tests",
@@ -5733,7 +5768,7 @@
     },
     {
       "check": "Django configuration and migration checks",
-      "result": "Passed. Migration 0008 adds a bounded retry interval with default 0; historical attempts, grades and budgets are unchanged."
+      "result": "Passed. Migration 0009 adds empty text-matching lists; old questions and frozen attempts retain their prior normalization behavior. Historical responses, grades and budgets are not rewritten."
     },
     {
       "check": "Audit evidence and pinned upstream checkouts",
@@ -5748,8 +5783,12 @@
       "result": "Verified database/media backup before upgrade. All 13 existing data groups matched before/after hashes, including 106 historical attempts and 102 attempt budgets. All 11 existing exams received the zero-minute default."
     },
     {
+      "check": "Docker upgrade from migration 0008 to 0009",
+      "result": "Verified database/media backup before upgrade. All 13 existing data groups matched before/after hashes, including 108 historical attempts and 103 attempt budgets. All 24 exam questions and 2 bank questions received empty matching rules, preserving their prior defaults. All application services are healthy. The mixed numeric/ordering/text browser workflow also passed against the built Docker site."
+    },
+    {
       "check": "Full feature-parity gate",
-      "result": "Expected failure: 121 feature groups still require implementation, acceptance or an explicit scope decision."
+      "result": "Expected failure: 120 feature groups still require implementation, acceptance or an explicit scope decision."
     }
   ]
 }

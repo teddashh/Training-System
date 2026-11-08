@@ -18,6 +18,7 @@ from rest_framework.response import Response
 
 from .i18n import translate
 from .models import Attempt, Exam
+from .question_rules import text_matching_modes
 from .services import finalize, question_points
 from .views import manage_exam, scoped_attempts
 
@@ -202,6 +203,10 @@ def question_variant(question):
         shape["solution"] = [
             question["options"][index] for index in question["solution"]
         ]
+    elif question["type"] == "short":
+        shape["rules"] = sorted(
+            zip(question["solution"], text_matching_modes(question))
+        )
     elif question["type"] == "numeric":
         shape["rules"] = sorted(
             zip(question["solution"], question.get("answer_tolerances", []))

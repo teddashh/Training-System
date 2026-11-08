@@ -4004,11 +4004,25 @@ form > label {
 .invitation-link {
   min-width: 250px;
 }
-.numeric-rules {
+.numeric-rules,
+.text-answer-rules {
   display: grid;
   gap: 12px;
 }
-.numeric-rules > .btn {
+.numeric-rules > .btn,
+.text-answer-rules > .btn {
+  justify-self: start;
+}
+.text-answer-rule {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #f7faff;
+  min-width: 0;
+}
+.text-answer-rule .text-btn {
   justify-self: start;
 }
 .numeric-rule {

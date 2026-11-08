@@ -20,6 +20,7 @@ import { Modal, Badge, ErrorBox, Empty } from "./ui";
 import { BankPicker } from "./QuestionBank";
 import { questionTypes, questionTypeDefaults } from "./questionTypes";
 import StructuredQuestionFields from "./StructuredQuestionFields";
+import TextAnswerFields from "./TextAnswerFields";
 function ExamEditor({
   exam,
   courses,
@@ -491,16 +492,10 @@ function ExamEditor({
               </>
             )}
             {q.type === "short" && (
-              <label>
-                {t("Accepted answers (one per line)") + " "}
-                <textarea
-                  required
-                  value={q.solution?.join("\n")}
-                  onChange={(e) =>
-                    patch(i, { solution: e.target.value.split("\n") })
-                  }
-                />
-              </label>
+              <TextAnswerFields
+                question={q}
+                onChange={(values) => patch(i, values)}
+              />
             )}
             <StructuredQuestionFields
               question={q}

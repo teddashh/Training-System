@@ -1,5 +1,11 @@
 import { t } from "./i18n";
-import type { Question } from "./types";
+import type { Question, TextMatchingMode } from "./types";
+
+export const textMatchingModes = (): [TextMatchingMode, string][] => [
+  ["normalized", t("Ignore case and surrounding whitespace")],
+  ["lower", t("Ignore case; preserve spacing")],
+  ["exact", t("Match case and spacing")],
+];
 
 export const questionTypes = (): [Question["type"], string][] => [
   ["single", t("Single choice")],
@@ -29,6 +35,7 @@ export function questionTypeDefaults(
             ? []
             : [0],
     answer_tolerances: type === "numeric" ? ["0"] : [],
+    answer_matching: type === "short" ? ["normalized"] : [],
   };
 }
 
@@ -57,7 +64,9 @@ export function acceptedAnswerText(question: Question): string {
     .map((value, index) =>
       question.type === "numeric"
         ? `${value} ± ${question.answer_tolerances?.[index] ?? "0"}`
-        : String(value),
+        : question.type === "short"
+          ? `${textMatchingModes().find(([mode]) => mode === (question.answer_matching?.[index] ?? "normalized"))?.[1]}:\n${value}`
+          : String(value),
     )
     .join("\n");
 }

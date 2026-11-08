@@ -12,7 +12,7 @@ from training.services import audit
 def convert_question(data):
     """Adapt Yaksh Question.dump_questions JSON-equivalent records.
 
-    Preserve choice, integer and per-answer absolute-tolerance semantics.
+    Preserve choice, string, integer and per-answer absolute-tolerance semantics.
     Arrange records require explicit correct_order indexes because Yaksh's
     export omits testcase IDs and does not guarantee their database ordering.
     """
@@ -23,10 +23,11 @@ def convert_question(data):
         "integer": "integer",
         "float": "numeric",
         "arrange": "ordering",
+        "string": "short",
     }
     if kind not in kinds:
         raise ValueError(
-            f"Unsupported Yaksh type: {kind}. Supported types: mcq, mcc, integer, float, arrange."
+            f"Unsupported Yaksh type: {kind}. Supported types: mcq, mcc, string, integer, float, arrange."
         )
     points = float(data.get("points", 1))
     if not points.is_integer():
@@ -61,6 +62,15 @@ def convert_question(data):
             result["solution"] = [
                 i for i, c in enumerate(cases) if c.get("correct") is True
             ]
+    elif kind == "string":
+        # Answers are plain text: preserve capitalization, spaces and line breaks.
+        # Missing/unknown source modes require review rather than guessed grading.
+        if any(case.get("string_check") not in ("lower", "exact") for case in cases):
+            raise ValueError(
+                "String testcases require an explicit lower or exact string_check."
+            )
+        result["solution"] = [case["correct"] for case in cases]
+        result["answer_matching"] = [case["string_check"] for case in cases]
     else:
         result["solution"] = [str(c["correct"]) for c in cases]
         if kind == "float":
@@ -73,7 +83,7 @@ def convert_question(data):
 
 
 class Command(BaseCommand):
-    help = "Import reviewed Yaksh choice, integer, float and arrange JSON records into a draft exam (atomic)."
+    help = "Import reviewed Yaksh choice, string, integer, float and arrange JSON records into a draft exam (atomic)."
 
     def add_arguments(self, parser):
         parser.add_argument("file")

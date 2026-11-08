@@ -128,11 +128,11 @@ GitHub Actions checks PostgreSQL authorization/budget/grading tests, both fronte
 
 ## Integration and scope
 
-Yaksh Git history and its original source remain in `legacy/yaksh/`. The supported enterprise API is a modern rebuild; the archived Django application and code sandbox are not deployed. The `import_yaksh` adapter accepts reviewed JSON for Yaksh `mcq`, `mcc`, `integer`, `float` and `arrange` questions; arrange imports require an explicit correct order. Full historical migration and isolated programming assessments remain unfinished; see the [feature audit and completion workstreams](docs/UPSTREAM-AUDIT.md), [integration details](docs/INTEGRATIONS.md), [third-party notices](THIRD_PARTY_NOTICES.md) and [security scope](SECURITY.md).
+Yaksh Git history and its original source remain in `legacy/yaksh/`. The supported enterprise API is a modern rebuild; the archived Django application and code sandbox are not deployed. The `import_yaksh` adapter accepts reviewed JSON for Yaksh `mcq`, `mcc`, `string`, `integer`, `float` and `arrange` questions; arrange imports require an explicit correct order. Full historical migration and isolated programming assessments remain unfinished; see the [feature audit and completion workstreams](docs/UPSTREAM-AUDIT.md), [integration details](docs/INTEGRATIONS.md), [third-party notices](THIRD_PARTY_NOTICES.md) and [security scope](SECURITY.md).
 
 - SCORM supports a single-SCO runtime subset, without full certification, multi-SCO sequencing or a cmi5/xAPI LRS. Scormly can export cmi5, but this LMS does not accept it.
 - A link issued with email verification disabled is a bearer credential. Verified links require the configured recipient mailbox before guest access. Neither mode provides exam proctoring.
-- Multiple choice is all-or-nothing; short answers ignore surrounding whitespace and case; written responses require instructor review. Question order, choice options and question subsets can be randomized. File-upload assessment responses are not implemented.
+- Multiple choice is all-or-nothing; short answers support per-answer case and spacing rules, with normalization as the default; written responses require instructor review. Question order, choice options and question subsets can be randomized. File-upload assessment responses are not implemented.
 - This is a single-company workspace. Courses support self-enrollment and required training assignments. Audience rules, explicit assignments and invitations govern new exam access; existing attempts remain accessible.
 - Production rollout still requires company Entra/SMTP acceptance, data migration, backup restoration and load testing with the expected participant count.
 

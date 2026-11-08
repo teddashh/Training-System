@@ -512,17 +512,32 @@ export default function Attempt({
               />
             </div>
           ) : (
-            <textarea
-              className="essay-answer"
-              readOnly={conflict}
-              disabled={busy || remaining === 0}
-              aria-label={t("Your answer")}
-              placeholder={t("Enter your answer here\u2026")}
-              rows={q.type === "essay" ? 10 : 4}
-              value={String(answers[String(q.id)] || "")}
-              onChange={(e) => setAnswer(e.target.value)}
-              maxLength={20000}
-            />
+            <div>
+              {q.type === "short" && (
+                <p className="field-hint" id="text-answer-format">
+                  {t(
+                    "Follow the format requested in the question. Capitalization, spaces and line breaks may affect your score.",
+                  )}
+                </p>
+              )}
+              <textarea
+                className="essay-answer"
+                readOnly={conflict}
+                disabled={busy || remaining === 0}
+                aria-label={t("Your answer")}
+                aria-describedby={
+                  q.type === "short" ? "text-answer-format" : undefined
+                }
+                autoCapitalize={q.type === "short" ? "none" : undefined}
+                autoCorrect={q.type === "short" ? "off" : undefined}
+                spellCheck={q.type === "short" ? false : undefined}
+                placeholder={t("Enter your answer here\u2026")}
+                rows={q.type === "essay" ? 10 : 4}
+                value={String(answers[String(q.id)] || "")}
+                onChange={(e) => setAnswer(e.target.value)}
+                maxLength={20000}
+              />
+            </div>
           )}
           <div className="question-paper-footer">
             <button

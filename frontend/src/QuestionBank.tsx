@@ -6,6 +6,7 @@ import type { Question } from "./types";
 import { Badge, Empty, ErrorBox, Modal } from "./ui";
 import { questionTypes, questionTypeDefaults } from "./questionTypes";
 import StructuredQuestionFields from "./StructuredQuestionFields";
+import TextAnswerFields from "./TextAnswerFields";
 export type BankQuestion = Question & {
   id: number;
   category: string;
@@ -104,6 +105,7 @@ export function BankPicker({
                       options: [...q.options],
                       solution: [...(q.solution || [])],
                       answer_tolerances: [...(q.answer_tolerances || [])],
+                      answer_matching: [...(q.answer_matching || [])],
                       points: q.points,
                     })),
                 );
@@ -405,14 +407,7 @@ function BankEditor({
           </>
         )}
         {draft.type === "short" && (
-          <label>
-            {t("Accepted answers (one per line)")}
-            <textarea
-              required
-              value={draft.solution?.join("\n")}
-              onChange={(e) => patch({ solution: e.target.value.split("\n") })}
-            />
-          </label>
+          <TextAnswerFields question={draft} onChange={patch} />
         )}
         <StructuredQuestionFields question={draft} onChange={patch} />
         {draft.type === "essay" && (
