@@ -487,6 +487,16 @@ def attempt_detail(request, pk):
             finalize(attempt)
         if request.method != "GET" and attempt.status == "in_progress":
             revision = request.data.get("answer_revision")
+            if attempt.reopen_count and revision is None:
+                return Response(
+                    {
+                        "detail": translate(
+                            "Reload this reopened attempt before continuing."
+                        ),
+                        "code": "answer_conflict",
+                    },
+                    status=409,
+                )
             if revision is not None:
                 if type(revision) is not int or revision < 0:
                     raise ValidationError(translate("Invalid answer revision."))
@@ -526,13 +536,27 @@ def scoped_attempts(user):
 def review(request, pk):
     with transaction.atomic():
         attempt = get_object_or_404(
-            Attempt.objects.select_for_update().select_related("exam", "identity"),
+            Attempt.objects.select_for_update(of=("self",)).select_related(
+                "exam", "identity"
+            ),
             pk=pk,
         )
         manage_exam(request.user, attempt.exam)
         if attempt.status not in ("pending_review", "graded"):
             raise ValidationError(translate("This attempt has not been submitted."))
         if request.method == "POST":
+            revision = request.data.get("answer_revision")
+            if (attempt.reopen_count or revision is not None) and (
+                type(revision) is not int or revision != attempt.answer_revision
+            ):
+                return Response(
+                    {
+                        "detail": translate(
+                            "This submission has changed. Reopen the review before grading."
+                        )
+                    },
+                    status=409,
+                )
             marks = request.data.get("grades", {})
             apply_manual_grades(attempt, marks)
             audit(request.user, "attempt.reviewed", attempt.id, {"grades": marks})

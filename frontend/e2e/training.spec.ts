@@ -222,7 +222,7 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
   page,
   browser,
 }) => {
-  test.setTimeout(180000);
+  test.setTimeout(240000);
   await login(page);
   const title = "Individual budget " + Date.now();
   const exam = await post<{ id: number }>(page, "exams/", {

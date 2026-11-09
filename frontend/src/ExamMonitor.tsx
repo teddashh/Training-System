@@ -4,13 +4,17 @@ import { api, ApiError } from "./api";
 import { t, useLocale } from "./i18n";
 import { Badge, Empty, ErrorBox, Modal, Spinner, statusLabel } from "./ui";
 import { ReviewModal } from "./Management";
+import AttemptEvidence from "./AttemptEvidence";
+import AttemptReopening from "./AttemptReopening";
 
-type MonitoredAttempt = {
+export type MonitoredAttempt = {
   id: string;
   person: string;
   key: string;
   department: string;
   number: number;
+  answer_revision: number;
+  reopen_count: number;
   status: string;
   deadline: string;
   started_at: string;
@@ -264,6 +268,8 @@ export default function ExamMonitor({
     [page, setPage] = useState(1),
     [version, setVersion] = useState(0),
     [extension, setExtension] = useState<MonitoredAttempt | null>(null),
+    [reopening, setReopening] = useState<MonitoredAttempt | null>(null),
+    [inspection, setInspection] = useState<string | null>(null),
     [review, setReview] = useState<string | null>(null),
     [paused, setPaused] = useState(document.hidden);
   const refresh = () => setVersion((v) => v + 1);
@@ -506,6 +512,12 @@ export default function ExamMonitor({
                   <footer>
                     <button
                       className="btn"
+                      onClick={() => setInspection(attempt.id)}
+                    >
+                      {t("Inspect saved answers")}
+                    </button>
+                    <button
+                      className="btn"
                       onClick={() => setExtension(attempt)}
                     >
                       <Clock3 size={16} />
@@ -517,6 +529,15 @@ export default function ExamMonitor({
                         onClick={() => setReview(attempt.id)}
                       >
                         {t("Review submission")}
+                      </button>
+                    )}
+                    {(attempt.status !== "in_progress" ||
+                      attempt.reopen_count > 0) && (
+                      <button
+                        className="btn"
+                        onClick={() => setReopening(attempt)}
+                      >
+                        {t("Reopen & history")}
                       </button>
                     )}
                   </footer>
@@ -561,6 +582,22 @@ export default function ExamMonitor({
         <ReviewModal
           id={review}
           onClose={() => setReview(null)}
+          onSaved={refresh}
+        />
+      )}
+      {inspection && (
+        <AttemptEvidence
+          key={inspection}
+          id={inspection}
+          onClose={() => setInspection(null)}
+        />
+      )}
+      {reopening && (
+        <AttemptReopening
+          key={reopening.id}
+          attempt={reopening}
+          userId={userId}
+          onClose={() => setReopening(null)}
           onSaved={refresh}
         />
       )}

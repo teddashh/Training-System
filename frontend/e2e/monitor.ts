@@ -108,6 +108,29 @@ export async function monitorWorkflow(page: Page, browser: Browser) {
       .click();
     await expect(row).toHaveCount(1);
     await row
+      .getByRole("button", { name: "Inspect saved answers", exact: true })
+      .click();
+    const inspection = page.getByRole("dialog", {
+      name: "Inspect saved answers",
+      exact: true,
+    });
+    await expect(
+      inspection.getByText("Saved first draft", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      inspection.getByText(
+        "Preserved response: isolate the hazard and notify the supervisor.",
+        { exact: true },
+      ),
+    ).toHaveCount(0);
+    await expect(
+      inspection.getByRole("button", { name: "Save grades & feedback" }),
+    ).toHaveCount(0);
+    await inspection
+      .getByRole("button", { name: "Close", exact: true })
+      .last()
+      .click();
+    await row
       .getByRole("button", { name: "Time extensions", exact: true })
       .click();
     let extension = page.getByRole("dialog", {
@@ -307,6 +330,197 @@ export async function monitorWorkflow(page: Page, browser: Browser) {
       "Recover from a network interruption.",
     );
     expect(grants).toBe(2);
+
+    const review = page.getByRole("dialog", {
+      name: "Review attempt",
+      exact: true,
+    });
+    await review.getByLabel("Score", { exact: true }).fill("8");
+    await review
+      .getByLabel("Feedback", { exact: true })
+      .fill("Original assessment feedback");
+    await review
+      .getByRole("button", { name: "Save grades & feedback", exact: true })
+      .click();
+    await expect(review).toHaveCount(0);
+    await expect(row.getByText("Graded", { exact: true })).toBeVisible();
+    await row
+      .getByRole("button", { name: "Reopen & history", exact: true })
+      .click();
+    let reopening = page.getByRole("dialog", {
+      name: "Reopen & history",
+      exact: true,
+    });
+    await reopening.getByLabel("Extra minutes", { exact: true }).fill("6");
+    await reopening
+      .getByLabel("Reason for reopening", { exact: true })
+      .fill("Allow clarification after an interrupted submission.");
+    await reopening.locator(".language-picker select").selectOption("zh-TW");
+    await expect(
+      page
+        .getByRole("dialog", { name: "重新開放與歷程", exact: true })
+        .getByLabel("重新開放原因"),
+    ).toHaveValue("Allow clarification after an interrupted submission.");
+    await page
+      .getByRole("dialog", { name: "重新開放與歷程", exact: true })
+      .locator(".language-picker select")
+      .selectOption("es");
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(
+      page
+        .getByRole("dialog", { name: "Reabrir e historial", exact: true })
+        .getByLabel("Motivo de la reapertura"),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: test.info().outputPath("reopening-mobile-es.png"),
+    });
+    await page
+      .getByRole("dialog", { name: "Reabrir e historial", exact: true })
+      .locator(".language-picker select")
+      .selectOption("en");
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    let reopenRequests = 0;
+    const reopenIds: string[] = [];
+    await page.route(
+      `**/api/attempts/${attemptId}/reopenings/`,
+      async (route) => {
+        if (route.request().method() !== "POST") return route.continue();
+        reopenIds.push(route.request().postDataJSON().request_id);
+        const response = await route.fetch();
+        if (++reopenRequests === 1) {
+          expect(response.status()).toBe(201);
+          await route.abort("failed");
+        } else {
+          expect(response.status()).toBe(200);
+          await route.fulfill({ response });
+        }
+      },
+    );
+    await reopening
+      .getByRole("button", { name: "Reopen submission", exact: true })
+      .click();
+    await expect(
+      reopening.getByRole("button", {
+        name: "Retry reopening request",
+        exact: true,
+      }),
+    ).toBeEnabled();
+    await page.reload();
+    await openMonitor();
+    await row
+      .getByRole("button", { name: "Reopen & history", exact: true })
+      .click();
+    reopening = page.getByRole("dialog", {
+      name: "Reopen & history",
+      exact: true,
+    });
+    await expect(
+      reopening.getByLabel("Extra minutes", { exact: true }),
+    ).toHaveValue("6");
+    await expect(
+      reopening.getByLabel("Extra minutes", { exact: true }),
+    ).toBeDisabled();
+    await reopening
+      .getByRole("button", { name: "Retry reopening request", exact: true })
+      .click();
+    await expect(reopening.getByRole("status")).toContainText(
+      "Submission reopened until",
+    );
+    expect(reopenIds).toHaveLength(2);
+    expect(new Set(reopenIds).size).toBe(1);
+    await reopening
+      .getByRole("button", { name: "View preserved submission", exact: true })
+      .click();
+    let preserved = page.getByRole("dialog", {
+      name: "Preserved submission",
+      exact: true,
+    });
+    await expect(
+      preserved.getByText("Original assessment feedback", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      preserved.getByText("Score: 8 / 10", { exact: true }),
+    ).toBeVisible();
+    await expect(preserved.getByRole("spinbutton")).toHaveCount(0);
+    await page.screenshot({
+      path: test.info().outputPath("preserved-submission-desktop.png"),
+    });
+    await preserved
+      .getByRole("button", { name: "Close", exact: true })
+      .last()
+      .click();
+    // Closing the parent uses its header close control; nested history stays read-only.
+    await reopening.getByRole("button", { name: "Close", exact: true }).click();
+    await guest.goto(invitation.url);
+    await guest
+      .getByRole("button", { name: "Start / resume exam", exact: true })
+      .click();
+    await expect(guest).toHaveURL(new RegExp(`/attempt/${attemptId}$`));
+    await expect(answer).toHaveValue(
+      "Preserved response: isolate the hazard and notify the supervisor.",
+    );
+    await answer.fill("Revised response after reopening.");
+    await guest
+      .getByRole("button", { name: "Finish and submit", exact: true })
+      .click();
+    await guest
+      .getByRole("button", { name: "Confirm submission", exact: true })
+      .click();
+    await expect(
+      guest.getByRole("heading", {
+        name: "Submitted, awaiting instructor review",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      row.getByText("Awaiting manual review", { exact: true }),
+    ).toBeVisible({ timeout: 12000 });
+    await row
+      .getByRole("button", { name: "Review submission", exact: true })
+      .click();
+    await expect(
+      review.getByText("Revised response after reopening.", { exact: true }),
+    ).toBeVisible();
+    await expect(review.getByLabel("Score", { exact: true })).toHaveValue("");
+    await review.getByLabel("Score", { exact: true }).fill("10");
+    await review
+      .getByLabel("Feedback", { exact: true })
+      .fill("Revised assessment feedback");
+    await review
+      .getByRole("button", { name: "Save grades & feedback", exact: true })
+      .click();
+    await expect(review).toHaveCount(0);
+    await row
+      .getByRole("button", { name: "Reopen & history", exact: true })
+      .click();
+    await reopening
+      .getByRole("button", { name: "View preserved submission", exact: true })
+      .click();
+    preserved = page.getByRole("dialog", {
+      name: "Preserved submission",
+      exact: true,
+    });
+    await expect(
+      preserved.getByText("Original assessment feedback", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      preserved.getByText("Revised assessment feedback", { exact: true }),
+    ).toHaveCount(0);
+    const reopens = await (
+      await page.request.get(`/api/attempts/${attemptId}/reopenings/`)
+    ).json();
+    expect(reopens.count).toBe(1);
+    const final = await (
+      await guest.request.get(`/api/attempts/${attemptId}/`)
+    ).json();
+    expect(final.number).toBe(1);
+    expect(final.score).toBe(100);
+    expect(final.extra_time_minutes).toBe(11);
   } finally {
     release?.();
     await context.close();

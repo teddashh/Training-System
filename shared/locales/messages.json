@@ -9988,5 +9988,130 @@
     "en": "Refresh",
     "zh-TW": "重新整理",
     "es": "Actualizar"
+  },
+  "Inspect saved answers": {
+    "en": "Inspect saved answers",
+    "zh-TW": "檢視已儲存答案",
+    "es": "Inspeccionar respuestas guardadas"
+  },
+  "Preserved submission": {
+    "en": "Preserved submission",
+    "zh-TW": "保留的提交紀錄",
+    "es": "Entrega conservada"
+  },
+  "This is the submission preserved before reopening. It is read-only and does not contribute to current results.": {
+    "en": "This is the submission preserved before reopening. It is read-only and does not contribute to current results.",
+    "zh-TW": "這是重新開放前保留的提交紀錄，僅供檢視，不計入目前成績。",
+    "es": "Esta es la entrega conservada antes de reabrir. Es de solo lectura y no cuenta en los resultados actuales."
+  },
+  "Read-only view of server-saved answers. Unsaved edits on the participant’s device are not visible. Viewing this page does not update participant contact times.": {
+    "en": "Read-only view of server-saved answers. Unsaved edits on the participant’s device are not visible. Viewing this page does not update participant contact times.",
+    "zh-TW": "唯讀檢視伺服器已儲存的答案。無法看到應試者裝置上尚未儲存的編輯。檢視此頁不會更新應試者的連線時間。",
+    "es": "Vista de solo lectura de las respuestas guardadas en el servidor. Los cambios sin guardar del participante no son visibles. Consultar esta página no actualiza sus horas de contacto."
+  },
+  "Showing the last successful update. Data may be out of date.": {
+    "en": "Showing the last successful update. Data may be out of date.",
+    "zh-TW": "顯示上次成功更新的資料，內容可能已過時。",
+    "es": "Se muestra la última actualización correcta. Los datos pueden estar desactualizados."
+  },
+  "Refreshes every 5 seconds.": {
+    "en": "Refreshes every 5 seconds.",
+    "zh-TW": "每 5 秒更新一次。",
+    "es": "Se actualiza cada 5 segundos."
+  },
+  "Saved answer revision: {revision}": {
+    "en": "Saved answer revision: {revision}",
+    "zh-TW": "已儲存答案版本：{revision}",
+    "es": "Versión guardada de las respuestas: {revision}"
+  },
+  "Submitted": {
+    "en": "Submitted",
+    "zh-TW": "已提交",
+    "es": "Entregado"
+  },
+  "Accepted answer": {
+    "en": "Accepted answer",
+    "zh-TW": "標準答案",
+    "es": "Respuesta aceptada"
+  },
+  "Reopen & history": {
+    "en": "Reopen & history",
+    "zh-TW": "重新開放與歷程",
+    "es": "Reabrir e historial"
+  },
+  "Submission reopened until {deadline}. Ask the participant to resume or reload the attempt.": {
+    "en": "Submission reopened until {deadline}. Ask the participant to resume or reload the attempt.",
+    "zh-TW": "已重新開放至 {deadline}。請應試者繼續考試或重新載入作答頁面。",
+    "es": "Entrega reabierta hasta {deadline}. Pida al participante que reanude o recargue el intento."
+  },
+  "Reopening withdraws the current score and completion until resubmission and review. A read-only copy of the submitted answers, grades and feedback is preserved. The same attempt and budget are reused; invitation expiry and access rules still apply.": {
+    "en": "Reopening withdraws the current score and completion until resubmission and review. A read-only copy of the submitted answers, grades and feedback is preserved. The same attempt and budget are reused; invitation expiry and access rules still apply.",
+    "zh-TW": "重新開放後，目前成績與完成狀態將撤回，直到再次提交及評分。原提交答案、評分與回饋會保留為唯讀副本。沿用相同作答與次數額度；邀請有效期限與存取規則仍然適用。",
+    "es": "Al reabrir se retiran la nota y la finalización actuales hasta la nueva entrega y revisión. Se conserva una copia de solo lectura de las respuestas, notas y comentarios. Se reutiliza el mismo intento sin consumir otro; siguen vigentes la caducidad de la invitación y las reglas de acceso."
+  },
+  "Only the latest submission can be reopened. Grant 1–240 minutes starting now, within the combined 1,440-minute extra-time limit.": {
+    "en": "Only the latest submission can be reopened. Grant 1–240 minutes starting now, within the combined 1,440-minute extra-time limit.",
+    "zh-TW": "僅能重新開放最新的提交。從現在起給予 1–240 分鐘，延長與重新開放的時間合計上限為 1,440 分鐘。",
+    "es": "Solo se puede reabrir la última entrega. Conceda entre 1 y 240 minutos desde ahora, dentro del límite combinado de 1.440 minutos adicionales."
+  },
+  "Reason for reopening": {
+    "en": "Reason for reopening",
+    "zh-TW": "重新開放原因",
+    "es": "Motivo de la reapertura"
+  },
+  "Retry reopening request": {
+    "en": "Retry reopening request",
+    "zh-TW": "重試重新開放請求",
+    "es": "Reintentar solicitud de reapertura"
+  },
+  "Reopen submission": {
+    "en": "Reopen submission",
+    "zh-TW": "重新開放提交",
+    "es": "Reabrir entrega"
+  },
+  "Reopening history": {
+    "en": "Reopening history",
+    "zh-TW": "重新開放歷程",
+    "es": "Historial de reaperturas"
+  },
+  "No submissions have been reopened.": {
+    "en": "No submissions have been reopened.",
+    "zh-TW": "尚未重新開放任何提交。",
+    "es": "No se ha reabierto ninguna entrega."
+  },
+  "View preserved submission": {
+    "en": "View preserved submission",
+    "zh-TW": "檢視保留的提交紀錄",
+    "es": "Ver entrega conservada"
+  },
+  "Reload this reopened attempt before continuing.": {
+    "en": "Reload this reopened attempt before continuing.",
+    "zh-TW": "此作答已重新開放，請重新載入後繼續。",
+    "es": "Recargue este intento reabierto antes de continuar."
+  },
+  "This submission has changed. Reopen the review before grading.": {
+    "en": "This submission has changed. Reopen the review before grading.",
+    "zh-TW": "此提交已變更。請重新開啟評分頁面後再評分。",
+    "es": "Esta entrega ha cambiado. Vuelva a abrir la revisión antes de calificar."
+  },
+  "This reopening request was already used with different details.": {
+    "en": "This reopening request was already used with different details.",
+    "zh-TW": "此重新開放請求已用於不同的內容。",
+    "es": "Esta solicitud de reapertura ya se utilizó con otros datos."
+  },
+  "This submission has changed. Refresh the monitor before reopening.": {
+    "en": "This submission has changed. Refresh the monitor before reopening.",
+    "zh-TW": "此提交已變更。請先重新整理監控頁面，再重新開放。",
+    "es": "Esta entrega ha cambiado. Actualice el monitor antes de reabrirla."
+  },
+  "Publish this exam before reopening a submission.": {
+    "en": "Publish this exam before reopening a submission.",
+    "zh-TW": "請先發布此考試，再重新開放提交。",
+    "es": "Publique este examen antes de reabrir una entrega."
+  },
+  "Only the latest attempt can be reopened, with no other active attempt.": {
+    "en": "Only the latest attempt can be reopened, with no other active attempt.",
+    "zh-TW": "只能重新開放最新的作答，且不能有其他進行中的作答。",
+    "es": "Solo se puede reabrir el último intento y no debe haber otro intento activo."
   }
 }

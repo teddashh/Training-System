@@ -1092,8 +1092,8 @@
     {
       "id": "Y43",
       "repository": "yaksh",
-      "feature": "Live exam monitoring and active-attempt time extension",
-      "status": "partial",
+      "feature": "Live exam monitoring, saved-answer inspection and time grants",
+      "status": "implemented",
       "source": [
         {
           "path": "yaksh/views.py",
@@ -1102,6 +1102,14 @@
         {
           "path": "yaksh/views.py",
           "line": 3940
+        },
+        {
+          "path": "yaksh/models.py",
+          "line": 2384
+        },
+        {
+          "path": "yaksh/views.py",
+          "line": 1888
         }
       ],
       "implementation": [
@@ -1112,7 +1120,11 @@
         "backend/training/reporting.py",
         "backend/training/management/commands/expire_attempts.py",
         "frontend/src/ExamMonitor.tsx",
-        "frontend/src/useAttemptSession.ts"
+        "frontend/src/useAttemptSession.ts",
+        "backend/training/reopening.py",
+        "backend/training/migrations/0013_attempt_reopen_count_attemptreopening.py",
+        "frontend/src/AttemptEvidence.tsx",
+        "frontend/src/AttemptReopening.tsx"
       ],
       "verification": [
         "backend/training/test_monitoring.py::test_scoped_monitor_counts_saved_progress_and_excludes_preview_and_answers",
@@ -1128,9 +1140,22 @@
         "backend/training/test_monitoring.py::test_submit_racing_extension_never_reopens_a_submission",
         "backend/training/test_monitoring.py::test_expiry_worker_reports_and_monitor_recheck_deadline_after_lock_wait",
         "frontend/e2e/training.spec.ts::individual attempt limits, live monitoring and safe time extensions",
-        "frontend/e2e/monitor.ts"
+        "frontend/e2e/monitor.ts",
+        "backend/training/test_reopening.py::test_active_inspection_is_scoped_read_only_and_shows_all_frozen_questions",
+        "backend/training/test_reopening.py::test_inspection_expires_saved_answers_without_accepting_edits",
+        "backend/training/test_reopening.py::test_reopening_preserves_evidence_and_budget_and_withdraws_current_completion",
+        "backend/training/test_reopening.py::test_idempotent_retry_after_resubmission_never_reopens_again",
+        "backend/training/test_reopening.py::test_old_or_missing_answer_and_review_revisions_cannot_overwrite_reopened_work",
+        "backend/training/test_reopening.py::test_validation_stale_submission_and_extra_time_bounds",
+        "backend/training/test_reopening.py::test_only_latest_attempt_can_reopen_and_access_rules_remain_enforced",
+        "backend/training/test_reopening.py::test_reopened_guest_resumes_after_closing_without_consuming_limits",
+        "backend/training/test_reopening.py::test_history_is_paginated_scoped_private_and_read_only",
+        "backend/training/test_reopening.py::test_reopening_requires_csrf_for_session_authentication",
+        "backend/training/test_reopening.py::test_duplicate_and_distinct_reopening_requests_never_apply_twice",
+        "backend/training/test_reopening.py::test_start_racing_reopening_leaves_exactly_one_active_paper",
+        "backend/training/test_reopening.py::test_grading_racing_reopening_is_preserved_or_rejected_without_deadlock"
       ],
-      "assessment": "Managers can monitor account/guest attempts with saved-answer counts, heartbeat/save timestamps, status/attempt-number/search filters, paginated records and submitted-paper review links. Private previews are excluded. Active unexpired attempts receive bounded extra time with required reasons, audited deadline history, row locks and client request IDs that recover lost responses without double-granting. Learner timers preserve local edits, serialize heartbeat/saves and check server expiry instead of submitting at an obsolete deadline; reporting and workers recheck after lock waits. Extended active attempts resume beyond the closing window without consuming budgets, while guest validity remains enforced. Yaksh also permits reopening completed papers and inspecting individual active submissions; those behaviors remain unsupported, so Y43 remains partial.",
+      "assessment": "Managers monitor account/guest attempts with saved-answer counts, heartbeat/save times, scoped filters and pagination; private previews are excluded. Individual saved answers and frozen questions can be inspected read-only without changing participant contact times. Audited active extensions and explicit completed-paper reopening use bounded time grants and durable client request IDs to recover lost responses once. Reopening preserves the previous answers, questions, grades, feedback and submitted time in protected, manager-only paginated history; it withdraws the current result and requires fresh review after resubmission. Only the latest submission can reopen, with exam-first locking against concurrent starts. The same identity, attempt number, frozen policy and budgets are retained; guest access and invitation validity remain enforced. Revision checks reject stale learner writes and review forms. Learner timers retain local edits and synchronize server deadlines. PostgreSQL tests cover simultaneous grants, reopen/start/review races and expiry lock waits; browser acceptance covers saved-answer inspection, lost-response reopening recovery, guest resume, regrading, preserved evidence, mobile layout and three languages.",
       "priority": 1,
       "routes": [
         "yaksh:monitor",
@@ -5838,16 +5863,16 @@
     "Sequential exam navigation is now enforced in the API, including private future questions, persisted unlocking, incomplete-submission validation and frozen attempt rules. Completed response visibility remains a live organizer setting with no-store responses, scoped instructor access and participant refresh. Account/guest and PostgreSQL concurrency coverage preserve existing budgets, autosave and timeout behavior.",
     "The active exam player now uses monotonic elapsed time for deadlines and save-retry delays, anchored to server timestamps. Changing the device wall clock cannot prematurely submit an exam or reset its duration; server-side expiry remains authoritative.",
     "Instructor exam previews now provide a complete saved question-paper view, timed learner simulation and untimed draft testing. Trials use a separate private model, shared production question/grading rules, resumable autosaves, independent test grading and bounded retention. Tests verify that successful trials cannot change existing participant evidence or assignment completion.",
-    "Y43 live progress monitoring and active time extensions now work for scoped account/guest exams in three languages, including duplicate-request recovery, delayed-save timer synchronization and PostgreSQL expiry races. Completed-paper reopening and individual active-answer inspection remain unresolved, so the feature is still partial."
+    "Y43 now includes read-only active-answer inspection and explicit, audited reopening of the latest submission, with immutable prior evidence, unchanged attempt budgets, stale-write protection and retry recovery. Account/guest access, PostgreSQL reopening/start/review races and the three-language browser workflow are covered. This completes the monitoring/time-grant feature group; other assessment and course gaps remain."
   ],
   "validation": [
     {
       "check": "Django suite on PostgreSQL 17",
-      "result": "159 passed on PostgreSQL 17, including scoped monitor/heartbeat access, guest expiry/revocation, saved-progress counts, extension validation/history/idempotency, shared-budget resume beyond closing, concurrent duplicate/distinct grants, submission races, and expiry worker/report/monitor deadline rechecks after lock waits. Existing preview, grading, identity, reporting, SCORM and assignment regressions remain green."
+      "result": "172 passed on PostgreSQL 17, including read-only inspection, protected prior submissions, reopening validation/idempotency, unchanged budgets, withdrawn completion, guest validity/resume and stale learner/reviewer rejection. Concurrent reopening/start/review tests pass alongside existing monitoring, preview, grading, identity, SCORM and reporting regressions."
     },
     {
       "check": "Playwright application workflows",
-      "result": "All 20 browser workflows passed together against the real API and isolated content server, with the file-mail directory configured. Monitoring coverage includes three-language form state, mobile layout, saved progress, a committed extension with a lost response recovered after reload, stale autosave crossing the original deadline, draft/revision preservation, heartbeat timing, stale-data error/recovery and submitted-paper review. Preview polling retains cross-tab revision conflicts. SCORM publication explicitly dismisses the first-use tour before opening publish controls."
+      "result": "All 20 browser workflows passed together against the real API and isolated content server, with the file-mail directory configured. Monitoring coverage includes saved-answer inspection during a delayed save; active extensions and completed-paper reopening recovered after committed responses were lost and the manager reloaded; unchanged guest attempt quota, resumed edits, fresh grading and preserved original answers/feedback; mobile layout and English/Traditional Chinese/Spanish controls. Existing course, SCORM, identity, grading and reporting workflows remain green."
     },
     {
       "check": "Scormly unit tests",
@@ -5859,7 +5884,7 @@
     },
     {
       "check": "Django configuration and migration checks",
-      "result": "Passed. Migration 0012 adds nullable contact/save timestamps, a zero-default extra-time total and protected extension history with bounds. Existing deadlines, answers, snapshots, scores and budgets are preserved. Backup tooling: 3 tests passed."
+      "result": "Passed. Migration 0013 adds a zero-default reopening count and protected prior-submission table. Existing attempts are not reopened automatically. Backup tooling: 3 tests passed."
     },
     {
       "check": "Audit evidence and pinned upstream checkouts",
@@ -5892,6 +5917,10 @@
     {
       "check": "Full feature-parity gate",
       "result": "Expected failure: 118 feature groups still require implementation, acceptance or an explicit scope decision."
+    },
+    {
+      "check": "Compose data-preserving upgrade through 0013",
+      "result": "Verified database/media backup before upgrade. Hashes of every existing field in all 15 tracked data groups matched before/after, including 115 historical attempts, 109 attempt budgets and existing extension history. All 115 attempts received a zero reopening count and the new history table started empty. Migration 0013 is applied; all five services are running, API/database health checks pass, the application session returns 200 and unauthenticated isolated-content launch returns 403. The saved-answer inspection, lost-response reopening, guest resume and preserved-feedback browser workflow passed against the built web/API containers."
     }
   ]
 }

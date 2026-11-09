@@ -109,6 +109,8 @@ def exam_monitor(request, pk):
             "key": attempt.identity.key,
             "department": user.department if user else "",
             "number": attempt.number,
+            "answer_revision": attempt.answer_revision,
+            "reopen_count": attempt.reopen_count,
             "status": attempt.status,
             "started_at": attempt.started_at,
             "submitted_at": attempt.submitted_at,

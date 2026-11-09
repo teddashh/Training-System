@@ -308,6 +308,7 @@ class Attempt(models.Model):
     last_seen_at = models.DateTimeField(null=True, blank=True)
     last_saved_at = models.DateTimeField(null=True, blank=True)
     extra_time_minutes = models.PositiveSmallIntegerField(default=0)
+    reopen_count = models.PositiveIntegerField(default=0)
 
     class Meta:
         constraints = [
@@ -344,6 +345,28 @@ class AttemptTimeExtension(models.Model):
             models.CheckConstraint(
                 condition=models.Q(minutes__gte=1, minutes__lte=240),
                 name="bounded_extension_minutes",
+            ),
+        ]
+
+
+class AttemptReopening(models.Model):
+    """An immutable copy of the withdrawn submission and its reopening grant."""
+
+    id = models.UUIDField(primary_key=True, editable=False)
+    attempt = models.ForeignKey(Attempt, on_delete=models.PROTECT)
+    actor = models.ForeignKey(User, on_delete=models.PROTECT)
+    minutes = models.PositiveSmallIntegerField()
+    reason = models.CharField(max_length=500)
+    previous_submission = models.JSONField()
+    new_deadline = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(minutes__gte=1, minutes__lte=240),
+                name="bounded_reopening_minutes",
             ),
         ]
 

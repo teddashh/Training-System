@@ -28,7 +28,7 @@ This v1.3 handover release runs with a real database and tested end-to-end workf
 | Authoring | Integrated Scormly with English, Traditional Chinese and Spanish; **Publish to LMS** uploads the selected SCORM 1.2 or 2004 format and an editable project backup to a course the author can manage |
 | Exams | Standalone or course-linked; seven question types, including integer, numeric with per-answer tolerance and ordering; question banks, random subsets and shuffled options; scheduling, duration, passing score and shared retry intervals |
 | Instructor preview | Full question-paper/answer-key inspection, timed learner simulation and untimed draft testing; private resumable trials and test grading without participant evidence |
-| Exam monitoring | Scoped live attempt progress and contact timestamps, filtered pagination, audited extra time with retry recovery, synchronized learner timers and submitted-paper review links |
+| Exam monitoring | Scoped live attempt progress and contact timestamps, filtered pagination, audited extra time with retry recovery, synchronized learner timers, read-only saved-answer inspection and explicit reopening with preserved submission history |
 | Audience | All accounts, employees, contractors, selected departments, selected people or invitation only; enforced by the API |
 | Attempts | Default and individual budgets; invitation-specific caps; shared account/guest identity; PostgreSQL locking prevents concurrent overuse |
 | Guest access | Unique expiring/revocable links bound to an email/account key; CSV batch preview/issuance with retry recovery and link download; searchable, paginated history; recipient email verification enabled by default in organizer forms |

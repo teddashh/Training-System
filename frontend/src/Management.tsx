@@ -555,6 +555,7 @@ export function ReviewModal({
     try {
       await api(`${preview ? "previews" : "results"}/${id}/review/`, "POST", {
         grades: marks,
+        answer_revision: attempt?.answer_revision,
       });
       onSaved();
       onClose();

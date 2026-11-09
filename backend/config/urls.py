@@ -9,6 +9,7 @@ from training import (
     operations,
     previews,
     reporting,
+    reopening,
     scorm,
     views,
 )
@@ -39,6 +40,12 @@ urlpatterns = [
     path("api/attempts/<uuid:pk>/", views.attempt_detail),
     path("api/attempts/<uuid:pk>/heartbeat/", monitoring.heartbeat),
     path("api/attempts/<uuid:pk>/extensions/", monitoring.time_extensions),
+    path("api/attempts/<uuid:pk>/inspection/", reopening.inspect_attempt),
+    path("api/attempts/<uuid:pk>/reopenings/", reopening.reopenings),
+    path(
+        "api/attempts/<uuid:pk>/reopenings/<uuid:record_id>/",
+        reopening.previous_submission,
+    ),
     path("api/exams/<int:pk>/monitor/", monitoring.exam_monitor),
     path("api/exams/<int:pk>/previews/", previews.exam_previews),
     path("api/previews/<uuid:pk>/", previews.preview_detail),
