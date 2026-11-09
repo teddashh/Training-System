@@ -6,6 +6,7 @@ import { Badge, Empty, ErrorBox, Modal, Spinner, statusLabel } from "./ui";
 import { ReviewModal } from "./Management";
 import AttemptEvidence from "./AttemptEvidence";
 import AttemptReopening from "./AttemptReopening";
+import MarksImport from "./MarksImport";
 
 export type MonitoredAttempt = {
   id: string;
@@ -270,6 +271,7 @@ export default function ExamMonitor({
     [extension, setExtension] = useState<MonitoredAttempt | null>(null),
     [reopening, setReopening] = useState<MonitoredAttempt | null>(null),
     [inspection, setInspection] = useState<string | null>(null),
+    [importing, setImporting] = useState(false),
     [review, setReview] = useState<string | null>(null),
     [paused, setPaused] = useState(document.hidden);
   const refresh = () => setVersion((v) => v + 1);
@@ -353,6 +355,9 @@ export default function ExamMonitor({
             "Recent contact means the participant connected within 60 seconds. It does not prove attention or continuous connectivity. Progress counts saved answers only.",
           )}
         </p>
+        <button className="btn" onClick={() => setImporting(true)}>
+          {t("Import marks")}
+        </button>
         <form
           className="monitor-filters"
           onSubmit={(e) => {
@@ -590,6 +595,15 @@ export default function ExamMonitor({
           key={inspection}
           id={inspection}
           onClose={() => setInspection(null)}
+        />
+      )}
+      {importing && (
+        <MarksImport
+          examId={id}
+          userId={userId}
+          filters={{ search: query, number: attemptNumber, status }}
+          onClose={() => setImporting(false)}
+          onSaved={refresh}
         />
       )}
       {reopening && (

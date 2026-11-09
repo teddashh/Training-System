@@ -33,6 +33,7 @@ def evidence(attempt):
         "questions": attempt.snapshot,
         "answers": attempt.answers,
         "answer_revision": attempt.answer_revision,
+        "grading_revision": attempt.grading_revision,
         "manual_grades": attempt.manual_grades,
         "score": attempt.score,
         "passed": attempt.passed,
@@ -203,6 +204,7 @@ def reopenings(request, pk):
         attempt.extra_time_minutes += values["minutes"]
         attempt.reopen_count += 1
         attempt.answer_revision += 1
+        attempt.grading_revision += 1
         attempt.score = attempt.passed = attempt.submitted_at = None
         attempt.manual_grades = {}
         attempt.last_seen_at = None
@@ -213,6 +215,7 @@ def reopenings(request, pk):
                 "extra_time_minutes",
                 "reopen_count",
                 "answer_revision",
+                "grading_revision",
                 "score",
                 "passed",
                 "submitted_at",

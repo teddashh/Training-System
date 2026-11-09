@@ -88,6 +88,7 @@ export type Attempt = {
   review_available: boolean;
   question_count: number;
   answer_revision: number;
+  grading_revision: number;
   id: string;
   exam_id: number;
   title: string;
@@ -103,7 +104,10 @@ export type Attempt = {
   score: number | null;
   passed: boolean | null;
   pass_score: number;
-  manual_grades: Record<string, { points: number; feedback?: string }>;
+  manual_grades: Record<
+    string,
+    { points: number | null; feedback?: string; source?: string }
+  >;
   person?: string;
 };
 export type Result = {

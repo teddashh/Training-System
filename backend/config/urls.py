@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 from training import auth_views as auth
 from training import (
     invitations,
+    marks_import,
     monitoring,
     operations,
     previews,
@@ -47,6 +48,12 @@ urlpatterns = [
         reopening.previous_submission,
     ),
     path("api/exams/<int:pk>/monitor/", monitoring.exam_monitor),
+    path("api/exams/<int:pk>/marks/template/", marks_import.marks_template),
+    path("api/exams/<int:pk>/marks/imports/", marks_import.marks_imports),
+    path(
+        "api/exams/<int:pk>/marks/imports/<uuid:import_id>/",
+        marks_import.marks_import_detail,
+    ),
     path("api/exams/<int:pk>/previews/", previews.exam_previews),
     path("api/previews/<uuid:pk>/", previews.preview_detail),
     path("api/previews/<uuid:pk>/review/", previews.preview_review),

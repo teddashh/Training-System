@@ -4268,3 +4268,15 @@ form > label {
     padding: 12px;
   }
 }
+
+.marks-import section > * + * { margin-top: 16px; }
+.marks-import-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.marks-changes { display: grid; gap: 14px; }
+.marks-feedback { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.marks-import .table-scroll { overflow-x: auto; }
+.marks-import table { table-layout: fixed; white-space: normal; }
+.marks-import th:first-child { width: 40%; }
+.marks-import th, .marks-import td { padding: 12px 8px; overflow-wrap: anywhere; }
+.marks-import td small { display: block; }
+.marks-import td, .marks-import h3 { overflow-wrap: anywhere; }
+@media (max-width: 600px) { .marks-feedback { grid-template-columns: 1fr; } }

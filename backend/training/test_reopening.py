@@ -170,14 +170,16 @@ class ReopeningTests(TestCase):
         self.assertEqual(preserved["answers"], before["answers"])
         self.assertEqual(preserved["questions"], before["snapshot"])
         self.submit()
-        self.manager.post(
+        updated = self.manager.post(
             self.review,
             {
                 "answer_revision": self.attempt.answer_revision,
+                "grading_revision": self.attempt.grading_revision,
                 "grades": {self.essay: {"points": 0}},
             },
             format="json",
         )
+        self.assertEqual(updated.status_code, 200)
         record.refresh_from_db()
         self.assertEqual(record.previous_submission, preserved)
         self.assertEqual(
@@ -247,6 +249,7 @@ class ReopeningTests(TestCase):
                 self.review,
                 {
                     "answer_revision": self.attempt.answer_revision,
+                    "grading_revision": self.attempt.grading_revision,
                     "grades": {self.essay: {"points": 40}},
                 },
                 format="json",

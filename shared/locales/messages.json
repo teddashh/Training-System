@@ -10113,5 +10113,290 @@
     "en": "Only the latest attempt can be reopened, with no other active attempt.",
     "zh-TW": "只能重新開放最新的作答，且不能有其他進行中的作答。",
     "es": "Solo se puede reabrir el último intento y no debe haber otro intento activo."
+  },
+  "Import marks": {
+    "en": "Import marks",
+    "zh-TW": "匯入評分",
+    "es": "Importar calificaciones"
+  },
+  "Imported review": {
+    "en": "Imported review",
+    "zh-TW": "匯入的評分與回饋",
+    "es": "Revisión importada"
+  },
+  "Applied": {
+    "en": "Applied",
+    "zh-TW": "已套用",
+    "es": "Aplicado"
+  },
+  "Preview ready": {
+    "en": "Preview ready",
+    "zh-TW": "預覽已就緒",
+    "es": "Vista previa lista"
+  },
+  "Stale preview": {
+    "en": "Stale preview",
+    "zh-TW": "預覽已過時",
+    "es": "Vista previa desactualizada"
+  },
+  "Download marks template": {
+    "en": "Download marks template",
+    "zh-TW": "下載評分範本",
+    "es": "Descargar plantilla de calificaciones"
+  },
+  "Marks CSV file": {
+    "en": "Marks CSV file",
+    "zh-TW": "評分 CSV 檔案",
+    "es": "Archivo CSV de calificaciones"
+  },
+  "Marks CSV content": {
+    "en": "Marks CSV content",
+    "zh-TW": "評分 CSV 內容",
+    "es": "Contenido CSV de calificaciones"
+  },
+  "Reason for marks import": {
+    "en": "Reason for marks import",
+    "zh-TW": "匯入評分原因",
+    "es": "Motivo de la importación"
+  },
+  "Preview mark changes": {
+    "en": "Preview mark changes",
+    "zh-TW": "預覽評分變更",
+    "es": "Previsualizar cambios de calificación"
+  },
+  "Apply reviewed marks": {
+    "en": "Apply reviewed marks",
+    "zh-TW": "套用已核對的評分",
+    "es": "Aplicar calificaciones revisadas"
+  },
+  "New import": {
+    "en": "New import",
+    "zh-TW": "新增匯入",
+    "es": "Nueva importación"
+  },
+  "Marks import history": {
+    "en": "Marks import history",
+    "zh-TW": "評分匯入歷程",
+    "es": "Historial de importaciones"
+  },
+  "No marks imports yet.": {
+    "en": "No marks imports yet.",
+    "zh-TW": "尚無評分匯入紀錄。",
+    "es": "Todavía no hay importaciones de calificaciones."
+  },
+  "View import": {
+    "en": "View import",
+    "zh-TW": "檢視匯入紀錄",
+    "es": "Ver importación"
+  },
+  "Reviewed marks import": {
+    "en": "Reviewed marks import",
+    "zh-TW": "已核對的評分匯入",
+    "es": "Importación revisada"
+  },
+  "Question changes": {
+    "en": "Question changes",
+    "zh-TW": "題目變更",
+    "es": "Cambios por pregunta"
+  },
+  "Previous feedback": {
+    "en": "Previous feedback",
+    "zh-TW": "原回饋",
+    "es": "Comentarios anteriores"
+  },
+  "New feedback": {
+    "en": "New feedback",
+    "zh-TW": "新回饋",
+    "es": "Comentarios nuevos"
+  },
+  "No feedback": {
+    "en": "No feedback",
+    "zh-TW": "無回饋",
+    "es": "Sin comentarios"
+  },
+  "Refresh import status": {
+    "en": "Refresh import status",
+    "zh-TW": "更新匯入狀態",
+    "es": "Actualizar estado de importación"
+  },
+  "Retry saved import": {
+    "en": "Retry saved import",
+    "zh-TW": "重試已儲存的匯入",
+    "es": "Reintentar importación guardada"
+  },
+  "Template filters": {
+    "en": "Template filters",
+    "zh-TW": "範本篩選條件",
+    "es": "Filtros de la plantilla"
+  },
+  "CSV line {line}": {
+    "en": "CSV line {line}",
+    "zh-TW": "CSV 第 {line} 行",
+    "es": "Línea CSV {line}"
+  },
+  "Preview expires: {date}": {
+    "en": "Preview expires: {date}",
+    "zh-TW": "預覽有效期限：{date}",
+    "es": "La vista previa caduca: {date}"
+  },
+  "{rows} question changes across {attempts} attempts; {skipped} unchanged rows skipped.": {
+    "en": "{rows} question changes across {attempts} attempts; {skipped} unchanged rows skipped.",
+    "zh-TW": "共 {attempts} 次作答、{rows} 筆題目變更；略過 {skipped} 筆未變更資料。",
+    "es": "{rows} cambios de preguntas en {attempts} intentos; {skipped} filas sin cambios omitidas."
+  },
+  "Import scores and feedback for submitted account or guest attempts in this exam. Review every change before applying. Scores can override automatic grading and update training completion; answers and attempt quotas stay unchanged.": {
+    "en": "Import scores and feedback for submitted account or guest attempts in this exam. Review every change before applying. Scores can override automatic grading and update training completion; answers and attempt quotas stay unchanged.",
+    "zh-TW": "匯入此考試已提交作答的分數與回饋，適用帳號與訪客。請先核對每筆變更再套用。分數可覆寫自動評分並更新訓練完成狀態；答案與作答次數額度不變。",
+    "es": "Importe notas y comentarios de intentos enviados por usuarios o invitados en este examen. Revise cada cambio antes de aplicarlo. Las notas pueden sustituir la calificación automática y actualizar la finalización de la formación; las respuestas y los límites de intentos no cambian."
+  },
+  "The template follows the monitor’s search, attempt-number and status filters and includes submitted attempts only. Limit each file to 500 question rows, 100 attempts and 256 KiB.": {
+    "en": "The template follows the monitor’s search, attempt-number and status filters and includes submitted attempts only. Limit each file to 500 question rows, 100 attempts and 256 KiB.",
+    "zh-TW": "範本依監控頁面的搜尋、作答次數與狀態篩選，僅包含已提交的作答。每份檔案最多 500 筆題目、100 次作答及 256 KiB。",
+    "es": "La plantilla respeta los filtros de búsqueda, número de intento y estado del monitor e incluye solo intentos enviados. Cada archivo admite hasta 500 filas de preguntas, 100 intentos y 256 KiB."
+  },
+  "Edit only points, feedback and clear_feedback. Blank cells keep existing values. To remove feedback, set clear_feedback to true and leave feedback blank. Keep the IDs and revisions unchanged; use a decimal point for scores.": {
+    "en": "Edit only points, feedback and clear_feedback. Blank cells keep existing values. To remove feedback, set clear_feedback to true and leave feedback blank. Keep the IDs and revisions unchanged; use a decimal point for scores.",
+    "zh-TW": "僅編輯 points、feedback 與 clear_feedback。空白欄位會保留原值。若要清除回饋，將 clear_feedback 設為 true 並將 feedback 留白。請勿變更識別碼與版本；分數請使用小數點。",
+    "es": "Edite solo points, feedback y clear_feedback. Las celdas vacías conservan los valores existentes. Para borrar comentarios, establezca clear_feedback en true y deje feedback vacío. No cambie los identificadores ni las versiones; use un punto decimal en las notas."
+  },
+  "Marks applied. This receipt preserves the changes made at that time; later grading may differ.": {
+    "en": "Marks applied. This receipt preserves the changes made at that time; later grading may differ.",
+    "zh-TW": "評分已套用。此紀錄保留當時的變更；後續評分可能不同。",
+    "es": "Calificaciones aplicadas. Este comprobante conserva los cambios de ese momento; las revisiones posteriores pueden ser distintas."
+  },
+  "The outcome is not confirmed. Retry this saved import or refresh its status; it will never apply twice.": {
+    "en": "The outcome is not confirmed. Retry this saved import or refresh its status; it will never apply twice.",
+    "zh-TW": "結果尚未確認。請重試此已儲存的匯入或更新狀態；同一匯入不會重複套用。",
+    "es": "El resultado no está confirmado. Reintente esta importación guardada o actualice su estado; no se aplicará dos veces."
+  },
+  "No marks were changed. Correct every error and preview again.": {
+    "en": "No marks were changed. Correct every error and preview again.",
+    "zh-TW": "未變更任何評分。請修正所有錯誤後重新預覽。",
+    "es": "No se ha cambiado ninguna calificación. Corrija todos los errores y vuelva a previsualizar."
+  },
+  "Request failed": {
+    "en": "Request failed",
+    "zh-TW": "請求失敗",
+    "es": "La solicitud ha fallado"
+  },
+  "The grades have changed. Reopen the review before saving.": {
+    "en": "The grades have changed. Reopen the review before saving.",
+    "zh-TW": "評分已變更。請重新開啟評分頁面後再儲存。",
+    "es": "Las calificaciones han cambiado. Vuelva a abrir la revisión antes de guardar."
+  },
+  "Marks CSV must be UTF-8 and at most 256 KiB.": {
+    "en": "Marks CSV must be UTF-8 and at most 256 KiB.",
+    "zh-TW": "評分 CSV 必須使用 UTF-8 編碼，且不超過 256 KiB。",
+    "es": "El CSV de calificaciones debe estar codificado en UTF-8 y no superar los 256 KiB."
+  },
+  "Marks CSV contains an invalid character.": {
+    "en": "Marks CSV contains an invalid character.",
+    "zh-TW": "評分 CSV 包含無效字元。",
+    "es": "El CSV de calificaciones contiene un carácter no válido."
+  },
+  "Use the marks template headers without duplicates or unknown columns.": {
+    "en": "Use the marks template headers without duplicates or unknown columns.",
+    "zh-TW": "請使用評分範本的欄位名稱，不得重複或包含未知欄位。",
+    "es": "Utilice las cabeceras de la plantilla sin columnas duplicadas ni desconocidas."
+  },
+  "A marks import can contain at most 500 rows and 100 attempts.": {
+    "en": "A marks import can contain at most 500 rows and 100 attempts.",
+    "zh-TW": "每次評分匯入最多 500 筆資料與 100 次作答。",
+    "es": "Una importación de calificaciones admite hasta 500 filas y 100 intentos."
+  },
+  "CSV line {line} has the wrong number of columns.": {
+    "en": "CSV line {line} has the wrong number of columns.",
+    "zh-TW": "CSV 第 {line} 行的欄位數量不正確。",
+    "es": "La línea CSV {line} tiene un número incorrecto de columnas."
+  },
+  "CSV line {line}: clear_feedback must be true, false or blank.": {
+    "en": "CSV line {line}: clear_feedback must be true, false or blank.",
+    "zh-TW": "CSV 第 {line} 行：clear_feedback 必須為 true、false 或空白。",
+    "es": "Línea CSV {line}: clear_feedback debe ser true, false o estar vacío."
+  },
+  "The marks CSV is empty or malformed.": {
+    "en": "The marks CSV is empty or malformed.",
+    "zh-TW": "評分 CSV 為空白或格式錯誤。",
+    "es": "El CSV de calificaciones está vacío o tiene un formato incorrecto."
+  },
+  "No mark or feedback changes were provided. Fill the editable template columns.": {
+    "en": "No mark or feedback changes were provided. Fill the editable template columns.",
+    "zh-TW": "未提供任何分數或回饋變更。請填寫範本中可編輯的欄位。",
+    "es": "No se han indicado cambios de notas ni comentarios. Complete las columnas editables de la plantilla."
+  },
+  "Duplicate attempt/question row. No marks were changed.": {
+    "en": "Duplicate attempt/question row. No marks were changed.",
+    "zh-TW": "作答與題目資料重複。未變更任何評分。",
+    "es": "Fila de intento y pregunta duplicada. No se ha cambiado ninguna calificación."
+  },
+  "Invalid attempt ID, question ID or revision.": {
+    "en": "Invalid attempt ID, question ID or revision.",
+    "zh-TW": "作答識別碼、題目識別碼或版本無效。",
+    "es": "Identificador de intento, pregunta o versión no válido."
+  },
+  "This is not a submitted participant attempt in this exam.": {
+    "en": "This is not a submitted participant attempt in this exam.",
+    "zh-TW": "此紀錄不是本考試已提交的應試者作答。",
+    "es": "Este registro no corresponde a un intento de participante enviado en este examen."
+  },
+  "This attempt has changed. Download a new marks template.": {
+    "en": "This attempt has changed. Download a new marks template.",
+    "zh-TW": "此作答已變更。請重新下載評分範本。",
+    "es": "Este intento ha cambiado. Descargue una nueva plantilla de calificaciones."
+  },
+  "The question is not in this attempt’s frozen paper.": {
+    "en": "The question is not in this attempt’s frozen paper.",
+    "zh-TW": "此題目不在該次作答的固定試卷中。",
+    "es": "La pregunta no pertenece al examen guardado para este intento."
+  },
+  "Feedback must be at most 5,000 characters; do not provide text when clearing it.": {
+    "en": "Feedback must be at most 5,000 characters; do not provide text when clearing it.",
+    "zh-TW": "回饋不得超過 5,000 個字元；清除回饋時請勿同時輸入文字。",
+    "es": "Los comentarios no pueden superar los 5.000 caracteres; no introduzca texto al borrarlos."
+  },
+  "Points must be a finite number within the frozen question maximum, with at most six decimal places.": {
+    "en": "Points must be a finite number within the frozen question maximum, with at most six decimal places.",
+    "zh-TW": "分數必須是介於零與該次試卷題目滿分之間的有限數值，最多六位小數。",
+    "es": "La nota debe ser un número finito entre cero y el máximo de la pregunta guardada, con hasta seis decimales."
+  },
+  "No submitted attempts match these template filters.": {
+    "en": "No submitted attempts match these template filters.",
+    "zh-TW": "沒有符合範本篩選條件的已提交作答。",
+    "es": "Ningún intento enviado coincide con los filtros de la plantilla."
+  },
+  "Narrow the template filters to at most 500 question rows and 100 attempts.": {
+    "en": "Narrow the template filters to at most 500 question rows and 100 attempts.",
+    "zh-TW": "請縮小範本篩選範圍，最多 500 筆題目與 100 次作答。",
+    "es": "Restrinja los filtros de la plantilla a un máximo de 500 filas de preguntas y 100 intentos."
+  },
+  "Narrow the template filters to keep the CSV within 256 KiB.": {
+    "en": "Narrow the template filters to keep the CSV within 256 KiB.",
+    "zh-TW": "請縮小範本篩選範圍，使 CSV 不超過 256 KiB。",
+    "es": "Restrinja los filtros de la plantilla para que el CSV no supere los 256 KiB."
+  },
+  "You have 20 pending previews for this exam. Apply one or wait for previews to expire.": {
+    "en": "You have 20 pending previews for this exam. Apply one or wait for previews to expire.",
+    "zh-TW": "此考試已有 20 份待套用預覽。請套用其中一份，或等待預覽到期。",
+    "es": "Tiene 20 vistas previas pendientes para este examen. Aplique una o espere a que caduquen."
+  },
+  "Only the manager who created this preview can apply it.": {
+    "en": "Only the manager who created this preview can apply it.",
+    "zh-TW": "只有建立此預覽的管理者可以套用。",
+    "es": "Solo el responsable que creó esta vista previa puede aplicarla."
+  },
+  "Apply the saved preview without changing its contents.": {
+    "en": "Apply the saved preview without changing its contents.",
+    "zh-TW": "請直接套用已儲存的預覽，不得變更內容。",
+    "es": "Aplique la vista previa guardada sin modificar su contenido."
+  },
+  "This marks preview is stale or expired. Create a new preview.": {
+    "en": "This marks preview is stale or expired. Create a new preview.",
+    "zh-TW": "此評分預覽已過時或到期。請建立新預覽。",
+    "es": "Esta vista previa de calificaciones está desactualizada o ha caducado. Cree una nueva."
+  },
+  "An attempt changed after preview. No marks were applied. Create a new preview.": {
+    "en": "An attempt changed after preview. No marks were applied. Create a new preview.",
+    "zh-TW": "預覽後有作答紀錄變更。未套用任何評分。請建立新預覽。",
+    "es": "Un intento ha cambiado después de la vista previa. No se ha aplicado ninguna calificación. Cree una nueva vista previa."
   }
 }

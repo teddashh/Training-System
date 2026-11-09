@@ -545,6 +545,20 @@ def review(request, pk):
         if attempt.status not in ("pending_review", "graded"):
             raise ValidationError(translate("This attempt has not been submitted."))
         if request.method == "POST":
+            grading_revision = request.data.get("grading_revision")
+            if (attempt.grading_revision or grading_revision is not None) and (
+                type(grading_revision) is not int
+                or grading_revision != attempt.grading_revision
+            ):
+                return Response(
+                    {
+                        "detail": translate(
+                            "The grades have changed. Reopen the review before saving."
+                        ),
+                        "code": "grading_conflict",
+                    },
+                    status=409,
+                )
             revision = request.data.get("answer_revision")
             if (attempt.reopen_count or revision is not None) and (
                 type(revision) is not int or revision != attempt.answer_revision

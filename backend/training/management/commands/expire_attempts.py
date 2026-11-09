@@ -10,6 +10,7 @@ from training.models import (
     EmailCode,
     ExamPreview,
     GuestEmailChallenge,
+    MarksImport,
 )
 from training.previews import finish_preview
 from training.services import finalize_if_expired
@@ -28,6 +29,11 @@ class Command(BaseCommand):
                     Attempt.objects.select_for_update().get(pk=pk)
                 )
         ExamPreview.objects.filter(expires_at__lte=timezone.now()).delete()
+        # Applied receipts are evidence and are retained. Abandoned previews
+        # expire after 30 minutes and are removed after a seven-day grace period.
+        MarksImport.objects.exclude(status="applied").filter(
+            expires_at__lt=timezone.now() - timedelta(days=7)
+        ).delete()
         for pk in ExamPreview.objects.filter(
             status="in_progress", deadline__lte=timezone.now()
         ).values_list("pk", flat=True):

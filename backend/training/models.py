@@ -296,6 +296,7 @@ class Attempt(models.Model):
     pass_score = models.PositiveSmallIntegerField()
     answers = models.JSONField(default=dict)
     answer_revision = models.PositiveIntegerField(default=0)
+    grading_revision = models.PositiveIntegerField(default=0)
     # Navigation is frozen at start; completed-review visibility remains live.
     allow_skip = models.BooleanField(default=True)
     unlocked_question_count = models.PositiveSmallIntegerField(default=1)
@@ -369,6 +370,23 @@ class AttemptReopening(models.Model):
                 name="bounded_reopening_minutes",
             ),
         ]
+
+
+class MarksImport(models.Model):
+    """A reviewed plan and durable receipt for an atomic marks import."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    exam = models.ForeignKey(Exam, on_delete=models.PROTECT)
+    actor = models.ForeignKey(User, on_delete=models.PROTECT)
+    reason = models.CharField(max_length=500)
+    status = models.CharField(max_length=12, default="preview")
+    plan = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    applied_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
 
 
 class ExamPreview(models.Model):

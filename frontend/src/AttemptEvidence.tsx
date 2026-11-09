@@ -156,10 +156,12 @@ export default function AttemptEvidence({
                 )}
                 {data.manual_grades[String(q.id)] && (
                   <div>
-                    <strong>
-                      {t("Score")}: {data.manual_grades[String(q.id)].points} /{" "}
-                      {q.points}
-                    </strong>
+                    {data.manual_grades[String(q.id)].points !== null && (
+                      <strong>
+                        {t("Score")}: {data.manual_grades[String(q.id)].points}{" "}
+                        / {q.points}
+                      </strong>
+                    )}
                     <p className="review-answer">
                       {data.manual_grades[String(q.id)].feedback}
                     </p>

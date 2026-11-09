@@ -1,5 +1,6 @@
 import { previewWorkflow } from "./preview";
 import { monitorWorkflow } from "./monitor";
+import { marksImportWorkflow } from "./marks";
 import {
   test,
   expect,
@@ -109,8 +110,9 @@ async function post<T>(page: Page, path: string, data: unknown): Promise<T> {
 
 test("paginated results, matching exports and multilingual assessment insights", async ({
   page,
+  browser,
 }) => {
-  test.setTimeout(90000);
+  test.setTimeout(180000);
   await login(page);
   const title = "Reporting evidence " + Date.now();
   const question = "Which action protects company accounts?";
@@ -216,6 +218,9 @@ test("paginated results, matching exports and multilingual assessment insights",
     ),
   ).toBeTruthy();
   await expect(questionRow).toContainText("13 / 26");
+  await page.locator(".language-picker select").first().selectOption("en");
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await marksImportWorkflow(page, browser);
 });
 
 test("individual attempt limits, live monitoring and safe time extensions", async ({

@@ -275,8 +275,10 @@ def question_snapshot(exam):
 
 def question_points(question, answer, manual_grade=None):
     """One grading rule shared by attempt scoring and reporting."""
+    if manual_grade is not None and manual_grade.get("points") is not None:
+        return manual_grade["points"]
     if question["type"] == "essay":
-        return None if manual_grade is None else manual_grade["points"]
+        return None
     if question["type"] in ("integer", "numeric"):
         return question["points"] if numeric_matches(question, answer) else 0
     if question["type"] == "ordering":
@@ -464,6 +466,7 @@ def public_attempt(attempt, *, for_review=False):
         "question_count": len(attempt.snapshot),
         "answers": attempt.answers if visible else {},
         "answer_revision": attempt.answer_revision,
+        "grading_revision": getattr(attempt, "grading_revision", 0),
         "questions": [
             {
                 k: v
@@ -498,6 +501,13 @@ def apply_manual_grades(attempt, marks):
                     "The written-response score exceeds its points or the question does not exist."
                 )
             )
-    attempt.manual_grades.update(marks)
+    attempt.manual_grades.update(
+        {
+            key: {"points": mark["points"], "feedback": str(mark.get("feedback", ""))}
+            for key, mark in marks.items()
+        }
+    )
+    if isinstance(attempt, Attempt):
+        attempt.grading_revision += 1
     grade(attempt)
     attempt.save()

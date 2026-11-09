@@ -1191,16 +1191,54 @@
       "id": "Y45",
       "repository": "yaksh",
       "feature": "Marks CSV upload",
-      "status": "missing",
+      "status": "implemented",
       "source": [
         {
           "path": "yaksh/views.py",
           "line": 4100
+        },
+        {
+          "path": "yaksh/tasks.py",
+          "line": 91
         }
       ],
-      "implementation": [],
-      "verification": [],
-      "assessment": "No bulk mark import with preview, review and validation.",
+      "implementation": [
+        "backend/training/marks_import.py",
+        "backend/training/models.py",
+        "backend/training/migrations/0014_attempt_grading_revision_marksimport.py",
+        "backend/training/services.py",
+        "backend/training/views.py",
+        "backend/training/reporting.py",
+        "backend/training/reopening.py",
+        "backend/training/management/commands/expire_attempts.py",
+        "frontend/src/MarksImport.tsx",
+        "frontend/src/ExamMonitor.tsx",
+        "frontend/src/Management.tsx",
+        "frontend/src/Attempt.tsx"
+      ],
+      "verification": [
+        "backend/training/test_marks_import.py::test_template_is_scoped_frozen_filtered_private_and_spreadsheet_safe",
+        "backend/training/test_marks_import.py::test_preview_changes_nothing_and_apply_updates_account_guest_reports_and_completion_once",
+        "backend/training/test_marks_import.py::test_all_seven_question_types_support_bounded_overrides_and_shared_analysis",
+        "backend/training/test_marks_import.py::test_feedback_only_preserves_pending_or_automatic_scores_and_clear_is_explicit",
+        "backend/training/test_marks_import.py::test_invalid_rows_reject_the_entire_preview_without_creating_evidence_or_grades",
+        "backend/training/test_marks_import.py::test_malformed_headers_size_row_limits_and_blank_rows_are_handled",
+        "backend/training/test_marks_import.py::test_import_and_template_bounds_do_not_silently_truncate_records",
+        "backend/training/test_marks_import.py::test_pending_preview_limit_localization_and_feedback_privacy",
+        "backend/training/test_marks_import.py::test_old_spreadsheets_and_stale_previews_cannot_overwrite_grading",
+        "backend/training/test_marks_import.py::test_reopening_invalidates_spreadsheet_and_preview_and_preserves_imported_evidence",
+        "backend/training/test_marks_import.py::test_review_revision_prevents_stale_forms_and_keeps_automatic_imports",
+        "backend/training/test_marks_import.py::test_scopes_csrf_and_history_do_not_expose_or_modify_unrelated_papers",
+        "backend/training/test_marks_import.py::test_expiry_retention_and_history_pagination_keep_applied_receipts",
+        "backend/training/test_marks_import.py::test_failure_during_apply_rolls_back_every_grade_and_audit",
+        "backend/training/test_marks_import.py::test_duplicate_apply_commits_once_and_distinct_previews_conflict",
+        "backend/training/test_marks_import.py::test_review_racing_apply_has_one_winner_and_no_lost_grade",
+        "backend/training/test_marks_import.py::test_reopening_racing_apply_preserves_the_correct_prior_submission",
+        "backend/training/test_marks_import.py::test_expiry_is_rechecked_after_waiting_for_attempt_lock",
+        "frontend/e2e/training.spec.ts::paginated results, matching exports and multilingual assessment insights",
+        "frontend/e2e/marks.ts"
+      ],
+      "assessment": "Managers download a filtered, spreadsheet-safe template for submitted account/guest papers and preview score/comment changes for all seven supported question types. The native format identifies exact attempts and frozen questions with answer/grading revisions, replacing upstream last-paper username matching; legacy wide Yaksh CSV files need conversion and are not claimed format-compatible. Validation covers bounds, finite decimal marks, duplicate rows, malformed CSV, stale papers, scope and size limits. Feedback-only edits retain pending essay grading or automatic scoring; clearing comments is explicit. Bounded batches apply atomically with unchanged answers, submission times and quotas; reports and completion use the same overridden score calculation. Durable protected receipts retain reasons, before/after question marks/comments and result predictions. Lost apply responses recover by the saved import ID without a second write. Reopening/review/import concurrency, expiry after lock waits, rollback, retention and stale forms are tested on PostgreSQL; browser acceptance covers account/guest results, multilingual/mobile preview, response loss and later grading without rewriting original receipts.",
       "priority": 2,
       "routes": [
         "yaksh:upload_marks"
@@ -5863,16 +5901,17 @@
     "Sequential exam navigation is now enforced in the API, including private future questions, persisted unlocking, incomplete-submission validation and frozen attempt rules. Completed response visibility remains a live organizer setting with no-store responses, scoped instructor access and participant refresh. Account/guest and PostgreSQL concurrency coverage preserve existing budgets, autosave and timeout behavior.",
     "The active exam player now uses monotonic elapsed time for deadlines and save-retry delays, anchored to server timestamps. Changing the device wall clock cannot prematurely submit an exam or reset its duration; server-side expiry remains authoritative.",
     "Instructor exam previews now provide a complete saved question-paper view, timed learner simulation and untimed draft testing. Trials use a separate private model, shared production question/grading rules, resumable autosaves, independent test grading and bounded retention. Tests verify that successful trials cannot change existing participant evidence or assignment completion.",
-    "Y43 now includes read-only active-answer inspection and explicit, audited reopening of the latest submission, with immutable prior evidence, unchanged attempt budgets, stale-write protection and retry recovery. Account/guest access, PostgreSQL reopening/start/review races and the three-language browser workflow are covered. This completes the monitoring/time-grant feature group; other assessment and course gaps remain."
+    "Y43 now includes read-only active-answer inspection and explicit, audited reopening of the latest submission, with immutable prior evidence, unchanged attempt budgets, stale-write protection and retry recovery. Account/guest access, PostgreSQL reopening/start/review races and the three-language browser workflow are covered. This completes the monitoring/time-grant feature group; other assessment and course gaps remain.",
+    "Y45 now provides native marks CSV template, validation, review, atomic application and durable receipts for account/guest exams. All seven question types support imported points/comments, with fresh grading revisions, scoped access, unchanged quotas and PostgreSQL concurrency coverage. The original Yaksh wide CSV schema requires conversion to the new exact-attempt template."
   ],
   "validation": [
     {
       "check": "Django suite on PostgreSQL 17",
-      "result": "172 passed on PostgreSQL 17, including read-only inspection, protected prior submissions, reopening validation/idempotency, unchanged budgets, withdrawn completion, guest validity/resume and stale learner/reviewer rejection. Concurrent reopening/start/review tests pass alongside existing monitoring, preview, grading, identity, SCORM and reporting regressions."
+      "result": "190 passed on PostgreSQL 17. Marks-import tests cover all seven question types, feedback-only edits, bounds, scope/CSRF, immutable receipts, unchanged answers/quotas, report/completion updates, stale spreadsheets/review forms, transaction rollback, retention and concurrent duplicate apply/review/reopening/expiry races. Existing monitoring, preview, identity, SCORM and reporting regressions remain green."
     },
     {
       "check": "Playwright application workflows",
-      "result": "All 20 browser workflows passed together against the real API and isolated content server, with the file-mail directory configured. Monitoring coverage includes saved-answer inspection during a delayed save; active extensions and completed-paper reopening recovered after committed responses were lost and the manager reloaded; unchanged guest attempt quota, resumed edits, fresh grading and preserved original answers/feedback; mobile layout and English/Traditional Chinese/Spanish controls. Existing course, SCORM, identity, grading and reporting workflows remain green."
+      "result": "All 20 browser workflows passed together against the real API and isolated content server, with file-mail configured. Marks-import coverage downloads the template, rejects an invalid batch, previews account/guest point overrides and multiline feedback, preserves form state in three languages, checks mobile before/after results, recovers a lost committed response after reload, rejects a stale review and a stale multi-attempt preview, and preserves the original receipt after fresh grading. Existing monitoring/reopening, course, SCORM, identity, exam and reporting workflows remain green."
     },
     {
       "check": "Scormly unit tests",
@@ -5884,7 +5923,7 @@
     },
     {
       "check": "Django configuration and migration checks",
-      "result": "Passed. Migration 0013 adds a zero-default reopening count and protected prior-submission table. Existing attempts are not reopened automatically. Backup tooling: 3 tests passed."
+      "result": "Passed. Migration 0014 adds a zero-default grading revision and a protected marks-import preview/receipt table. Existing grades and submissions are not rewritten. Backup tooling: 3 tests passed."
     },
     {
       "check": "Audit evidence and pinned upstream checkouts",
@@ -5916,11 +5955,15 @@
     },
     {
       "check": "Full feature-parity gate",
-      "result": "Expected failure: 118 feature groups still require implementation, acceptance or an explicit scope decision."
+      "result": "Expected failure: 116 feature groups still require implementation, acceptance or an explicit scope decision."
     },
     {
       "check": "Compose data-preserving upgrade through 0013",
       "result": "Verified database/media backup before upgrade. Hashes of every existing field in all 15 tracked data groups matched before/after, including 115 historical attempts, 109 attempt budgets and existing extension history. All 115 attempts received a zero reopening count and the new history table started empty. Migration 0013 is applied; all five services are running, API/database health checks pass, the application session returns 200 and unauthenticated isolated-content launch returns 403. The saved-answer inspection, lost-response reopening, guest resume and preserved-feedback browser workflow passed against the built web/API containers."
+    },
+    {
+      "check": "Compose data-preserving upgrade through 0014",
+      "result": "Verified database/media backup before upgrade. Hashes of every existing field in all 16 tracked data groups matched before/after, including 118 historical attempts, 111 attempt budgets and existing extension/reopening history. All 118 attempts received a zero grading revision and the marks-import table started empty. Migration 0014 is applied; all five services are running, API/database health checks pass, the application session returns 200 and unauthenticated isolated-content launch returns 403. Both focused browser workflows passed against the built web/API containers: marks preview/application and receipt recovery, and monitoring/reopening with preserved prior submissions."
     }
   ]
 }

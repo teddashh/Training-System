@@ -142,7 +142,10 @@ def results(request):
 
 def safe_csv(value):
     text = str(value) if value is not None else ""
-    return "'" + text if text.startswith(("=", "+", "-", "@", "\t", "\r")) else text
+    unsafe = text.startswith(("\t", "\r", "\n")) or text.lstrip(" \t\r\n").startswith(
+        ("=", "+", "-", "@")
+    )
+    return "'" + text if unsafe else text
 
 
 def csv_response(columns, rows, filename):

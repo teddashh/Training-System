@@ -32,7 +32,7 @@ This v1.3 handover release runs with a real database and tested end-to-end workf
 | Audience | All accounts, employees, contractors, selected departments, selected people or invitation only; enforced by the API |
 | Attempts | Default and individual budgets; invitation-specific caps; shared account/guest identity; PostgreSQL locking prevents concurrent overuse |
 | Guest access | Unique expiring/revocable links bound to an email/account key; CSV batch preview/issuance with retry recovery and link download; searchable, paginated history; recipient email verification enabled by default in organizer forms |
-| Grading | Attempt snapshots, ordered autosave with conflict detection and retry, server timing, idempotent submission, automatic scoring and learner-visible instructor feedback |
+| Grading | Attempt snapshots, ordered autosave with conflict detection and retry, server timing, idempotent submission, automatic scoring and learner-visible instructor feedback; reviewed CSV score/comment imports with atomic application, stale-write checks and preserved receipts |
 | Reporting | Filtered, paginated results and matching CSV; exam score distributions, department performance and question analysis from frozen attempt snapshots; completion, trends and audit records |
 
 ## Architecture

@@ -544,7 +544,15 @@ export function ReviewModal({
     api<Attempt>(`${preview ? "previews" : "results"}/${id}/review/`)
       .then((a) => {
         setAttempt(a);
-        setMarks(a.manual_grades);
+        setMarks(
+          Object.fromEntries(
+            a.questions
+              .filter(
+                (q) => q.type === "essay" && a.manual_grades[String(q.id)],
+              )
+              .map((q) => [String(q.id), a.manual_grades[String(q.id)]]),
+          ),
+        );
       })
       .catch((e) => setError(e.message));
   }, [id, preview]);
@@ -556,6 +564,7 @@ export function ReviewModal({
       await api(`${preview ? "previews" : "results"}/${id}/review/`, "POST", {
         grades: marks,
         answer_revision: attempt?.answer_revision,
+        grading_revision: attempt?.grading_revision,
       });
       onSaved();
       onClose();
@@ -629,7 +638,7 @@ export function ReviewModal({
                           setMarks({
                             ...marks,
                             [String(q.id)]: {
-                              points: marks[String(q.id)]?.points ?? 0,
+                              points: marks[String(q.id)]?.points ?? null,
                               feedback: e.target.value,
                             },
                           })
@@ -645,6 +654,19 @@ export function ReviewModal({
                     <p className="review-answer accepted-answer">
                       {acceptedAnswerText(q)}
                     </p>
+                    {attempt.manual_grades[String(q.id)] && (
+                      <div className="instructor-feedback">
+                        <strong>
+                          {t("Imported review")}
+                          {attempt.manual_grades[String(q.id)].points !==
+                            null &&
+                            ` · ${attempt.manual_grades[String(q.id)].points} / ${q.points}`}
+                        </strong>
+                        <p className="review-answer">
+                          {attempt.manual_grades[String(q.id)].feedback}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

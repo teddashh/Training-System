@@ -371,8 +371,9 @@ export default function Attempt({
                   {grade && (
                     <div className="instructor-feedback">
                       <strong>
-                        {t("Instructor review")} · {grade.points} /{" "}
-                        {question.points} {t("points")}
+                        {t("Instructor review")}
+                        {grade.points !== null &&
+                          ` · ${grade.points} / ${question.points} ${t("points")}`}
                       </strong>
                       {grade.feedback && (
                         <p className="review-answer">{grade.feedback}</p>
