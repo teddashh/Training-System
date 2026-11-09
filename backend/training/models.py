@@ -305,6 +305,9 @@ class Attempt(models.Model):
     started_at = models.DateTimeField(auto_now_add=True)
     deadline = models.DateTimeField()
     submitted_at = models.DateTimeField(null=True, blank=True)
+    last_seen_at = models.DateTimeField(null=True, blank=True)
+    last_saved_at = models.DateTimeField(null=True, blank=True)
+    extra_time_minutes = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
         constraints = [
@@ -316,6 +319,31 @@ class Attempt(models.Model):
                     unlocked_question_count__gte=1, unlocked_question_count__lte=200
                 ),
                 name="bounded_unlocked_questions",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(extra_time_minutes__lte=1440),
+                name="bounded_attempt_extra_time",
+            ),
+        ]
+
+
+class AttemptTimeExtension(models.Model):
+    # The client retains this key across uncertain network outcomes.
+    id = models.UUIDField(primary_key=True, editable=False)
+    attempt = models.ForeignKey(Attempt, on_delete=models.PROTECT)
+    actor = models.ForeignKey(User, on_delete=models.PROTECT)
+    minutes = models.PositiveSmallIntegerField()
+    reason = models.CharField(max_length=500)
+    previous_deadline = models.DateTimeField()
+    new_deadline = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(minutes__gte=1, minutes__lte=240),
+                name="bounded_extension_minutes",
             ),
         ]
 

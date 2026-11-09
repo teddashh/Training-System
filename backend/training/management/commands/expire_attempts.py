@@ -12,7 +12,7 @@ from training.models import (
     GuestEmailChallenge,
 )
 from training.previews import finish_preview
-from training.services import finalize
+from training.services import finalize_if_expired
 
 
 class Command(BaseCommand):
@@ -24,8 +24,9 @@ class Command(BaseCommand):
             status="in_progress", deadline__lte=timezone.now()
         ).values_list("pk", flat=True):
             with transaction.atomic():
-                finalize(Attempt.objects.select_for_update().get(pk=pk))
-                count += 1
+                count += finalize_if_expired(
+                    Attempt.objects.select_for_update().get(pk=pk)
+                )
         ExamPreview.objects.filter(expires_at__lte=timezone.now()).delete()
         for pk in ExamPreview.objects.filter(
             status="in_progress", deadline__lte=timezone.now()

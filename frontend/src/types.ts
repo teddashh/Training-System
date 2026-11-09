@@ -94,6 +94,7 @@ export type Attempt = {
   number: number;
   status: string;
   deadline: string | null;
+  extra_time_minutes: number;
   preview_mode?: "learner" | "unrestricted";
   preview_expires_at?: string;
   server_time: string;

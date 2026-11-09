@@ -911,7 +911,7 @@
         "backend/training/test_retry_interval.py::test_guest_history_survives_later_account_linking",
         "backend/training/test_retry_interval.py::test_expired_attempt_does_not_restart_retry_clock",
         "backend/training/test_retry_interval.py::test_parallel_account_and_guest_retries_share_one_start",
-        "frontend/e2e/training.spec.ts::individual attempt limit is visible and a final active attempt can resume"
+        "frontend/e2e/training.spec.ts::individual attempt limits, live monitoring and safe time extensions"
       ],
       "assessment": "A configurable 0–525600 whole-minute interval follows Yaksh start-to-start timing with an inclusive boundary. Account aliases, linked guest histories and reissued invitations share the identity/exam restriction; early requests charge neither budget. Active attempts resume, and extra allowances do not waive the wait. Fresh account/assignment preflight and guest metadata expose scoped eligibility timestamps. Three-language controls, automatic time-based enabling, device-clock skew, server rejection, policy refresh and mobile guest layout have browser coverage. PostgreSQL tests exercise competing account/guest starts. Special-attempt exceptions remain separate unfinished work.",
       "priority": 1,
@@ -1093,7 +1093,7 @@
       "id": "Y43",
       "repository": "yaksh",
       "feature": "Live exam monitoring and active-attempt time extension",
-      "status": "missing",
+      "status": "partial",
       "source": [
         {
           "path": "yaksh/views.py",
@@ -1104,9 +1104,33 @@
           "line": 3940
         }
       ],
-      "implementation": [],
-      "verification": [],
-      "assessment": "Results can be refreshed manually. No live invigilation view, heartbeat, or audited active timer extension.",
+      "implementation": [
+        "backend/training/monitoring.py",
+        "backend/training/models.py",
+        "backend/training/migrations/0012_attempt_monitoring.py",
+        "backend/training/services.py",
+        "backend/training/reporting.py",
+        "backend/training/management/commands/expire_attempts.py",
+        "frontend/src/ExamMonitor.tsx",
+        "frontend/src/useAttemptSession.ts"
+      ],
+      "verification": [
+        "backend/training/test_monitoring.py::test_scoped_monitor_counts_saved_progress_and_excludes_preview_and_answers",
+        "backend/training/test_monitoring.py::test_filters_pagination_expiry_and_recent_contact_are_truthful",
+        "backend/training/test_monitoring.py::test_extension_is_idempotent_audited_and_preserves_all_participant_evidence",
+        "backend/training/test_monitoring.py::test_extension_validation_bounds_and_completed_attempts_stay_closed",
+        "backend/training/test_monitoring.py::test_heartbeat_updates_contact_without_changing_answers_or_revision",
+        "backend/training/test_monitoring.py::test_heartbeat_timeout_finalizes_saved_answers_once_and_never_accepts_late_payload",
+        "backend/training/test_monitoring.py::test_extended_account_and_guest_resume_after_exam_close_without_budget_charge",
+        "backend/training/test_monitoring.py::test_guest_monitoring_access_and_invitation_revocation_and_expiry",
+        "backend/training/test_monitoring.py::test_unsafe_monitor_endpoints_require_csrf_and_preview_ids_are_not_real_attempts",
+        "backend/training/test_monitoring.py::test_concurrent_duplicate_and_distinct_grants_apply_exactly_once",
+        "backend/training/test_monitoring.py::test_submit_racing_extension_never_reopens_a_submission",
+        "backend/training/test_monitoring.py::test_expiry_worker_reports_and_monitor_recheck_deadline_after_lock_wait",
+        "frontend/e2e/training.spec.ts::individual attempt limits, live monitoring and safe time extensions",
+        "frontend/e2e/monitor.ts"
+      ],
+      "assessment": "Managers can monitor account/guest attempts with saved-answer counts, heartbeat/save timestamps, status/attempt-number/search filters, paginated records and submitted-paper review links. Private previews are excluded. Active unexpired attempts receive bounded extra time with required reasons, audited deadline history, row locks and client request IDs that recover lost responses without double-granting. Learner timers preserve local edits, serialize heartbeat/saves and check server expiry instead of submitting at an obsolete deadline; reporting and workers recheck after lock waits. Extended active attempts resume beyond the closing window without consuming budgets, while guest validity remains enforced. Yaksh also permits reopening completed papers and inspecting individual active submissions; those behaviors remain unsupported, so Y43 remains partial.",
       "priority": 1,
       "routes": [
         "yaksh:monitor",
@@ -5813,16 +5837,17 @@
     "Yaksh string matching now preserves each accepted answer’s case and spacing policy, including multiline and Unicode distinctions. Three-language bank/exam authoring, frozen attempts, account/guest grading, labeled reviews, rule-aware analytics and atomic string imports share these rules. Historical normalized grading remains compatible.",
     "Sequential exam navigation is now enforced in the API, including private future questions, persisted unlocking, incomplete-submission validation and frozen attempt rules. Completed response visibility remains a live organizer setting with no-store responses, scoped instructor access and participant refresh. Account/guest and PostgreSQL concurrency coverage preserve existing budgets, autosave and timeout behavior.",
     "The active exam player now uses monotonic elapsed time for deadlines and save-retry delays, anchored to server timestamps. Changing the device wall clock cannot prematurely submit an exam or reset its duration; server-side expiry remains authoritative.",
-    "Instructor exam previews now provide a complete saved question-paper view, timed learner simulation and untimed draft testing. Trials use a separate private model, shared production question/grading rules, resumable autosaves, independent test grading and bounded retention. Tests verify that successful trials cannot change existing participant evidence or assignment completion."
+    "Instructor exam previews now provide a complete saved question-paper view, timed learner simulation and untimed draft testing. Trials use a separate private model, shared production question/grading rules, resumable autosaves, independent test grading and bounded retention. Tests verify that successful trials cannot change existing participant evidence or assignment completion.",
+    "Y43 live progress monitoring and active time extensions now work for scoped account/guest exams in three languages, including duplicate-request recovery, delayed-save timer synchronization and PostgreSQL expiry races. Completed-paper reopening and individual active-answer inspection remain unresolved, so the feature is still partial."
   ],
   "validation": [
     {
       "check": "Django suite on PostgreSQL 17",
-      "result": "147 passed, including private preview ownership, role/ownership revocation, all seven answer types, frozen shuffled papers, draft/open-window rules, hidden review and test grading, deadline/retention cleanup, storage limits and concurrent preview saves. Existing participant results, CSV, budgets, identity counts and assignment completion remain unchanged by successful trials."
+      "result": "159 passed on PostgreSQL 17, including scoped monitor/heartbeat access, guest expiry/revocation, saved-progress counts, extension validation/history/idempotency, shared-budget resume beyond closing, concurrent duplicate/distinct grants, submission races, and expiry worker/report/monitor deadline rechecks after lock waits. Existing preview, grading, identity, reporting, SCORM and assignment regressions remain green."
     },
     {
       "check": "Playwright application workflows",
-      "result": "All 20 workflows passed against the real API and isolated content server: 19 in the main suite and the email-verification workflow separately with its file-mail directory configured. The extended instructor workflow covers question-paper inspection, three-language controls, draft rejection in learner mode, untimed draft testing, saved preview resume/deletion, sequential access, hidden results, test grading and timed simulation. Existing account/guest, SCORM, text/numeric/ordering, retry, invitation and conflict-recovery workflows pass. Synthetic sign-in counters were reset before the suite; production limits are unchanged."
+      "result": "All 20 browser workflows passed together against the real API and isolated content server, with the file-mail directory configured. Monitoring coverage includes three-language form state, mobile layout, saved progress, a committed extension with a lost response recovered after reload, stale autosave crossing the original deadline, draft/revision preservation, heartbeat timing, stale-data error/recovery and submitted-paper review. Preview polling retains cross-tab revision conflicts. SCORM publication explicitly dismisses the first-use tour before opening publish controls."
     },
     {
       "check": "Scormly unit tests",
@@ -5834,7 +5859,7 @@
     },
     {
       "check": "Django configuration and migration checks",
-      "result": "Passed. Migration 0011 creates a separate preview table with timing/unlock constraints. Existing exam, attempt, identity and learning tables are not rewritten. Backup tooling tests pass."
+      "result": "Passed. Migration 0012 adds nullable contact/save timestamps, a zero-default extra-time total and protected extension history with bounds. Existing deadlines, answers, snapshots, scores and budgets are preserved. Backup tooling: 3 tests passed."
     },
     {
       "check": "Audit evidence and pinned upstream checkouts",
@@ -5859,6 +5884,10 @@
     {
       "check": "Docker upgrade from migration 0010 to 0011",
       "result": "Verified database/media backup before upgrade. Hashes of every existing field in all 13 tracked data groups matched before/after, including 110 historical attempts and 105 attempt budgets. The new preview table started empty. Both origins and all application services are healthy. The question-bank, real-attempt and instructor-preview browser workflow passed against the built Docker site, including private grading, resume/deletion and three-language controls."
+    },
+    {
+      "check": "Docker upgrade from migration 0011 to 0012",
+      "result": "Verified database/media backup before upgrade. All 13 existing data groups matched before/after hashes, including 111 historical attempts and 106 attempt budgets. All existing attempts received zero extra minutes and null contact/save timestamps; extension history starts empty. Migration 0012 is applied, all five services are running with API/database health checks passing, the application session returns 200 and unauthenticated isolated-content launch returns 403. Both focused browser workflows (live monitoring/time extensions and private previews) passed against the built web/API containers."
     },
     {
       "check": "Full feature-parity gate",

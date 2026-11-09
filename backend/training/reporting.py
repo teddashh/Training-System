@@ -19,7 +19,7 @@ from rest_framework.response import Response
 from .i18n import translate
 from .models import Attempt, Exam
 from .question_rules import text_matching_modes
-from .services import finalize, question_points
+from .services import finalize_if_expired, question_points
 from .views import manage_exam, scoped_attempts
 
 
@@ -68,7 +68,7 @@ def filtered_attempts(request, exam=None):
         with transaction.atomic():
             # Lock only the attempt. Joining the exam here would also lock it
             # on PostgreSQL and compete with the exam-first start workflow.
-            finalize(Attempt.objects.select_for_update().get(pk=pk))
+            finalize_if_expired(Attempt.objects.select_for_update().get(pk=pk))
     if values["days"] != "all":
         qs = qs.annotate(report_time=Coalesce("submitted_at", "started_at")).filter(
             report_time__gte=timezone.now() - timedelta(days=int(values["days"]))

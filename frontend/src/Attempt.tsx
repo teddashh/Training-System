@@ -464,6 +464,13 @@ export default function Attempt({
         </div>
       </div>
       <ErrorBox message={error} />
+      {attempt.extra_time_minutes > 0 && (
+        <p className="notice exam-policy-notice">
+          {t("Extra time granted: {minutes} minutes.", {
+            minutes: attempt.extra_time_minutes,
+          })}
+        </p>
+      )}
       {!attempt.allow_skip && (
         <p className="notice exam-policy-notice" id="sequential-rules">
           {attempt.deadline

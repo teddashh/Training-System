@@ -1,4 +1,5 @@
 import { previewWorkflow } from "./preview";
+import { monitorWorkflow } from "./monitor";
 import {
   test,
   expect,
@@ -217,11 +218,11 @@ test("paginated results, matching exports and multilingual assessment insights",
   await expect(questionRow).toContainText("13 / 26");
 });
 
-test("individual attempt limit is visible and a final active attempt can resume", async ({
+test("individual attempt limits, live monitoring and safe time extensions", async ({
   page,
   browser,
 }) => {
-  test.setTimeout(90000);
+  test.setTimeout(180000);
   await login(page);
   const title = "Individual budget " + Date.now();
   const exam = await post<{ id: number }>(page, "exams/", {
@@ -447,6 +448,7 @@ test("individual attempt limit is visible and a final active attempt can resume"
   } finally {
     await context.close();
   }
+  await monitorWorkflow(page, browser);
 });
 
 test("dashboard, responsive navigation, library and persisted course editor", async ({
@@ -666,6 +668,9 @@ for (const version of ["1.2", "2004"] as const) {
     });
     await page.goto("/studio/#/app");
     await page.getByRole("button", { name: /Explore the demo course/ }).click();
+    // Complete first-use onboarding before opening publication controls.
+    // The source offers this tour 700 ms after opening the first project.
+    await page.getByRole("button", { name: "Skip tour", exact: true }).click();
     // Catalog visibility does not imply publication rights. Exercise the picker
     // with a visible course the current author cannot manage.
     await page.route("**/api/courses/", async (route) => {

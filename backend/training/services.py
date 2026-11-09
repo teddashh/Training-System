@@ -151,11 +151,7 @@ def start_attempt(exam_id, identity, invitation=None):
     # account and guest starts, even when two workers race on an absent budget.
     exam = Exam.objects.select_for_update().get(pk=exam_id)
     now = timezone.now()
-    if (
-        not exam.published
-        or (exam.starts_at and now < exam.starts_at)
-        or (exam.ends_at and now >= exam.ends_at)
-    ):
+    if not exam.published:
         raise PermissionDenied(translate("This exam is not open or has ended."))
     if invitation:
         invitation = Invitation.objects.select_for_update().get(pk=invitation.pk)
@@ -169,10 +165,17 @@ def start_attempt(exam_id, identity, invitation=None):
         .filter(exam=exam, identity=identity, status="in_progress")
         .first()
     )
+    # Lock waits can cross a deadline. Extensions and resumption use the same
+    # attempt lock; a granted deadline may outlive the exam's new-start window.
+    now = timezone.now()
     if active and active.deadline > now:
         return active
     if active:
         finalize(active)
+    if (exam.starts_at and now < exam.starts_at) or (
+        exam.ends_at and now >= exam.ends_at
+    ):
+        raise PermissionDenied(translate("This exam is not open or has ended."))
     if not invitation and not in_exam_audience(exam, identity.user):
         raise PermissionDenied(translate("You are not assigned to this exam."))
     budget, _ = AttemptBudget.objects.get_or_create(exam=exam, identity=identity)
@@ -220,6 +223,7 @@ def start_attempt(exam_id, identity, invitation=None):
         pass_score=exam.pass_score,
         allow_skip=exam.allow_skip,
         deadline=deadline,
+        last_seen_at=now,
     )
     audit(
         identity.user,
@@ -331,6 +335,14 @@ def finalize(attempt):
     return attempt
 
 
+def finalize_if_expired(attempt):
+    """Recheck under the caller's row lock, including after any lock wait."""
+    if attempt.status == "in_progress" and attempt.deadline <= timezone.now():
+        finalize(attempt)
+        return True
+    return False
+
+
 def validate_answers(answers, snapshot):
     if not isinstance(answers, dict) or len(answers) > len(snapshot):
         raise ValidationError(translate("Invalid answer format."))
@@ -422,9 +434,11 @@ def record_answers(attempt, answers, *, submitting=False):
         for question in attempt.snapshot[:available]
     ):
         attempt.unlocked_question_count = min(available + 1, len(attempt.snapshot))
-    attempt.save(
-        update_fields=["answers", "answer_revision", "unlocked_question_count"]
-    )
+    fields = ["answers", "answer_revision", "unlocked_question_count"]
+    if isinstance(attempt, Attempt):
+        attempt.last_saved_at = attempt.last_seen_at = timezone.now()
+        fields += ["last_saved_at", "last_seen_at"]
+    attempt.save(update_fields=fields)
 
 
 def public_attempt(attempt, *, for_review=False):
@@ -443,6 +457,7 @@ def public_attempt(attempt, *, for_review=False):
         "number": attempt.number,
         "status": attempt.status,
         "deadline": attempt.deadline,
+        "extra_time_minutes": getattr(attempt, "extra_time_minutes", 0),
         "server_time": timezone.now(),
         "allow_skip": attempt.allow_skip,
         "review_available": review_available,

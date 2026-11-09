@@ -108,6 +108,38 @@ export async function previewWorkflow(page: Page) {
   await page
     .getByRole("button", { name: "Next question", exact: true })
     .click();
+  const otherTab = await request(`previews/${id}/`, "GET");
+  await request(`previews/${id}/`, "PATCH", {
+    answers: {
+      ...otherTab.answers,
+      [otherTab.questions[1].id]: "Saved in another tab",
+    },
+    answer_revision: otherTab.answer_revision,
+  });
+  const timing = page.waitForResponse(
+    (response) =>
+      response.url().endsWith(`/api/previews/${id}/`) &&
+      response.request().method() === "GET",
+  );
+  await page.evaluate(() =>
+    document.dispatchEvent(new Event("visibilitychange")),
+  );
+  await timing;
+  await page
+    .getByRole("textbox", { name: "Your answer", exact: true })
+    .fill("Local draft after the timing poll");
+  await expect(
+    page.getByText(
+      "This attempt was updated in another window. Reload saved answers before continuing.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Reload saved answers", exact: true })
+    .click();
+  await expect(
+    page.getByRole("textbox", { name: "Your answer", exact: true }),
+  ).toHaveValue("Saved in another tab");
   await page
     .getByRole("textbox", { name: "Your answer", exact: true })
     .fill("Private practice response");

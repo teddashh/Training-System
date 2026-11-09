@@ -14,6 +14,7 @@ import {
   Link2,
   Trash2,
   Eye,
+  Activity,
 } from "lucide-react";
 import { api } from "./api";
 import type { Exam, Course, Question, User, Attempt } from "./types";
@@ -23,6 +24,7 @@ import { questionTypes, questionTypeDefaults } from "./questionTypes";
 import StructuredQuestionFields from "./StructuredQuestionFields";
 import TextAnswerFields from "./TextAnswerFields";
 import ExamPreview from "./ExamPreview";
+import ExamMonitor from "./ExamMonitor";
 function ExamEditor({
   exam,
   courses,
@@ -604,6 +606,7 @@ export default function Exams({
   const [search, setSearch] = useState(""),
     [editing, setEditing] = useState<Exam | null | undefined>(),
     [previewing, setPreviewing] = useState<number | null>(null),
+    [monitoring, setMonitoring] = useState<number | null>(null),
     [starting, setStarting] = useState<Exam | null>(null),
     [budget, setBudget] = useState<Exam | null>(null),
     [key, setKey] = useState(""),
@@ -644,6 +647,13 @@ export default function Exams({
   }
   return (
     <>
+      {monitoring !== null && (
+        <ExamMonitor
+          id={monitoring}
+          userId={user.id}
+          onClose={() => setMonitoring(null)}
+        />
+      )}
       {previewing !== null && (
         <ExamPreview
           id={previewing}
@@ -771,7 +781,15 @@ export default function Exams({
                     <div className="exam-tools">
                       <button
                         className="icon-btn"
+                        title={t("Live exam monitor")}
+                        aria-label={t("Monitor {title}", { title: exam.title })}
+                        onClick={() => setMonitoring(exam.id)}
+                      >
+                        <Activity size={16} />
+                      </button>
+                      <button
                         title={t("Preview exam")}
+                        className="icon-btn"
                         aria-label={t("Preview {title}", { title: exam.title })}
                         onClick={() => setPreviewing(exam.id)}
                       >

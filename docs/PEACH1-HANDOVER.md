@@ -32,6 +32,10 @@ The system does not yet perform Microsoft Graph directory synchronization. Entra
 
 ## Changes after v1.3
 
+Managers now have live account/guest attempt monitoring, saved-progress/contact indicators, filtered pagination, submitted-paper review links and audited time extensions. Extension requests recover after lost responses without double-applying minutes. The learner timer synchronizes with the server and preserves drafts across delayed requests; PostgreSQL coverage checks duplicate/concurrent grants, submission races and expiry workers waiting on a newly extended deadline. This remains progress monitoring, with no attention/proctoring claim. Reopening completed papers and inspecting individual active answers remain unsupported. See [monitor operations](OPERATIONS.md#live-exam-monitoring-and-extra-time).
+
+Migration `0012_attempt_monitoring` adds nullable contact/save timestamps, a zero-default extra-time total and a protected extension-history table with limits. Existing deadlines, snapshots, responses, scores, identities, budgets and course progress are preserved. Back up database/media, deploy matching web/API/worker images outside active exams, and reload existing tabs. Old players can submit at the original timer boundary, and old expiry workers do not recheck an extension after waiting for a row lock, so do not mix versions. Compose applies migrations through 0012. A full rollback requires a matching pre-upgrade backup and application version.
+
 Instructors now have a saved question-paper preview, timed learner simulation and untimed draft testing. Private test sessions support autosave/resume, all seven question types and test grading without changing participant budgets, results or assignment completion. Previews are creator-scoped, limited to 20 retained sessions per exam, and expire after seven days. See [preview operations](OPERATIONS.md#instructor-exam-previews).
 
 Migration `0011_exampreview` adds a separate preview table and its timing/unlock constraints; it does not rewrite existing exam, attempt or learning records. Back up database/media and deploy matching API, web and scheduler images. Compose applies migrations through 0011. Keep the scheduler running for timed-preview finalization and seven-day cleanup. Reload open tabs. Restore a matching pre-upgrade backup and application version for a full rollback.
@@ -142,6 +146,7 @@ docker compose --project-name peach1-training up -d --wait
 | Required training | Assignment appears only for intended people; course completion or passing grade updates the report; CSV matches records |
 | Authoring / SCORM | Create, publish, launch, commit, close/reopen and download editable source using representative company packages |
 | Exams | Independent and linked exams, random snapshots, attempt caps, autosave, expiry and manual review work under expected concurrency |
+| Exam monitoring | Owner scope holds for account/guest attempts; lost-response retries grant time once; visible and suspended tabs recover the authoritative timer; late answers stay rejected; expired/submitted papers stay closed |
 | Assessment reporting | Filtered totals and CSV agree across pages; only fully graded attempts contribute to question statistics; ownership restrictions apply to reports and exports |
 | Guests | Named recipient verifies email; link expiry/revocation works; reissued links cannot reset the shared identity budget |
 | Invitation cohorts | CSV aliases resolve correctly; one invalid row creates no links; a lost response recovers the same links; pagination/filter counts agree; disabled accounts lose existing guest access |

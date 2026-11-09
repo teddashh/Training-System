@@ -10,6 +10,8 @@ Plataforma autohospedada de formación, creación de cursos, exámenes y evaluac
 
 Incluye SSO con Entra ID; acceso por correo, usuario o ID de empleado; cursos SCORM con reanudación; publicación y copia editable del proyecto; exámenes independientes; límites por participante; revisión manual y paneles de resultados. Los exámenes admiten audiencias de empleados, contratistas, departamentos, personas seleccionadas o solo invitados. Los enlaces pueden exigir verificación del correo del destinatario; el formulario del organizador activa esta opción de forma predeterminada.
 
+Los responsables también disponen de un monitor de intentos con progreso guardado, contacto reciente, filtros y ampliaciones de tiempo auditadas. Reintentar una solicitud tras perder la respuesta no añade minutos dos veces. El temporizador se sincroniza con el servidor sin borrar cambios locales. Los intentos vencidos o enviados permanecen cerrados; el contacto reciente no demuestra atención. Consulte las [operaciones de supervisión](OPERATIONS.md#live-exam-monitoring-and-extra-time).
+
 Desde la raíz del repositorio:
 
 ```bash

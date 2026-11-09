@@ -17,6 +17,7 @@ export function useAttemptSession(id: string, preview = false) {
   const [answers, setAnswers] = useState<Answers>({});
   const [remaining, setRemaining] = useState(0);
   const [error, setError] = useState("");
+  const [timingError, setTimingError] = useState("");
   const [saveState, setSaveState] = useState("Saved answers loaded");
   const [busy, setBusy] = useState(false);
   const [conflict, setConflict] = useState(false);
@@ -33,16 +34,32 @@ export function useAttemptSession(id: string, preview = false) {
       loading = false;
     let deadline = 0,
       retryAt = 0,
-      failures = 0;
+      failures = 0,
+      nextHeartbeat = 0,
+      heartbeatFailures = 0;
     let saving: Promise<void> | null = null,
       timer: ReturnType<typeof setTimeout> | undefined;
     setAttempt(null);
     setAnswers({});
     setError("");
+    setTimingError("");
     setConflict(false);
     setBusy(false);
 
-    function accept(data: Attempt) {
+    function accept(data: Attempt, requestedAt: number) {
+      // All reads and writes share one flight. A delayed heartbeat cannot
+      // overwrite a newer save, and timing updates never replace local edits.
+      deadline =
+        data.deadline === null
+          ? Infinity
+          : requestedAt +
+            Date.parse(data.deadline) -
+            Date.parse(data.server_time);
+      setRemaining(
+        Number.isFinite(deadline)
+          ? Math.max(0, Math.ceil((deadline - performance.now()) / 1000))
+          : 0,
+      );
       current = data;
       setAttempt(data);
       if (data.status !== "in_progress") {
@@ -51,6 +68,90 @@ export function useAttemptSession(id: string, preview = false) {
         setAnswers(data.answers);
         clearTimeout(timer);
       }
+    }
+    async function syncTiming() {
+      if (
+        !alive ||
+        !current ||
+        current.status !== "in_progress" ||
+        blocked ||
+        loading ||
+        submitting ||
+        saving
+      )
+        return;
+      // Use the same flight as autosaves so a pending response cannot restore
+      // an obsolete deadline. Never POST a manual submission at the local
+      // timer's zero: an instructor may have granted time since the last poll.
+      saving = (async () => {
+        try {
+          const requestedAt = performance.now();
+          if (preview) {
+            const data = await api<Attempt>(endpoint, "GET", undefined, 15000);
+            if (alive) {
+              // A preview GET also contains answers/revision. A timing poll
+              // must not silently acknowledge another tab's newer revision.
+              accept(
+                data.status === "in_progress"
+                  ? {
+                      ...current!,
+                      deadline: data.deadline,
+                      server_time: data.server_time,
+                    }
+                  : data,
+                requestedAt,
+              );
+            }
+          } else {
+            const timing = await api<
+              Pick<
+                Attempt,
+                "status" | "deadline" | "server_time" | "extra_time_minutes"
+              >
+            >(`${endpoint}heartbeat/`, "POST", {}, 15000);
+            if (!alive) return;
+            if (timing.status === "in_progress")
+              accept({ ...current!, ...timing }, requestedAt);
+            else {
+              const completedAt = performance.now();
+              const data = await api<Attempt>(
+                endpoint,
+                "GET",
+                undefined,
+                15000,
+              );
+              if (alive) accept(data, completedAt);
+            }
+          }
+          if (alive) {
+            heartbeatFailures = 0;
+            setTimingError("");
+            nextHeartbeat = performance.now() + 15000;
+          }
+        } catch (reason) {
+          if (alive) {
+            setTimingError((reason as Error).message);
+            heartbeatFailures++;
+            nextHeartbeat =
+              performance.now() +
+              (reason instanceof ApiError && reason.retryAfter
+                ? reason.retryAfter * 1000
+                : Math.min(30000, 2000 * 2 ** Math.min(heartbeatFailures, 4)));
+            if (
+              reason instanceof ApiError &&
+              [401, 403, 404].includes(reason.status)
+            ) {
+              blocked = true;
+              setConflict(true);
+            }
+          }
+        } finally {
+          saving = null;
+          if (alive && dirty && !blocked && !submitting && !failures)
+            schedule(0);
+        }
+      })();
+      return saving;
     }
     function fail(reason: unknown) {
       const failure = reason as Error;
@@ -93,12 +194,13 @@ export function useAttemptSession(id: string, preview = false) {
       setSaveState("Saving…");
       saving = (async () => {
         try {
+          const requestedAt = performance.now();
           const result = await api<Attempt>(endpoint, "PATCH", {
             answers: snapshot,
             answer_revision: current!.answer_revision,
           });
           if (!alive) return;
-          accept(result);
+          accept(result, requestedAt);
           dirty = result.status === "in_progress" && latest !== snapshot;
           failures = 0;
           retryAt = 0;
@@ -134,12 +236,13 @@ export function useAttemptSession(id: string, preview = false) {
       if (saving) await saving;
       try {
         if (!alive || blocked || current.status !== "in_progress") return;
+        const requestedAt = performance.now();
         const result = await api<Attempt>(endpoint, "POST", {
           answers: latest,
           answer_revision: current.answer_revision,
         });
         if (alive) {
-          accept(result);
+          accept(result, requestedAt);
           setError("");
           failures = 0;
         }
@@ -167,6 +270,7 @@ export function useAttemptSession(id: string, preview = false) {
       setBusy(true);
       clearTimeout(timer);
       try {
+        const requestedAt = performance.now();
         const data = await api<Attempt>(endpoint);
         if (!alive) return;
         latest = data.answers;
@@ -174,15 +278,10 @@ export function useAttemptSession(id: string, preview = false) {
         blocked = false;
         failures = 0;
         retryAt = 0;
-        // Server timestamps establish the remaining duration; elapsed time must
-        // not jump if the participant changes the device wall clock.
-        deadline =
-          data.deadline === null
-            ? Infinity
-            : performance.now() +
-              new Date(data.deadline).getTime() -
-              new Date(data.server_time).getTime();
-        accept(data);
+        accept(data, requestedAt);
+        nextHeartbeat = performance.now() + 15000;
+        heartbeatFailures = 0;
+        setTimingError("");
         setAnswers(latest);
         setError("");
         setConflict(false);
@@ -204,7 +303,8 @@ export function useAttemptSession(id: string, preview = false) {
     }
     function retry() {
       retryAt = 0;
-      if (performance.now() >= deadline && current) void submit();
+      nextHeartbeat = 0;
+      if (performance.now() >= deadline && current) void syncTiming();
       else void save();
     }
     actions.current = {
@@ -231,14 +331,18 @@ export function useAttemptSession(id: string, preview = false) {
       },
     };
     const tick = setInterval(() => {
-      if (!current || current.status !== "in_progress" || !current.deadline)
-        return;
-      const left = Math.max(
-        0,
-        Math.ceil((deadline - performance.now()) / 1000),
-      );
+      if (!current || current.status !== "in_progress") return;
+      const left = Number.isFinite(deadline)
+        ? Math.max(0, Math.ceil((deadline - performance.now()) / 1000))
+        : 0;
       setRemaining(left);
-      if (!left && performance.now() >= retryAt && !blocked) void submit();
+      const due = performance.now() >= nextHeartbeat;
+      const expired = Number.isFinite(deadline) && !left;
+      if (
+        ((expired && !heartbeatFailures) || (due && !document.hidden)) &&
+        !blocked
+      )
+        void syncTiming();
     }, 1000);
     const before = (event: BeforeUnloadEvent) => {
       if (current?.status === "in_progress") {
@@ -249,8 +353,15 @@ export function useAttemptSession(id: string, preview = false) {
     const online = () => {
       if (!blocked) retry();
     };
+    const visible = () => {
+      if (!document.hidden) {
+        nextHeartbeat = 0;
+        void syncTiming();
+      }
+    };
     window.addEventListener("beforeunload", before);
     window.addEventListener("online", online);
+    document.addEventListener("visibilitychange", visible);
     void reload();
     return () => {
       alive = false;
@@ -258,13 +369,14 @@ export function useAttemptSession(id: string, preview = false) {
       clearInterval(tick);
       window.removeEventListener("beforeunload", before);
       window.removeEventListener("online", online);
+      document.removeEventListener("visibilitychange", visible);
     };
   }, [id, preview]);
   return {
     attempt,
     answers,
     remaining,
-    error,
+    error: error || timingError,
     saveState,
     busy,
     conflict,

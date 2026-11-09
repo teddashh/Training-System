@@ -9798,5 +9798,195 @@
     "en": "Questions unlock in order after answers are saved. You can revisit unlocked questions. Answer every question before submitting.",
     "zh-TW": "答案儲存後會依序解鎖題目，您可返回已解鎖的題目。交卷前須回答所有題目。",
     "es": "Las preguntas se desbloquean en orden al guardar las respuestas. Puedes volver a las preguntas desbloqueadas. Responde todas antes de entregar."
+  },
+  "Live exam monitor": {
+    "en": "Live exam monitor",
+    "zh-TW": "即時考試監控",
+    "es": "Monitor de exámenes en vivo"
+  },
+  "Monitor {title}": {
+    "en": "Monitor {title}",
+    "zh-TW": "監控 {title}",
+    "es": "Supervisar {title}"
+  },
+  "Time extensions": {
+    "en": "Time extensions",
+    "zh-TW": "延長作答時間",
+    "es": "Ampliaciones de tiempo"
+  },
+  "Deadline": {
+    "en": "Deadline",
+    "zh-TW": "截止時間",
+    "es": "Fecha límite"
+  },
+  "Extra time granted: {minutes} minutes.": {
+    "en": "Extra time granted: {minutes} minutes.",
+    "zh-TW": "已增加 {minutes} 分鐘作答時間。",
+    "es": "Tiempo adicional concedido: {minutes} minutos."
+  },
+  "Grant 1–240 minutes per request, up to 1,440 extra minutes per attempt. Expired and submitted attempts stay closed. Invitation validity is unchanged.": {
+    "en": "Grant 1–240 minutes per request, up to 1,440 extra minutes per attempt. Expired and submitted attempts stay closed. Invitation validity is unchanged.",
+    "zh-TW": "每次可增加 1–240 分鐘，每份作答最多增加 1,440 分鐘。已逾時或提交的作答維持關閉，邀請連結的有效期限不變。",
+    "es": "Conceda entre 1 y 240 minutos por solicitud, hasta 1.440 minutos adicionales por intento. Los intentos vencidos o enviados permanecen cerrados. La vigencia de la invitación no cambia."
+  },
+  "This request is awaiting confirmation. Retry the same request to check its outcome without adding time twice.": {
+    "en": "This request is awaiting confirmation. Retry the same request to check its outcome without adding time twice.",
+    "zh-TW": "此請求尚待確認。請重試同一請求以確認結果，時間不會重複增加。",
+    "es": "Esta solicitud está pendiente de confirmación. Reintente la misma solicitud para comprobar el resultado sin añadir tiempo dos veces."
+  },
+  "Extra minutes": {
+    "en": "Extra minutes",
+    "zh-TW": "增加分鐘數",
+    "es": "Minutos adicionales"
+  },
+  "Reason for extension": {
+    "en": "Reason for extension",
+    "zh-TW": "延長時間原因",
+    "es": "Motivo de la ampliación"
+  },
+  "Retry extension request": {
+    "en": "Retry extension request",
+    "zh-TW": "重試延長時間請求",
+    "es": "Reintentar solicitud de ampliación"
+  },
+  "Grant extra time": {
+    "en": "Grant extra time",
+    "zh-TW": "增加作答時間",
+    "es": "Conceder tiempo adicional"
+  },
+  "Extension history": {
+    "en": "Extension history",
+    "zh-TW": "延長時間紀錄",
+    "es": "Historial de ampliaciones"
+  },
+  "No time extensions have been granted.": {
+    "en": "No time extensions have been granted.",
+    "zh-TW": "尚無延長時間紀錄。",
+    "es": "No se han concedido ampliaciones de tiempo."
+  },
+  "Not yet reported": {
+    "en": "Not yet reported",
+    "zh-TW": "尚無回報",
+    "es": "Sin datos todavía"
+  },
+  "Updates paused while this tab is hidden.": {
+    "en": "Updates paused while this tab is hidden.",
+    "zh-TW": "分頁在背景時暫停更新。",
+    "es": "Las actualizaciones se pausan mientras esta pestaña está oculta."
+  },
+  "Updates every 5 seconds.": {
+    "en": "Updates every 5 seconds.",
+    "zh-TW": "每 5 秒更新一次。",
+    "es": "Se actualiza cada 5 segundos."
+  },
+  "Last updated": {
+    "en": "Last updated",
+    "zh-TW": "最後更新",
+    "es": "Última actualización"
+  },
+  "Recent contact means the participant connected within 60 seconds. It does not prove attention or continuous connectivity. Progress counts saved answers only.": {
+    "en": "Recent contact means the participant connected within 60 seconds. It does not prove attention or continuous connectivity. Progress counts saved answers only.",
+    "zh-TW": "近期連線代表參與者在 60 秒內曾與系統連線，並不代表專注程度或連線持續正常。進度僅計算已儲存的答案。",
+    "es": "El contacto reciente indica que el participante se conectó en los últimos 60 segundos. No demuestra atención ni conectividad continua. El progreso solo cuenta las respuestas guardadas."
+  },
+  "Search participants": {
+    "en": "Search participants",
+    "zh-TW": "搜尋參與者",
+    "es": "Buscar participantes"
+  },
+  "Attempt summary": {
+    "en": "Attempt summary",
+    "zh-TW": "作答摘要",
+    "es": "Resumen de intentos"
+  },
+  "Apply filters": {
+    "en": "Apply filters",
+    "zh-TW": "套用篩選",
+    "es": "Aplicar filtros"
+  },
+  "Monitor update failed. Displayed data may be out of date.": {
+    "en": "Monitor update failed. Displayed data may be out of date.",
+    "zh-TW": "監控更新失敗，顯示的資料可能已過時。",
+    "es": "No se pudo actualizar el monitor. Los datos mostrados pueden estar desactualizados."
+  },
+  "Total attempts": {
+    "en": "Total attempts",
+    "zh-TW": "作答總數",
+    "es": "Total de intentos"
+  },
+  "Recent contact": {
+    "en": "Recent contact",
+    "zh-TW": "近期連線",
+    "es": "Contacto reciente"
+  },
+  "Summary follows participant and attempt-number filters, across all statuses.": {
+    "en": "Summary follows participant and attempt-number filters, across all statuses.",
+    "zh-TW": "摘要依參與者及作答編號篩選，包含所有狀態。",
+    "es": "El resumen aplica los filtros de participante y número de intento e incluye todos los estados."
+  },
+  "No matching attempts": {
+    "en": "No matching attempts",
+    "zh-TW": "沒有符合條件的作答",
+    "es": "No hay intentos coincidentes"
+  },
+  "Participants appear here after starting an exam.": {
+    "en": "Participants appear here after starting an exam.",
+    "zh-TW": "參與者開始考試後會顯示於此。",
+    "es": "Los participantes aparecen aquí después de iniciar un examen."
+  },
+  "{person}, attempt {number}": {
+    "en": "{person}, attempt {number}",
+    "zh-TW": "{person}，第 {number} 次作答",
+    "es": "{person}, intento {number}"
+  },
+  "Saved progress": {
+    "en": "Saved progress",
+    "zh-TW": "已儲存進度",
+    "es": "Progreso guardado"
+  },
+  "{answered} / {total} answered": {
+    "en": "{answered} / {total} answered",
+    "zh-TW": "已回答 {answered} / {total} 題",
+    "es": "{answered} / {total} respondidas"
+  },
+  "Last contact": {
+    "en": "Last contact",
+    "zh-TW": "最後連線",
+    "es": "Último contacto"
+  },
+  "No recent contact": {
+    "en": "No recent contact",
+    "zh-TW": "近期無連線",
+    "es": "Sin contacto reciente"
+  },
+  "Last answer save": {
+    "en": "Last answer save",
+    "zh-TW": "最後儲存答案",
+    "es": "Último guardado de respuestas"
+  },
+  "Review submission": {
+    "en": "Review submission",
+    "zh-TW": "檢閱已提交作答",
+    "es": "Revisar entrega"
+  },
+  "This extension request was already used with different details.": {
+    "en": "This extension request was already used with different details.",
+    "zh-TW": "此延長時間請求已使用過，且內容不同。",
+    "es": "Esta solicitud de ampliación ya se utilizó con datos diferentes."
+  },
+  "Only an active, unexpired attempt can receive extra time.": {
+    "en": "Only an active, unexpired attempt can receive extra time.",
+    "zh-TW": "僅進行中且未逾時的作答可增加時間。",
+    "es": "Solo se puede ampliar un intento activo que no haya vencido."
+  },
+  "An attempt can receive at most 1,440 extra minutes in total.": {
+    "en": "An attempt can receive at most 1,440 extra minutes in total.",
+    "zh-TW": "每份作答最多可增加 1,440 分鐘。",
+    "es": "Un intento puede recibir como máximo 1.440 minutos adicionales en total."
+  },
+  "Refresh": {
+    "en": "Refresh",
+    "zh-TW": "重新整理",
+    "es": "Actualizar"
   }
 }
