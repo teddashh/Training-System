@@ -117,24 +117,76 @@ def invitation_from_token(token):
     return invitation
 
 
-def in_exam_audience(exam, user):
+def exam_audience_sets(user):
+    """Request-local, bounded queries; future grants are visible but cannot start."""
+    from .models import CourseAssessment
+    from django.db.models import Q
+    result = {key: set() for key in ('assignments', 'groups', 'people', 'participation')}
+    result['participation_opens'] = {}
+    result['immediate_participation'] = set()
+    if not user or not user.is_authenticated or not user.is_active:
+        return result
+    result.update({
+        'assignments': set(LearningAssignment.objects.filter(user=user, cancelled_at=None, exam__isnull=False).values_list('exam_id', flat=True)),
+        'groups': set(Exam.allowed_groups.through.objects.filter(traininggroup__memberships__user=user).values_list('exam_id', flat=True)),
+        'people': set(Exam.allowed_users.through.objects.filter(user=user).values_list('exam_id', flat=True)),
+    })
+    now = timezone.now()
+    links = CourseAssessment.objects.filter(
+        course__enrollments__user=user, course__enrollments__status='approved', course__published=True,
+    ).exclude(exam__audience='invitation').filter(Q(course__release_at=None) | Q(course__release_at__lte=now))
+    for exam_id, release, end, cancelled, attendance, mode in links.values_list(
+            'exam_id', 'release', 'course__enrollments__session__ends_at', 'course__enrollments__session__cancelled',
+            'course__enrollments__attendance', 'course__delivery_mode'):
+        # "After the session" only exists for scheduled courses; otherwise the link acts as immediate.
+        if release == 'immediate' or mode != 'scheduled':
+            result['participation'].add(exam_id)
+            result['immediate_participation'].add(exam_id)
+        # Marked absent means the session was not taken; unmarked counts as attended.
+        elif end is not None and cancelled is False and attendance != 'absent':
+            previous = result['participation_opens'].get(exam_id)
+            result['participation_opens'][exam_id] = min(previous, end) if previous else end
+            if end <= now:
+                result['participation'].add(exam_id)
+    return result
+
+
+def exam_opens_for(exam, user, membership=None):
+    """The earliest independent grant wins; the exam's own window still applies."""
+    membership = membership if membership is not None else exam_audience_sets(user)
+    independent = {**membership, 'participation': membership.get('immediate_participation', set())}
+    if in_exam_audience(exam, user, independent):
+        return exam.starts_at
+    end = membership.get('participation_opens', {}).get(exam.pk)
+    return max(exam.starts_at, end) if exam.starts_at and end else end or exam.starts_at
+
+
+def visible_exam(exam, user, membership=None):
+    membership = membership if membership is not None else exam_audience_sets(user)
+    return in_exam_audience(exam, user, membership) or exam.pk in membership.get('participation_opens', {})
+
+
+def in_exam_audience(exam, user, membership=None):
     """Audience rules govern account starts; an invitation is an explicit grant."""
-    if not user or not user.is_active:
+    if not user or not user.is_authenticated or not user.is_active:
         return False
-    if LearningAssignment.objects.filter(
-        exam=exam, user=user, cancelled_at=None
-    ).exists():
+    membership = membership if membership is not None else exam_audience_sets(user)
+    if exam.pk in membership['assignments'] or exam.pk in membership['participation']:
         return True
-    if exam.audience == "all":
+    if exam.audience == 'course':
+        return False
+    if exam.audience == 'all':
         return True
-    if exam.audience == "employees":
-        return user.employment == "employee"
-    if exam.audience == "contractors":
-        return user.employment == "contractor"
-    if exam.audience == "departments":
+    if exam.audience == 'employees':
+        return user.employment == 'employee'
+    if exam.audience == 'contractors':
+        return user.employment == 'contractor'
+    if exam.audience == 'departments':
         return bool(user.department) and user.department in exam.allowed_departments
-    if exam.audience == "people":
-        return any(person.pk == user.pk for person in exam.allowed_users.all())
+    if exam.audience == 'groups':
+        return exam.pk in membership['groups']
+    if exam.audience == 'people':
+        return exam.pk in membership['people']
     return False
 
 
@@ -180,8 +232,16 @@ def start_attempt(exam_id, identity, invitation=None):
         raise PermissionDenied(translate("You are not assigned to this exam."))
     budget, _ = AttemptBudget.objects.get_or_create(exam=exam, identity=identity)
     budget = AttemptBudget.objects.select_for_update().get(pk=budget.pk)
-    limit = budget.limit_override or exam.max_attempts
-    if budget.used >= limit:
+    from .attempt_rounds import round_status
+    allowance = round_status(exam, budget, now)
+    if allowance['next_round_at'] and not allowance['renew_ready']:
+        raise PermissionDenied({
+            'code': 'round_wait',
+            'detail': translate('Your next round of attempts is not available yet.'),
+            'next_attempt_at': allowance['next_round_at'].isoformat(),
+            'server_time': now.isoformat(),
+        })
+    if allowance['attempts_remaining'] <= 0:
         raise PermissionDenied(
             translate("This participant has reached the exam attempt limit.")
         )
@@ -209,8 +269,13 @@ def start_attempt(exam_id, identity, invitation=None):
     deadline = now + timedelta(minutes=exam.duration_minutes)
     if exam.ends_at:
         deadline = min(deadline, exam.ends_at)
+    if allowance['renew_ready']:
+        budget.round_start_used = budget.used
+        budget.round_number += 1
+        audit(identity.user, 'attempt.round_renewed', budget.pk,
+              {'exam': exam.pk, 'round': budget.round_number, 'prior_attempts': budget.used})
     budget.used += 1
-    budget.save(update_fields=["used"])
+    budget.save(update_fields=["used", "round_start_used", "round_number"])
     if invitation:
         invitation.used += 1
         invitation.save(update_fields=["used"])
@@ -236,18 +301,16 @@ def start_attempt(exam_id, identity, invitation=None):
 
 def question_snapshot(exam):
     """Freeze one randomized paper for participant and instructor trials alike."""
-    questions = list(
-        exam.questions.values(
-            "id",
-            "description",
-            "type",
-            "options",
-            "solution",
-            "answer_tolerances",
-            "answer_matching",
-            "points",
-        )
-    )
+    fields = ("id", "description", "type", "options", "solution",
+              "answer_tolerances", "answer_matching", "grading_guide", "points")
+    questions = []
+    for question in exam.questions.select_related("figure").defer("figure__data"):
+        row = {field: getattr(question, field) for field in fields}
+        figure = question.figure
+        row["figure"] = ({"key": figure.key, "width": figure.width, "height": figure.height,
+                          "alt": question.figure_alt, "caption": question.figure_caption}
+                         if figure else None)
+        questions.append(row)
     if not questions:
         raise ValidationError(translate("This exam has no questions yet."))
     random = secrets.SystemRandom()
@@ -323,6 +386,8 @@ def grade(attempt):
     attempt.score = round(earned / total * 100, 2) if total else 0
     attempt.status = "pending_review" if pending else "graded"
     attempt.passed = None if pending else attempt.score >= attempt.pass_score
+    if isinstance(attempt, Attempt):
+        attempt.graded_at = None if pending else timezone.now()
 
 
 def finalize(attempt):
@@ -471,7 +536,7 @@ def public_attempt(attempt, *, for_review=False):
             {
                 k: v
                 for k, v in q.items()
-                if k not in ("solution", "answer_tolerances", "answer_matching")
+                if k not in ("solution", "answer_tolerances", "answer_matching", "grading_guide")
             }
             for q in questions
         ]

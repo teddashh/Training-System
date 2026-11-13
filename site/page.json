@@ -1,0 +1,361 @@
+{
+  "repo": "teddashh/Training-System",
+  "slug": "Training-System",
+  "name": "Training System",
+  "mark": "TS",
+  "palette": "teal",
+  "default_branch": "main",
+  "language": "Python / TypeScript",
+  "license": {
+    "spdx": "BSD-3-Clause",
+    "label": {
+      "en": "BSD 3-Clause",
+      "zh": "BSD 3-Clause 授權"
+    },
+    "href": "LICENSE"
+  },
+  "title": {
+    "en": "Training for an organization",
+    "zh": "組織訓練系統"
+  },
+  "description": {
+    "en": "Self-hosted training, course authoring and assessment for an organization.",
+    "zh": "供組織自行架設的訓練、課程編輯與評量系統。"
+  },
+  "hero": {
+    "eyebrow": {
+      "en": "Training System",
+      "zh": "組織訓練系統"
+    },
+    "headline": {
+      "en": "Prepare courses. Run training. Review results.",
+      "zh": "編寫課程、辦理訓練、查看成果。"
+    },
+    "lede": {
+      "en": "Manage learning, sessions and exams in one workspace. Configure your organization, languages, sign-in and e-mail in Settings.",
+      "zh": "在同一個工作區管理學習、梯次與考試。在設定中調整組織資訊、語言、登入方式與電子郵件。"
+    },
+    "primary": {
+      "href": "#start",
+      "label": {
+        "en": "Start locally",
+        "zh": "從本機開始"
+      }
+    },
+    "secondary": {
+      "href": "https://github.com/teddashh/Training-System",
+      "label": {
+        "en": "View repository",
+        "zh": "查看儲存庫"
+      }
+    },
+    "notes": [
+      {
+        "en": "Self-hosted",
+        "zh": "自行架設"
+      },
+      {
+        "en": "Three interface languages",
+        "zh": "三種介面語言"
+      },
+      "BSD-3-Clause"
+    ],
+    "visual": {
+      "type": "image",
+      "src": "docs/screenshots/dashboard.png",
+      "alt": {
+        "en": "Training dashboard with synthetic data",
+        "zh": "使用合成資料的訓練首頁"
+      },
+      "caption": {
+        "en": "Personal next steps and training progress.",
+        "zh": "個人待辦與訓練進度。"
+      }
+    }
+  },
+  "capabilities": {
+    "title": {
+      "en": "What you can do",
+      "zh": "可以做什麼"
+    },
+    "items": [
+      {
+        "title": {
+          "en": "Learn",
+          "zh": "學習"
+        },
+        "body": {
+          "en": "Take courses, resume SCORM lessons and track required training.",
+          "zh": "修習課程、繼續 SCORM 教材，並追蹤必修訓練。"
+        }
+      },
+      {
+        "title": {
+          "en": "Author",
+          "zh": "編輯"
+        },
+        "body": {
+          "en": "Build lessons in Studio, import document text or upload SCORM packages.",
+          "zh": "用 Studio 製作教材、匯入文件文字或上傳 SCORM 套件。"
+        }
+      },
+      {
+        "title": {
+          "en": "Run sessions",
+          "zh": "辦理梯次"
+        },
+        "body": {
+          "en": "Schedule training, register people and record attendance.",
+          "zh": "安排訓練、辦理報名並記錄出席。"
+        }
+      },
+      {
+        "title": {
+          "en": "Assess",
+          "zh": "評量"
+        },
+        "body": {
+          "en": "Create exams, reuse questions and review written answers.",
+          "zh": "建立考試、重複使用題庫並批改文字作答。"
+        }
+      },
+      {
+        "title": {
+          "en": "Report",
+          "zh": "報表"
+        },
+        "body": {
+          "en": "View completion, results and question analysis; export records.",
+          "zh": "查看完成情形、成績與試題分析，並匯出紀錄。"
+        }
+      },
+      {
+        "title": {
+          "en": "Administer",
+          "zh": "管理"
+        },
+        "body": {
+          "en": "Manage people, roles, organization settings, sign-in and e-mail.",
+          "zh": "管理人員、角色、組織設定、登入與電子郵件。"
+        }
+      }
+    ]
+  },
+  "showcase": {
+    "title": {
+      "en": "Screens",
+      "zh": "畫面"
+    },
+    "shots": [
+      {
+        "src": "docs/screenshots/studio.png",
+        "alt": {
+          "en": "Course editor",
+          "zh": "課程編輯器"
+        },
+        "caption": {
+          "en": "Edit lessons in Training Content Studio.",
+          "zh": "在 Training Content Studio 編輯教材。"
+        }
+      },
+      {
+        "src": "docs/screenshots/sessions.png",
+        "alt": {
+          "en": "Training sessions",
+          "zh": "訓練梯次"
+        },
+        "caption": {
+          "en": "Manage registration and attendance.",
+          "zh": "管理報名與出席。"
+        }
+      },
+      {
+        "src": "docs/screenshots/settings.png",
+        "alt": {
+          "en": "Organization settings",
+          "zh": "組織設定"
+        },
+        "caption": {
+          "en": "Set organization identity and providers.",
+          "zh": "設定組織識別與服務提供者。"
+        }
+      }
+    ]
+  },
+  "quickstart": {
+    "title": {
+      "en": "Start a local workspace",
+      "zh": "啟動本機工作區"
+    },
+    "intro": {
+      "en": "Use Docker Engine and Compose v2. Run these commands from the repository root.",
+      "zh": "使用 Docker Engine 與 Compose v2。在儲存庫根目錄執行以下指令。"
+    },
+    "primary": {
+      "href": "https://github.com/teddashh/Training-System/blob/main/docs/GETTING-STARTED.md",
+      "label": {
+        "en": "Follow the first-hour guide",
+        "zh": "閱讀入門指南"
+      }
+    },
+    "steps": [
+      {
+        "title": {
+          "en": "1. Prepare configuration",
+          "zh": "1. 準備設定"
+        },
+        "code": "cp .env.example .env\nchmod 600 .env",
+        "body": {
+          "en": "Edit .env: replace SECRET_KEY and POSTGRES_PASSWORD with separate random values. Keep DEBUG=true for this local trial and set DEMO_MODE=false. Leave provider credentials empty.",
+          "zh": "編輯 .env：將 SECRET_KEY 與 POSTGRES_PASSWORD 換成各自獨立的隨機值。本機試用保留 DEBUG=true，並設為 DEMO_MODE=false。服務提供者的憑證先留白。"
+        }
+      },
+      {
+        "title": {
+          "en": "2. Start and create an administrator",
+          "zh": "2. 啟動並建立管理員"
+        },
+        "code": "docker compose up --build -d --wait\ndocker compose exec api python manage.py createsuperuser --username training-admin\ndocker compose exec api python manage.py shell -c \"from training.models import User; u=User.objects.get(username='training-admin'); u.role='admin'; u.save(update_fields=['role'])\"",
+        "body": {
+          "en": "Enter the administrator e-mail and password at the prompts. The last command grants the platform Super administrator role.",
+          "zh": "依提示輸入管理員的電子郵件與密碼。最後一個指令授予平台的超級管理員角色。"
+        }
+      },
+      {
+        "title": {
+          "en": "3. Open Settings",
+          "zh": "3. 開啟設定"
+        },
+        "body": {
+          "en": "Open http://localhost:8080 and sign in. Open Settings in the sidebar, then the Settings tab, to set organization name/logo, interface languages, sign-in and e-mail. Save, then send a test e-mail to yourself if enabled. Follow the deployment guide before production use.",
+          "zh": "開啟 http://localhost:8080 並登入。在側邊欄開啟「設定」，再點「設定」分頁，設定組織名稱與標誌、介面語言、登入方式及電子郵件。儲存後，若已啟用郵件，請寄送測試郵件給自己。正式使用前請依部署指南完成設定。"
+        }
+      }
+    ]
+  },
+  "status": {
+    "title": {
+      "en": "Status and limits",
+      "zh": "現況與限制"
+    },
+    "works": [
+      {
+        "en": "Course authoring, SCORM playback, registration, attendance, exams and reports are implemented.",
+        "zh": "已實作課程編輯、SCORM 播放、報名、出席、考試與報表。"
+      },
+      {
+        "en": "Settings supports organization identity, interface languages, Entra ID or Google Workspace sign-in, and SMTP or Microsoft 365 mail. Local password accounts remain available.",
+        "zh": "設定支援組織識別、介面語言、Entra ID 或 Google Workspace 登入，以及 SMTP 或 Microsoft 365 郵件。本機密碼帳號仍可使用。"
+      },
+      {
+        "en": "The original starter library builds 60 courses, 163 scenario lessons and 20 draft exam templates.",
+        "zh": "原創入門課程庫可建置 60 門課程、163 個情境單元與 20 份考試草稿範本。"
+      }
+    ],
+    "limits": [
+      {
+        "en": "One organization per workspace. Verify provider access, mail, restore and expected load in your deployment.",
+        "zh": "每個工作區供單一組織使用。請在部署環境驗證服務存取、寄信、還原與預期負載。"
+      },
+      {
+        "en": "SCORM is a single-SCO 1.2/2004 subset without multi-SCO sequencing or full certification. No cmi5 import or xAPI LRS.",
+        "zh": "SCORM 為單一 SCO 的 1.2/2004 功能子集，不支援多 SCO 定序，也未取得完整認證。不提供 cmi5 匯入或 xAPI LRS。"
+      },
+      {
+        "en": "No proctoring, file-upload answers or isolated programming sandbox. Document import is text-only, without OCR or slide layouts.",
+        "zh": "不提供監考、檔案上傳作答或隔離的程式執行環境。文件匯入只有文字，不包含 OCR 或投影片版面。"
+      },
+      {
+        "en": "Upstream feature parity is incomplete. The repository audit records remaining gaps.",
+        "zh": "尚未涵蓋所有上游功能。儲存庫的稽核文件記錄待補項目。"
+      }
+    ]
+  },
+  "facts": [
+    {
+      "label": {
+        "en": "Runtime and build",
+        "zh": "執行與建置環境"
+      },
+      "value": "Python 3.13 · Node.js 24 · PostgreSQL 17"
+    },
+    {
+      "label": {
+        "en": "Backend lockfile",
+        "zh": "後端鎖定版本"
+      },
+      "value": "Django 5.2.19 · Django REST Framework 3.18.3"
+    },
+    {
+      "label": {
+        "en": "Frontend ranges",
+        "zh": "前端版本範圍"
+      },
+      "value": "React ^19.2.0 · TypeScript ^5.9.0 · Vite ^7.2.0"
+    },
+    {
+      "label": {
+        "en": "Interface languages",
+        "zh": "介面語言"
+      },
+      "value": {
+        "en": "English · Traditional Chinese · Spanish",
+        "zh": "英文 · 繁體中文 · 西班牙文"
+      }
+    },
+    {
+      "label": {
+        "en": "License",
+        "zh": "授權"
+      },
+      "value": {
+        "en": "BSD-3-Clause for new code; upstream terms retained",
+        "zh": "新程式碼採 BSD-3-Clause；上游保留原授權"
+      }
+    }
+  ],
+  "links": [
+    {
+      "href": "https://github.com/teddashh/Training-System",
+      "label": {
+        "en": "Repository",
+        "zh": "儲存庫"
+      }
+    },
+    {
+      "href": "https://github.com/teddashh/Training-System/blob/main/docs/GETTING-STARTED.md",
+      "label": {
+        "en": "Getting started",
+        "zh": "入門指南"
+      }
+    },
+    {
+      "href": "https://github.com/teddashh/Training-System/blob/main/docs/DEPLOYMENT.md",
+      "label": {
+        "en": "Deployment",
+        "zh": "部署"
+      }
+    },
+    {
+      "href": "https://github.com/teddashh/Training-System/blob/main/docs/OPERATIONS.md",
+      "label": {
+        "en": "Operations",
+        "zh": "操作"
+      }
+    },
+    {
+      "href": "https://github.com/teddashh/Training-System/blob/main/docs/UPSTREAM-AUDIT.md",
+      "label": {
+        "en": "Upstream audit",
+        "zh": "上游稽核"
+      }
+    },
+    {
+      "href": "https://github.com/teddashh/Training-System/blob/main/THIRD_PARTY_NOTICES.md",
+      "label": {
+        "en": "Third-party notices",
+        "zh": "第三方聲明"
+      }
+    }
+  ]
+}

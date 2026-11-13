@@ -1,3 +1,4 @@
+import { brandAlias } from '../../shared/brand/build'
 import { defineConfig } from 'vitest/config'
 
 // Vitest config — kept separate from vite.config.ts so the production build
@@ -5,9 +6,11 @@ import { defineConfig } from 'vitest/config'
 // the SCORM and xAPI runtimes are loaded into a `vm` context with a mocked
 // LMS / LRS, so jsdom isn't required.
 export default defineConfig({
+  resolve: { alias: brandAlias },
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'node',
+    css: { include: [/tokens\.css/] },
     globals: false,
     testTimeout: 5000,
   },

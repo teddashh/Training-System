@@ -1,246 +1,378 @@
-# Training operations
+# Run training and administer the workspace
 
-## Assign required training
+Use [Getting started](GETTING-STARTED.md) for the first setup. Sidebar areas and tabs depend on your role. Routes below are relative to `APP_BASE_PATH`.
 
-Open **Assigned training → Assign training**. Choose one published course or assessment, select people, departments, employees, contractors or all active accounts, and optionally set a due date and instructions. Each batch accepts 1–500 people. Instructors can assign only content they own; administrators can manage all assignments.
+## Configure the organization
 
-An explicit exam assignment grants account access even when the general exam audience excludes that person. Publication, exam opening/closing times and identity attempt budgets still apply. Cancelling an assignment removes that access grant and the requirement from the learner worklist. Other audience/invitation grants and existing attempt access remain intact.
+Open **Settings → Settings** (`/settings`). Choose **Change** next to Organization, Sign-in or Email.
 
-Assigning the same target again updates its deadline and instructions and reactivates a cancelled requirement. It preserves the original assignment date, previous learning and attempt usage. Existing course completion or a passed graded exam fulfills the requirement. This release tracks one requirement per person/target; it does not model recurring certification periods.
+Organization accepts a name up to 80 characters and a PNG, JPEG or WebP logo up to 2 MiB and 2048 pixels per side. The server re-encodes the image as PNG. Clearing the name or removing the logo restores the pack default.
 
-Use **My worklist** to open a course or start/resume an assessment. Starting a new attempt starts the timer and consumes one attempt. Instructors/admins use **Completion report** for people, departments, progress, best graded score, due date and completion date. Overdue means incomplete past the due date; the deadline is advisory and does not itself block learning. Pending manual review can remain overdue. The expiry worker updates timed-out exams every minute.
+Choose at least one interface language: English, Traditional Chinese or Spanish. Sign-in offers **None**, **Microsoft Entra ID** or **Google Workspace**. None keeps local password accounts; e-mail codes also need working e-mail. E-mail offers **Off**, **SMTP server** or **Microsoft 365 mailbox**.
 
-CSV exports include all assignments within the manager's ownership scope, including cancelled requirements. Exports are UTF-8 with BOM and protect cells beginning with spreadsheet formula characters. The on-screen search/status filter does not narrow the exported report.
+Save before choosing **Send test email to me**. The test uses your own account address. Server-controlled sections show **Set by the server**. Ask the deployment operator to change those values. See [provider setup and environment rules](DEPLOYMENT.md#configure-environment-variables).
 
-## Question bank and exam variation
+## Choose roles
 
-Create single-choice, multiple-choice, short-answer, written-response, integer, numeric or ordering questions in **Question bank**. Set the category, points and accepted answers. Instructors see their own bank; administrators see all. Archive a question to remove it from future selection without affecting existing exams.
+Only **Super administrator** manages system settings, people, groups, directory sync, mail and audit/readiness. Django data maintenance also requires `is_staff` and Django model permissions. A platform role does not grant those flags.
 
-In the exam editor, **Add from question bank** copies selected questions into the exam. Changes to the source bank never mutate those copies. The editor can shuffle question order, shuffle choice options, or select a random number of questions per attempt. Leave the count empty to use all questions. Ensure every random combination has an appropriate difficulty and point distribution for the assessment.
+| Role | Courses | Exams and results | Other rights |
+| --- | --- | --- | --- |
+| Super administrator (`admin`) | All | All | Assign, invite, administer |
+| Training administrator (`training_admin`) | All | All | Assign and invite |
+| Course creator (`course_creator`) | Own | None | Assign owned courses |
+| Exam administrator (`exam_admin`) | None | All | Assign exams and invite |
+| Training scheduler (`training_scheduler`) | Own | Own exams, no scores/results | Schedule and see linked quiz pass status |
+| Instructor (`instructor`, legacy) | Own | Own | Assign and invite for owned items |
+| Learner (`learner`) | Personal access | Personal access | Take assigned or available training |
 
-Question sampling and option permutation occur once at attempt creation. The frozen snapshot includes remapped correct answers, text matching rules, numeric tolerances, weights and the pass threshold. Resuming keeps the same questions and ordering. Later bank/exam edits cannot change an active or completed attempt's grading.
-
-### Text answer matching
-
-**Short answer** accepts 1–20 alternative text answers, each up to 20,000 characters. Each alternative has its own text box, so an answer can contain multiple lines. Any matching alternative earns full credit. Choose its rule in **Question bank** or the exam editor:
-
-| Matching rule | Behavior |
-| --- | --- |
-| Ignore case and surrounding whitespace | Default and previous platform behavior: trims whitespace at both ends and compares Unicode case-folded text. Internal spaces and line breaks still matter. |
-| Ignore case; preserve spacing | Yaksh `lower`: compares lowercase text line by line, preserving spaces and blank lines. Unicode lowercase is intentionally distinct from case folding: `Straße` matches `STRAẞE`, but not `STRASSE`. |
-| Match case and spacing | Yaksh `exact`: compares text line by line with case, spaces and blank lines preserved. |
-
-For both Yaksh modes, line-ending formats (such as Windows CRLF and LF) are equivalent, and a single final line break is ignored by the source's `splitlines()` comparison. An additional blank line is significant. No regular expressions, substring matching or partial credit are used. Empty or whitespace-only answers earn zero credit. State the required capitalization and formatting in the question so participants know what is expected.
-
-Copying a bank question preserves its alternatives and rules. Each attempt freezes them at its start; subsequent authoring changes do not regrade existing attempts. Rules and accepted values remain private to instructors. Instructor review labels each accepted answer with its matching rule, and insights keep versions with different rules separate. Older saved questions and attempts without rules retain their previous normalization behavior.
-
-API example: `{"type":"short","options":[],"solution":["Release  Ready\nChecked","Approved"],"answer_matching":["exact","lower"]}`. `answer_matching` contains one of `normalized`, `lower` or `exact` for each solution. Missing/empty rules default to `normalized`; when updating an existing rule list, keep its length aligned with the alternatives. Text is preserved verbatim. Yaksh string imports require an explicit `lower` or `exact` on every testcase; unknown or missing modes reject the entire draft import for review.
-
-### Integer, numeric and ordering questions
-
-**Integer answer** accepts 1–20 alternative whole numbers. Leading signs and surrounding spaces are allowed; decimal points and scientific notation are not accepted for this type. An exact match to any accepted value earns full credit. Large integers remain text throughout the player and API to preserve precision.
-
-**Numeric answer** accepts 1–20 alternative values, each with its own non-negative absolute tolerance. A value of `12.5` with tolerance `0.05` accepts `12.45` through `12.55`, including both boundaries. Use `0` for an exact match. Any matching alternative earns full credit. Use a decimal point, including in Spanish, or scientific notation such as `1.25e1`; commas, expressions, NaN and infinity are not accepted. Values and tolerances use decimal arithmetic, up to 100 coefficient digits and a normalized exponent from −100 to 100, with a maximum input length of 128 characters. Zero is accepted. These are absolute margins, not percentages.
-
-**Ordering** accepts 2–20 distinct, non-empty items. Enter them in the correct order, one per line. The player shuffles these items when each attempt starts, independently of the exam's choice-option shuffle setting. Learners use keyboard-accessible up/down buttons and can select **Use this order** when the displayed order is already correct. Only the complete correct sequence earns credit; no partial credit is assigned. Resuming an attempt preserves both its item permutation and saved answer.
-
-All three types auto-grade for account and guest attempts. Autosave permits incomplete numeric drafts such as `-` or `1e`; submitting an invalid or unanswered value earns zero points. Question values, tolerances and solution order remain private to instructors. Learners can review their submitted responses after submission, and assessment insights include these question types.
-
-For API clients, integer/numeric `solution` values are strings, and numeric `answer_tolerances` is an equally sized list of strings. For example, `{"type":"numeric","options":[],"solution":["12.5","-12.5"],"answer_tolerances":["0.05","0.01"]}` defines two accepted intervals. Ordering solutions and answers are arrays of zero-based option indexes, with each item present exactly once. An empty answer array represents an unanswered ordering question. Attempt saves still require the current `answer_revision` for conflict protection.
-
-## Live exam monitoring and extra time
-
-Open **Exams & assessments → Monitor** on an exam you manage. Administrators can monitor every exam; instructors can monitor only their own. The monitor includes account and guest attempts, including standalone exams, and excludes private instructor previews. It refreshes every five seconds while visible. Search by participant name, identity key, employee ID or department; filter by attempt number and status, and move through pages of 25 attempts. Summary counts follow the participant/attempt-number filters across all statuses. A failed refresh keeps the last successful data visible with an error and timestamp.
-
-Progress counts answers already saved on the server, including a selected first choice (`0`); it does not count unsaved typing or indicate correctness. **Recent contact** means an attempt start, heartbeat or accepted answer write arrived within 60 seconds. The player sends a heartbeat every 15 seconds while visible and checks again when returning to the tab. Browser suspension, network interruptions and background tabs can all delay contact, so this is not an attendance, attention or cheating signal. **Last answer save** changes only after an accepted answer write. Migrated attempts have no contact/save timestamps until their next heartbeat or answer save; read-only attempt requests do not update contact time.
-
-Choose **Time extensions**, enter 1–240 whole minutes and a reason, then select **Grant extra time**. An attempt can receive at most 1,440 extra minutes across extensions and reopenings combined. The server locks the attempt and records the manager, reason, old deadline and new deadline in extension history and the audit log. Only active, unexpired attempts can receive time. This action does not reopen expired or submitted attempts; use the separate reopening workflow below.
-
-If the response is lost, use **Retry extension request**. The original request ID and details remain in that manager tab's session storage, including across reloads, and are reused without adding time twice. Keep that tab's storage until the outcome is confirmed. Do not make a separate grant from another tab to retry an uncertain outcome; distinct request IDs intentionally represent distinct grants. Extension history shows every grant and paginates older records.
-
-Extra time can carry the current attempt past the exam's closing window. The participant can resume that same active attempt without consuming another budget slot; the closing window still blocks new starts, and unpublished exams still block start/resume. Guest-link expiry, revocation, mailbox verification and disabled-account checks remain in force. Ensure the invitation remains valid through the intended deadline. If necessary, issue a replacement link for the same identity; the replacement does not reset attempt usage and may require mailbox verification again.
-
-The player updates its timer from server responses without replacing local edits. It serializes heartbeat and answer requests, and checks the server when the local timer reaches zero instead of queuing a manual submission at an obsolete deadline. The server, reporting endpoints and expiry worker recheck the stored deadline under the attempt lock. Submitted attempts link to the existing instructor review workflow. Deploy the matching web/API/worker versions and reload existing exam tabs before relying on this behavior.
-
-Choose **Inspect saved answers** to see the complete frozen paper, saved answers and accepted answers as an authorized manager. This read-only view refreshes every five seconds while visible and shows the answer revision, last save and observation time. It excludes unsaved edits on the participant’s device and does not update participant contact times. A failed refresh retains the last result with a stale-data warning. Use **Review submission** after submission to enter grades.
-
-Choose **Reopen & history → Reopen submission** for a submitted paper. Enter 1–240 whole minutes and a reason. Only the latest attempt for that identity/exam can reopen, with no other active attempt. The exam must be published, linked accounts enabled, and the original invitation valid if one was used. An overdue active paper is finalized by the monitor before it can be reopened. The new deadline runs from the reopening time; the same attempt number, frozen questions/navigation, saved answers and quota usage are retained. Reopening does not create a new attempt or bypass the normal guest-link checks.
-
-Reopening preserves a read-only copy of the prior questions, responses, grades, feedback, score and submission time. It clears the current grade and submission time and withdraws that attempt’s contribution to results and assignment completion until it is submitted and graded again. Other passing attempts can still satisfy an assignment. Essay responses require fresh grading. **View preserved submission** opens the historical copy; it never contributes to current reports and is available only to administrators and the exam’s owning instructor. Previous copies remain unchanged after subsequent edits, resubmission and grading. Reopening does not send a notification; ask the participant to resume through the existing exam/link or reload the attempt.
-
-A lost reopening response is recovered using **Retry reopening request**, including after reloading the same manager tab. The exact request must be reused; it returns the original grant even if the participant has already submitted again. A changed submission or a newer attempt rejects a stale reopening request. An old learner tab must reload saved answers before writing to a reopened attempt; older integrations must include the current `answer_revision`. Stale review forms also reject grading after reopening/resubmission. Deploy matching application versions before using this workflow.
-
-API: `GET /api/exams/{id}/monitor/` accepts `search`, `number`, `status`, `page` and `page_size` (1–100). `POST /api/attempts/{id}/heartbeat/` is participant/guest scoped and CSRF protected; it returns timing/status only and never accepts answers. `GET /api/attempts/{id}/extensions/` returns manager-scoped paginated history. `POST` to the same endpoint accepts a UUID `request_id`, integer `minutes` and nonblank `reason` (maximum 500 characters). The first grant returns 201; an exact retry returns 200 even after submission. Reusing a request ID with different details returns 409, as does trying to extend an expired/submitted attempt. These endpoints send `Cache-Control: no-store`. `GET /api/attempts/{id}/inspection/` returns manager-only frozen questions and saved answers. `GET /api/attempts/{id}/reopenings/` returns paginated reopening metadata; `GET /api/attempts/{id}/reopenings/{request_id}/` returns that preserved submission. `POST /api/attempts/{id}/reopenings/` requires `request_id`, `minutes`, `reason`, and the monitor’s `answer_revision` and `submitted_at`. It returns 201 on creation, 200 on exact retry, or 409 for stale/conflicting requests. All new endpoints send `Cache-Control: no-store`; history is read-only. Reopening is serialized with new starts and attempt updates on PostgreSQL.
-
-## Instructor exam previews
-
-Open **Exams & assessments → Preview exam** (the eye icon). The dialog loads the saved exam, displays every question in its pool, and can show accepted answers, numeric tolerances and text-matching rules. Unsaved editor changes must be saved first. A randomized trial selects its own paper; the question-paper display is the complete pool.
-
-- **Learner simulation** requires a published exam within its opening/closing window. It uses the configured duration, capped by the exam closing time, and follows navigation and completed-response visibility policies. It is a trial of the assessment experience; it does not check a particular participant's audience membership, available attempts or retry wait.
-- **Untimed test** works with drafts, future and closed exams. It has no exam deadline. Question selection, shuffling, scoring, sequential navigation and completed-response visibility still follow the exam settings.
-
-Both modes use a separate private preview record. They never create participant identities, consume exam or invitation budgets, appear in results/insights/exports, or fulfill training assignments. Question snapshots, answer rules, pass thresholds and navigation remain frozen across edits and reloads; response visibility follows the live exam setting. Autosave and revision conflicts work as in a real attempt. The back button waits for answers to be saved; recover a failed save before leaving if those answers are needed.
-
-After submitting, **Inspect test result** lets the preview owner inspect the answer key and practice written-response grading even when participant response review is disabled. Those marks and feedback affect only the preview. **Refresh result** shows the corresponding participant view. This separation allows instructors to verify both the hidden-review experience and the grading workflow.
-
-Only the preview creator can open, grade or delete it, and that person must still be allowed to manage the exam. Administrators can create their own previews of any exam; they do not gain access to another person's private trial. Losing the instructor role or exam ownership revokes access. Learners and guest links cannot use preview endpoints. Requests use the signed-in session and CSRF protection, and responses are marked `no-store`.
-
-**Saved previews** supports resume, result inspection and deletion. Each creator may retain up to 20 previews per exam; delete one to free a slot. Previews expire seven days after creation, regardless of exam timing, and the existing minute scheduler removes expired trial records. Untimed means no assessment timer, not permanent retention. The scheduler also submits timed previews at their deadline using only saved answers. Preview audit entries use the `preview.*` namespace and do not record answer content.
-
-API clients use `GET/POST /api/exams/{id}/previews/` with `mode: "learner"` or `"unrestricted"`, then `GET/PATCH/POST/DELETE /api/previews/{uuid}/`. Save/submit requires the current `answer_revision`; stale writes return 409. The private grading endpoint is `/api/previews/{uuid}/review/`. Responses reuse the participant attempt shape with `preview_mode`, `preview_expires_at`, and a nullable `deadline` for untimed trials. Preview IDs cannot be used in participant attempt or results endpoints. See the navigation rules below for sequential papers.
-
-## Navigation and completed-response review
-
-The exam editor's **Navigation and response review** section has two independent settings. Both default to enabled, preserving the existing platform behavior for old and new exams.
-
-**Allow participants to skip questions** controls new attempts. Disable it to release questions in sequence. An attempt initially receives only its first question; after all currently available questions have saved answers, the server releases the next question. Future prompts and options are absent from participant API responses, and submissions containing future question IDs are rejected. The player waits for save confirmation before enabling the next question. Random subsets and shuffled order are selected once and remain stable when resuming.
-
-Participants may revisit unlocked questions. Clearing an earlier answer preserves access to questions already seen, but blocks further unlocking and manual submission until every required answer is present. A selected option at index zero counts as answered; empty selections and whitespace-only text do not. Presence does not imply correctness: any nonblank numeric draft also counts as an answer and receives zero credit if its format is invalid when graded. Ordering answers must be full valid permutations. These rules apply to all seven supported question types and to account and guest attempts.
-
-The player measures elapsed time with a monotonic clock from the server-provided remaining duration, so changing the device date cannot prematurely submit or extend an attempt. The server remains authoritative.
-
-The navigation policy is frozen when an attempt starts. Changing the exam setting affects future attempts. Manual submission requires every selected question to have an answer when skipping is disabled. The server still finalizes an incomplete attempt at its deadline using only saved answers; an expiry request cannot overwrite those answers with a late payload. Concurrent saves retain the answer-revision conflict checks and release at most one new question per accepted save.
-
-**Allow participants to review responses and feedback** controls subsequent access to completed attempts, including those awaiting manual grading. When disabled, participant GET, save and submit responses omit question content, answers and instructor feedback. Status, attempt number and final score remain available. Authorized instructors/admins retain full access through **Results → View attempt**. Enable the setting later to release completed responses without changing grades, attempt counts or saved answers. Participants can use **Refresh result** to retrieve released responses or updated grades. Disabling review cannot retract content already shown or copied by a participant; it restricts subsequent responses. Attempt and instructor-review endpoints use `Cache-Control: no-store`.
-
-API clients configure `allow_skip` and `allow_response_review` on the exam. Attempt responses include the frozen `allow_skip`, total `question_count`, and `review_available`. During a sequential attempt, `questions` contains only the unlocked prefix; its length is **not** the total question count. After a hidden completion, `questions` is `[]`, and `answers`/`manual_grades` are `{}`. An incomplete manual submission returns HTTP 400 with `code: "answers_required"` and a localized detail, without changing saved answers or their revision. Clients must allow correction and retry rather than treating that validation response as a multi-tab conflict. Existing free-navigation attempts continue to permit incomplete manual submission.
-
-## Waiting periods between exam attempts
-
-In the exam editor, set **Minimum time between attempt starts (minutes)** to a whole number from 0 to 525600 (one year). The default is 0, which preserves immediate retries after submission. As in Yaksh, the interval runs from the previous attempt's **start**, not its submission or grading time. For example, an attempt started at 09:00 with a 90-minute interval permits the next start at 10:30, even if the first attempt was submitted at 09:20. The boundary is inclusive.
-
-The interval is shared by the participant identity across email, username, employee ID, account sign-in and every guest link for that exam. Issuing another invitation or granting extra attempts does not remove the wait. Resuming a valid active attempt does not consume another attempt or restart the interval, including when its invitation has no new attempts left. Expired attempts retain their original start time for this calculation.
-
-Exam and assignment start dialogs fetch fresh eligibility. They show the next eligible time in the selected interface language and disable new starts until the wait ends, using the server clock. Guest invitations show the same restriction. **Refresh availability** retrieves changes made by an organizer or another session. The server always rechecks eligibility; early requests consume no identity or invitation allowance.
-
-The exam's current interval applies to subsequent starts. Increasing it can extend the wait for someone who already submitted; decreasing it or setting it to 0 can make that person eligible sooner. Existing answers, scores and attempt counts are unchanged. A next-attempt timestamp describes only the retry interval: publication, opening/closing times, audience access, account status, invitation validity and remaining attempts still apply. If the next retry falls after the exam closes, the organizer must change the schedule or interval to allow it. Special-attempt waivers are not implemented.
-
-The account exam API and verified guest metadata expose `retry_interval_minutes`, `next_attempt_at`, `server_time` and `active_attempt_id`. The timestamp can be in the past; it is `null` when there is no prior attempt or the interval is 0. Account metadata is scoped to the signed-in participant; a guest sees only its bound identity after any required email verification. A rejected early start returns HTTP 403 with `code: retry_wait`, a translated `detail`, `next_attempt_at` and `server_time`. This is separate from HTTP 429 traffic throttling.
-
-## Assessment results and insights
-
-**Results & reviews** searches all accessible attempt history and paginates it on the server. Filter by assessment, grading status, passed/not passed, rolling reporting period or a search across people, exams and current departments. Summary counts and average scores cover all matching records. **Export results CSV** uses the same filters and includes every matching page. Administrators can report on all attempts; instructors on their own exams; learners on their own identity's attempts.
-
-**Assessment insights** is available to administrators and instructors. Choose an assessment and reporting period to see graded attempts, unique participants, average score, attempt pass rate, score distribution and department performance. Participants include identities with active or pending attempts; score and question statistics include only fully graded attempts. Repeated attempts count separately. Department attribution uses the account's current department, not its historical department at exam time.
-
-Question analysis shows response count, answer rate, full-credit rate and average points, sorted by the lowest full-credit rate. Each saved question version is analyzed separately from its frozen attempt snapshot. Shuffled choice ordering is normalized; sampled questions count only when presented. Written responses contribute after all manual grading is complete. Saving exam questions creates new versions even when some wording is unchanged. **Export question analysis** exports all analyzed question versions for the selected assessment and period; the question-table search only narrows the on-screen table. Aggregate exports contain neither answer keys nor participant responses.
-
-Reporting periods use submission time, falling back to start time for active attempts. Opening reports finalizes expired attempts within the selected scope before applying status and date filters. These synchronous reports have no fixed history truncation in the UI, but large installations should validate response time with their expected attempt volume.
-
-Exam confirmation and assigned-assessment confirmation show the participant's effective individual budget, including overrides, used/remaining attempts, and opening/closing times. An active attempt can resume when no new attempts remain. Resuming does not consume another attempt; the API still checks current availability and access.
-
-### Marks CSV imports
-
-Open **Exams & assessments → Monitor → Import marks**. Administrators can manage every exam; instructors can manage only their own. This works for standalone and course-linked exams, account holders and invited guests. Private instructor previews and active attempts are excluded. **Download marks template** follows the monitor’s search, attempt-number and status filters. If no submitted papers match, select a submitted status or clear the status filter. Large results must be narrowed; exports never silently truncate records.
-
-The UTF-8 CSV template uses stable English column names in every interface language. Each row identifies one frozen question in one exact attempt. Keep `attempt_id`, `question_id`, `answer_revision` and `grading_revision` unchanged. `identity`, `attempt_number`, `question`, `maximum_points`, `current_points` and `current_feedback` are reference columns; changing them cannot redirect a row or change the allowed score. The native format replaces Yaksh’s username/latest-paper lookup. Existing Yaksh wide-format CSV files must be converted to this template; they are not directly accepted.
-
-Edit these columns:
-
-- `points`: a finite decimal number from zero through that frozen question’s maximum, with at most six decimal places. Use a decimal point, including in Spanish. Blank keeps the current mark or automatic scoring. All seven question types support imported scores, including partial points for automatically scored questions. Entering points creates an explicit manual override.
-- `feedback`: new participant-visible feedback, up to 5,000 characters. Blank retains existing feedback. Quotes, commas and line breaks are supported through normal CSV quoting. Feedback alone does not grade an ungraded essay and does not replace automatic scoring when no score override exists.
-- `clear_feedback`: set `true` with blank `feedback` to remove an existing comment. Blank or `false` retains it. Do not supply both replacement text and a clear flag.
-
-A file may contain at most 500 question rows across 100 attempts and occupy at most 256 KiB. Keep the six required headers (`attempt_id`, `question_id`, `answer_revision`, `grading_revision`, `points`, `feedback`); `clear_feedback` and the reference columns are optional when preparing a file yourself. Duplicate or unknown headers, malformed rows, repeated changed attempt/question rows, unsupported scores, changed revisions and questions outside the frozen paper reject the preview. Rows with no editable values are skipped. Template reference values are escaped against spreadsheet formulas, including values beginning with whitespace; editable cells start blank so those escapes are never imported into feedback automatically.
-
-Choose a file or paste CSV, enter a reason, and select **Preview mark changes**. Review the before/after question points, comments and predicted attempt outcomes. A valid preview changes no marks and expires after 30 minutes. Every affected paper is checked again under locks when **Apply reviewed marks** is selected. Only the preview’s creator can apply it, while still authorized to manage the exam. Administrators/owning instructors can inspect history. One changed paper rejects the whole batch; refresh the template and create a new preview. Reopening, submission or another review/import can invalidate a spreadsheet or preview. Answer snapshots, answer revisions, submission times and attempt/link quotas remain unchanged by an import.
-
-Applied points use the same calculation as result pages, question analysis, CSV reports and training completion. Automatic-question overrides remain visible when an instructor subsequently reviews essays. Feedback follows the exam’s existing completed-response visibility policy. An ungraded essay keeps the attempt pending; providing its score allows normal grading. If a passing result becomes failing, completion derived solely from that result is withdrawn. Other passing attempts can still satisfy the assignment.
-
-After a lost response, use **Retry saved import**, **Refresh import status**, or reopen the saved item from **Marks import history**. The import ID identifies one transaction: retrying an applied import returns its original receipt without updating any grades, even after later reviews or reopening. The receipt preserves the original reason, question changes and before/after outcomes; it is evidence of that operation, not a live result report. Preview contents cannot be edited in place. **New import** creates a separate reviewed operation. There is no automatic undo; make a new reviewed correction if required.
-
-A manager can hold at most 20 unexpired pending previews per exam. The scheduler removes unapplied previews seven days after expiry. Applied receipts remain protected evidence. The interface and API do not send notification emails for marks imports.
-
-API: `GET /api/exams/{id}/marks/template/` accepts the monitor’s `search`, `number` and `status` filters. `POST /api/exams/{id}/marks/imports/` accepts `{csv, reason}` and creates a preview (201, `valid: true`) or returns row validation errors (200, `valid: false`); invalid file structure/limits return 400. `GET` on that collection returns paginated history using `page` and `page_size` (1–100). `GET /api/exams/{id}/marks/imports/{import_id}/` returns the reviewed changes; `POST` with an empty body applies that saved plan or returns its existing receipt. Stale or expired plans return 409 with `stale_marks_preview`. These endpoints enforce manager scope and session CSRF checks and send `Cache-Control: no-store`.
-
-Review API clients should send both `answer_revision` and `grading_revision` from the latest review GET when posting grades to `/api/results/{attempt_id}/review/`. For compatibility, a missing grading revision is accepted only while the stored revision is zero. After any review, import or reopening, it is required. Old or missing grading revisions then return 409 with `grading_conflict`. Reload existing review tabs after deploying the matching API and frontend. Instructor previews remain separate from real grading revisions and marks imports.
-
-### Reporting API compatibility
-
-`GET /api/results/?page=1&page_size=25` returns `{results,count,page,pages,page_size,summary}`. Page size is limited to 100. An excessive page number resolves to the last page. Omitting `page` preserves the v1.0 array response capped at 1,000 records; new clients should always request pagination.
-
-The results endpoint and `/api/results/export/` share optional `exam`, `search`, `department`, `status`, `outcome` and `days` parameters. Status values are `in_progress`, `pending_review` and `graded`; outcomes are `passed` and `not_passed`; periods are `all`, `7`, `30`, `90` and `365`. Empty status/outcome means all. Export ignores pagination when selecting rows. Existing result CSV columns are preserved, with `Department` appended.
-
-`GET /api/exams/{id}/insights/?days=90` returns exam metadata, summary, distribution, departments and question analysis. Add `export=csv` for the question analysis file. This endpoint enforces current administrator/owner-instructor authority. Both CSV exports use localized headers, UTF-8 with BOM, and spreadsheet formula escaping.
-
-## Answer saving and learner feedback
-
-The assessment player sends one save at a time. Edits made during a slow save remain local until the next save; submission waits for the pending save and then sends the latest answers. Connection failures retain the current tab's draft and retry with backoff. **Retry saving** requests an immediate retry. Unsaved answers are held in memory, so keep the tab open during a connection failure. Closing or reloading the browser can discard them.
-
-Every saved attempt has an `answer_revision`. Another tab's newer save causes a conflict instead of overwriting answers. Copy any local text you need before selecting **Reload saved answers**, which replaces that tab's draft with the server copy. The timer continues during failures and conflicts. At the deadline the server grades the last answers it received before expiry; offline edits cannot extend the deadline.
-
-`GET /api/attempts/{id}/` returns the revision. New clients must include that integer with each `PATCH` save and `POST` submission. A stale revision receives HTTP 409 with `code: answer_conflict`. Omitting the revision remains supported for legacy clients, whose writes still advance the revision; those clients do not get conflict protection. Repeating a completed submission returns the existing result without changing answers. The endpoint never includes solution keys.
-
-After submission, learners and invited recipients can review their own responses. Instructor marks and written feedback appear once recorded; the final score waits for all manual grading. Refresh the result after the instructor reviews it. Feedback is visible to the participant, so instructors should avoid copying confidential answer keys into it.
-
-## Closing SCORM lessons
-
-**Save and close**, the close button and Escape all request the runtime's latest buffered values and wait for the API to acknowledge persistence. If saving fails, the player stays open for another attempt. **Close without saving** becomes available after a failed close; choosing it can lose recent progress. Use the player controls before leaving the page. Browser shutdown, a crash or a lost connection cannot guarantee a final save. Reopening a lesson restores the last confirmed state.
-
-## Shared-office sign-in limits
-
-Password login and email-code requests/verification share a persistent limit of 20 requests per account per ten-minute window. Username, email and employee ID aliases share the same counter. Guest verification uses an invitation counter. A separate network counter defaults to 300 requests per ten minutes; `AUTH_NETWORK_LIMIT` configures that network allowance. HTTP 429 includes `Retry-After` in seconds. A failed earlier email delivery does not invalidate a newer code; SMTP operations time out after ten seconds.
-
-The API uses the direct connection's address, ignoring client-supplied forwarding headers. In the bundled deployment, the Nginx peer is shared by participants, so the network counter is a deployment-wide budget. Size it for scheduled training groups and enforce actual client-IP limits at the trusted outer proxy. General API throttles allow 600 requests per minute for an authenticated user or anonymous direct peer. These are traffic controls, not a concurrency capacity guarantee; validate company usage on Peach1.
-
-## Guest invitation cohorts
-
-Open **Guest exam invitations → Create invitation batch**. Select a published assessment, set the per-link attempt limit (1–100) and validity (1–90 days), then paste or upload UTF-8 CSV. Each batch accepts 1–200 recipients and at most 256 KB. Required header: `key`; optional header: `verification_email`. Header names must be unique and exact. Quote values containing commas or newlines.
-
-```csv
-key,verification_email
-employee-1042,
-partner.sofia@example.com,
-contractor-027,contractor027@example.com
-```
-
-Keys resolve by email, username or employee ID to the same participant identity used by account sign-in. Unknown keys create guest identities, without creating login accounts. Duplicate recipients within a batch are rejected even when different aliases are used. Disabled linked accounts are rejected. **Validate recipients** shows each identity, verification mailbox, remaining new attempts and row errors without persisting identities or links. Issuance revalidates everything and commits all recipients or none. Administrators can issue for any exam; instructors only for their own.
-
-Email verification is enabled by default. Leave `verification_email` empty to use the account's email or the guest's email key. For an account-only key without a mailbox, supply the intended recipient's email. Disabling verification allows anyone holding the link to use its bound identity. The platform does not email the invitation automatically; distribute each personal link through an approved channel. Verification codes are sent only when a recipient requests them.
-
-**Download invitation links CSV** exports the issued links, expiry, per-link limit, remaining attempts and verification settings. The file uses stable English column names, UTF-8 with BOM and spreadsheet formula escaping. Treat it as a credential file. Full links are held in this dialog's memory; history shows metadata. Download before closing. The dialog warns before discarding un-downloaded links. Browser failure or reload loses the in-memory request and links.
-
-If the creation response is lost, keep the dialog open and use **Retry batch request** within ten minutes. The browser reuses the original request UUID and exact payload. The authenticated creator receives the same links without issuing duplicates. Another creator, changed payload, expired recovery window or changed server secret cannot recover that response. Check invitation history before creating another batch after an uncertain result. Reissuing links does not reset the shared participant/exam attempt budget. A participant with no new attempts may still resume an eligible active attempt.
-
-History supports participant/exam search, exam/status filters and pagination. Search includes account email, username, employee ID and display name. **Disable** asks for confirmation and immediately rejects later guest requests, including saves/submission from an active attempt. Account deactivation likewise blocks linked guest identities. Saved answers and used attempts remain recorded.
-
-| Status | Meaning |
-| --- | --- |
-| Active | Link is unrevoked, unexpired and has a new attempt available |
-| Resume only | No new attempts remain, but a timed active attempt exists |
-| No attempts remaining | Neither a new attempt nor a timed active attempt is available |
-| Disabled | An organizer revoked the link |
-| Expired | The link's expiry time has passed |
-| Account disabled | The linked platform account is inactive |
-
-These statuses describe link and budget state. Assessment publication, opening/closing dates and verification still apply when accessing the exam. Remaining counts are current snapshots, not reserved attempts; starting an attempt enforces the budget transactionally.
-
-### Invitation API compatibility
-
-`GET /api/invitations/?page=1&page_size=25` returns `{results,count,page,pages}`. Page size is capped at 100; excessive page numbers resolve to the last page. Optional filters are `search`, `exam` and `status` (`active`, `resume_only`, `exhausted`, `revoked`, `expired`, `blocked`). Omitting `page` preserves the array response, capped at 1,000 records. History never returns full tokens or access URLs.
-
-`POST /api/invitations/bulk/` takes `exam`, `csv`, `max_attempts` (default 1), `days` (default 7), `require_email_verification` (default true), and `apply` (default false). Set `apply: true` and a client-generated UUID `request_id` to issue. A preview or row-validation failure returns `{valid,applied:false,count,rows}`; invalid rows never create a partial batch. Success returns HTTP 201 with `{valid:true,applied:true,replayed:false,count,invitations}`, including personal URLs. Exact retries within ten minutes return HTTP 200 with `replayed:true`. Conflicting/expired request IDs return HTTP 409. Responses containing links have `Cache-Control: no-store`.
-
-The existing `/api/invitations/issue/` endpoint remains available for single recipients and retains its API default of verification disabled; both organizer forms explicitly enable verification by default. Batch and single-link creation audit metadata excludes access tokens. Successful retries do not add issuance audit events.
+SCORM upload and editable-source access remain limited to super administrators and legacy instructors managing their own courses. Trusted same-origin mode permits uploads only by super administrators. Other course authors can use native lessons and document text imports. See [the role policy](../backend/training/access.py).
 
 ## Bulk onboarding
 
-**People & permissions → Import participants** accepts UTF-8 CSV up to 1 MB and 500 rows. Required header: `username`. Optional headers: `email,employee_id,display_name,department,employment`. Use `employee` or `contractor` for employment; an empty value defaults to employee. Quote commas/newlines according to CSV rules.
+Open **People → Import participants**. Upload or paste UTF-8 CSV, up to 1 MB and 500 rows. Required header: `username`. Optional headers: `email,employee_id,display_name,department,employment`.
 
 ```csv
 username,email,employee_id,display_name,department,employment
-alex.chen,alex.chen@example.com,E1042,Alex Chen,Operations,employee
-partner.sofia,sofia@example.com,,Sofia Garcia,Quality,contractor
+alex.rivera,alex@example.com,E1042,Alex Rivera,Operations,employee
+morgan.lee,morgan@example.com,C102,Morgan Lee,Quality,contractor
 ```
 
-Preview validates every row against existing accounts and other rows in the batch. Import revalidates and either creates all accounts or none. Imported accounts are learners with unusable local passwords; the import never overwrites existing accounts or accepts roles, passwords or Entra subjects. Email codes can be used once SMTP is configured. For accounts with only an employee ID/username, use **Edit person** to set a password.
+Preview, correct errors, then import. Import creates the whole batch or none. It never overwrites people or accepts roles, passwords or directory subjects. New accounts are learners with unusable passwords. They can use e-mail codes after mail is configured. Use **Edit person** to set a local password if needed.
 
-Administrators can edit display name, department, employment, role and password, and enable/disable accounts. Login identifiers are immutable through this API to preserve historical identity ownership. Administrators cannot remove their own admin role or disable themselves. Platform permissions are separate from Django superuser/operator privileges.
+**Edit person** also changes display name, department, employment, role and active status. Login identifiers are not editable through this API. You cannot disable yourself or remove your own administrator role. Disabling an account also blocks linked guest access and preserves learning records.
 
-The profile menu offers **Change password**, requiring the current local password and a new password of at least 12 characters. It preserves the current browser session and invalidates other local authenticated sessions. Microsoft passwords are managed by the company identity service.
+The account menu's **Change password** requires the current local password. New passwords must meet Django validation, including at least 12 characters. It preserves the current session and invalidates other local sessions. Provider passwords remain managed by the identity provider.
+
+## Create and publish a course
+
+Open **Training → Trainings → More → Create course**. Choose interactive content to open **Training Content Studio**, a text lesson, or **PDF / PowerPoint** text import. An administrator can also use the course menu's **Upload SCORM** for a ZIP package.
+
+Document import accepts PDF/PPTX text, not slide layouts, images, animation or OCR. Limits are 20 MB, 50 pages, 20,000 characters per page and 500,000 overall. Review the extracted text before creating lessons. Import does not publish the course.
+
+In Studio, use **Publish to course** to upload content and its editable backup. Use **Make available to learners** afterward, or **Publish course** in Training, to release the course. Uploading replacement content preserves its current visibility. **Download backup** keeps an editable copy; browser drafts alone do not move between devices.
+
+Use **Course settings** for category, duration, cover, enrollment approval and release time. Learners see published courses whose release time has arrived. The [starter library](course-library-sources.md) provides optional draft content.
+
+## Schedule sessions and mark attendance
+
+For an on-site event, choose **Training → New training**. Enter a title and one to ten future sessions with date, start, end and place. Add seats and people as needed. **Create and notify** appears when people are listed. Creation publishes the course and creates its registration link.
+
+Paste e-mail addresses or employee IDs, use **Pick people**, or upload CSV/XLSX. **Download template** provides Email, Employee ID and Name columns. Each row uses Email when present, otherwise Employee ID; Name never identifies a person. Limits are 1 MiB per file, 2,000 input lines and 500 unique people per request. Resolve skipped lines before creating the event.
+
+The training page has **Overview** and **People**. Overview contains **Copy link**, sessions, quiz state and **E-mail reminders**. People supports adding, moving, approving and removing participants. A confirmed or pending registration reserves a seat. Learners can switch before their current session starts, subject to the destination window and capacity.
+
+For online sessions, use **Course settings → Scheduled online sessions** and add sessions to a published course. On-site courses require a place; scheduled sessions can have an HTTPS meeting link. Only managers and the learner's approved session expose that link.
+
+From a session, choose **Attendance** after it starts. Mark **Present** or **Absent**; press the selected choice again to clear it. **Mark all present** marks the approved roster. Canceled sessions cannot be marked. **Sign-in sheet** downloads a PDF; **Excel** downloads the worksheet. Attendance results are available from session start.
+
+On-site presence completes the course. Marking absent or clearing presence removes that completion. Online content access within the learner's session provides automatic attendance evidence; manual marks override it. Online attendance does not itself complete the content. Moving sessions clears the old attendance evidence.
+
+Add scheduled-course **Materials** as HTTPS links or PDF, PPTX, PPT, DOCX or XLSX files, up to 100 MiB. Approved learners can access them before or after the session. File validation is not malware scanning. Back up material files with media.
+
+## Course enrollment approval
+
+Enable approval in **Course settings**. Learners request access, then see the decision. Open **Enrollments**, or the training's **People** tab, to approve, reject, remove or restore enrollment. Pending approval reserves a scheduled seat.
+
+Removal blocks learning and SCORM files while preserving progress and completion history. Publication, release time and session timing still apply. Assignment does not bypass admission rules. Migration `0015_course_enrollment_approval` defaults old courses to open enrollment and old enrollments to approved.
+
+## Shareable course registration links
+
+Use **Copy link** on a scheduled training. The public page shows course/session facts and registration availability, not the participant roster. The recipient signs in to register. The link does not bypass capacity, approval or account checks.
+
+A manager can rotate or disable the course registration link. Rotation invalidates the previous key. Numeric course links remain separate. See the [registration API](SIMPLE-TRAINING-API.md#request-and-response-contracts).
+
+## Create an exam
+
+Open **Exams → Exams → New exam**. Set the title, questions, duration, passing score and audience. More options include timing, attempt rules and navigation/review policy. Save the draft, preview it, then publish it explicitly.
+
+The seven types are single choice, multiple choice, short answer, essay, integer, numeric and ordering. Essays require manual review. Multiple choice is all-or-nothing unless a manager imports a manual score. There are no file-upload answers or proctoring controls.
+
+Use **Question bank** for reusable questions. Select a random subset or shuffle questions/options in an exam. Attempts freeze their question paper, so later edits do not rewrite existing attempts.
+
+## Shared course assessments (0025)
+
+Use **Course assessment** in course settings or **Linked courses** in the exam editor to attach an exam. One exam can serve several courses. Linking does not grant permission to edit the other item. Exam publication stays separate.
+
+Approved learners in a released course can take its published linked exam, except invitation-only exams still require an invitation or assignment. Course-only audience restricts access to course-derived admission. Other audience grants and existing attempts remain independent.
+
+Choose **After the session** for a scheduled course to gate that course-derived access until the person's session ends. A person marked absent has no after-session grant through that enrollment. Unmarked participants retain access. A published exam with a broader audience can still admit someone through that other audience.
+
+## Assign required training
+
+Open **Training → Assignments → Assign training**. Choose a published course or exam, then people, departments, employment types or training groups. Add a due date and instructions under assignment options. Review the selected people before submitting.
+
+The assignment is a snapshot, not a live directory rule. Learners see it in **My training** or **My exams**. Uncheck **Email the people I assign** to suppress assignment mail. Completion and overdue counts appear in the assignment report and CSV export.
+
+Cancelling an assignment removes the requirement without deleting learning evidence. Reactivating it can enqueue a new notification. Changing group membership later does not rewrite existing assignments.
+
+## Question bank and exam variation
+
+Use **Exams → Question bank** to add and reuse questions. Copies are independent; exam edits do not change the bank.
+
+## Text answer matching
+
+Short answers accept several alternatives. Choose a rule for each:
+
+| Rule | Comparison |
+| --- | --- |
+| Ignore case and extra spaces | Unicode case folding, trimmed edges and collapsed whitespace |
+| Ignore case; preserve spacing | Yaksh `lower`, lowercase comparison with spaces and blank lines preserved |
+| Match case and spacing | Yaksh `exact`, case and spacing preserved |
+
+Yaksh modes treat CRLF and LF alike and ignore one final line break. An extra blank line matters. Empty answers earn zero. There is no regular-expression or substring matching. Explain required formatting in the question.
+
+Attempts freeze alternatives and rules. Editing a question does not regrade earlier papers. API `answer_matching` aligns one rule per `solution` entry; omitted rules default to `normalized`. Yaksh imports require explicit `lower` or `exact` for every string testcase.
+
+## Integer, numeric and ordering questions
+
+**Integer answer** accepts 1-20 alternative whole numbers. Signs and surrounding spaces are allowed; decimal points and scientific notation are not. Values stay as strings to preserve large integers.
+
+**Numeric answer** accepts 1-20 alternative values with individual nonnegative absolute tolerances. For example, 12.5 ± 0.05 accepts 12.45 through 12.55. Use a decimal point or scientific notation, not commas or expressions. Values use decimal arithmetic with at most 100 coefficient digits, normalized exponent -100 through 100 and 128 input characters.
+
+**Ordering** accepts 2-20 distinct items entered in the correct order. Attempts shuffle them independently of choice-option settings. Learners reorder them or choose **Use this order**. Resume preserves the saved order.
+
+All three auto-grade. A complete match earns full credit; incomplete or invalid submissions earn zero. API numeric solutions and tolerances are strings. Ordering answers use zero-based option indexes.
+
+## Live exam monitoring and extra time
+
+Open an exam's **Monitor** from **Exams → Exams**. Monitoring, grading and answer inspection require result access for that exam. Training schedulers do not have that access. The monitor excludes private previews and refreshes every five seconds while visible.
+
+Filter by participant, attempt number and status. Progress means saved answers, not correctness. **Recent contact** means a start, heartbeat or accepted write arrived within 60 seconds. The player sends a heartbeat every 15 seconds while visible. Contact is not evidence of attention, attendance or cheating.
+
+Choose **Time extensions** and **Grant extra time** for an active, unexpired attempt. Enter 1-240 whole minutes and a reason. Combined extensions and reopenings are limited to 1,440 extra minutes. History records the actor and deadline change.
+
+If the response is lost, use **Retry extension request** in the same tab. It reuses the stored request and does not add time twice. A new request ID means a separate grant.
+
+**Inspect saved answers** is read-only. It shows the frozen paper and server-saved answers, not unsaved typing. **Review submission** opens grading after submission.
+
+**Reopen & history → Reopen submission** reopens only the latest submitted attempt for that identity/exam, with no other active attempt. Enter 1-240 minutes and a reason. The exam, linked account and original invitation must remain eligible.
+
+Reopening keeps the attempt number, questions, saved answers and quota usage. It preserves the previous submission as read-only evidence, then clears the current result until resubmission and grading. Essays need fresh grading. Other passing attempts can still satisfy a requirement.
+
+Use **Retry reopening request** after a lost response. Reload stale learner/review tabs. Reopening does not send mail. Extra time can extend an active attempt beyond the exam's closing window, but it does not extend guest-link validity or permit new starts after closing.
+
+## Instructor exam previews
+
+Use an exam's preview actions to inspect its paper, run a timed learner simulation or test a draft without a timer. Preview sessions belong to their creator and do not consume participant attempts, affect reports or complete assignments.
+
+Previews support saving, resume and test grading. Each creator can retain at most 20 preview sessions per exam; they expire after seven days. Use a real synthetic participant in a test deployment to verify actual admission and reporting.
+
+## Navigation and completed-response review
+
+Exam settings can require sequential answers and control completed-response review. In sequential mode, the server releases later questions after earlier answers are saved. Manual submission requires answers; time expiry still finalizes the last saved state.
+
+Navigation rules are frozen for each attempt. Completed-response visibility is a live exam policy, so an organizer can release review later without changing grades. Result-authorized managers retain review access.
+
+## Waiting periods between exam attempts
+
+A retry interval sets the minimum time between starts for the same identity/exam. Account access and every invitation share it. Extra attempt allowance or a new link does not bypass the wait. An eligible active attempt can resume.
+
+Failed rounds can renew after all attempts in the round are graded and failed, followed by the configured wait. Pending manual grading delays renewal. The interface shows the next permitted time and remaining wait; the server checks again on start.
+
+## Assessment results and insights
+
+Open **Reports → Results** to filter by exam, participant, department, status, outcome or period. Export uses the same filters. **Reports → Insights** shows score distribution, departments and question analysis from frozen attempt snapshots.
+
+Use **Review submission** for essay scores and participant-visible feedback. A final grade waits until all essays are reviewed. Feedback follows the exam's completed-response visibility rule.
+
+### Marks CSV imports
+
+Open an exam's **Monitor → Import marks**. This requires result access for that exam. **Download marks template** follows the monitor filters and includes submitted account/guest papers, excluding previews and active attempts.
+
+Keep `attempt_id`, `question_id`, `answer_revision` and `grading_revision` unchanged. These identify the exact frozen question and revisions. Required headers also include `points` and `feedback`. Reference columns do not change identity or score limits.
+
+Edit `points` to a finite value from zero to the question maximum, with at most six decimal places. Blank retains the current grade. All seven question types can receive explicit manual scores. `feedback` allows up to 5,000 characters; blank retains it. To remove feedback, use `clear_feedback=true` with blank feedback.
+
+Limits are 256 KiB, 500 question rows and 100 attempts per file. Duplicate/unknown headers, changed revisions, invalid scores or wrong question IDs reject the preview. Use normal CSV quoting for commas and line breaks.
+
+Enter a reason, choose **Preview mark changes**, review the proposed outcomes, then **Apply reviewed marks**. A preview expires after 30 minutes. Only its creator can apply it while still authorized. Any stale paper rejects the whole batch. Answers, submission times and quotas stay unchanged.
+
+After a lost response, use **Retry saved import** or **Refresh import status**. The same import ID returns its original receipt without grading twice. Applied receipts are retained. There is no automatic undo; create a new reviewed correction.
+
+Each manager can hold 20 unexpired pending previews per exam. The scheduler removes unapplied previews seven days after expiry. Imports do not send notification mail. A changed pass result can change assignment completion; another passing attempt can still satisfy it.
+
+### Reporting API compatibility
+
+`GET /api/results/?page=1&page_size=25` returns `{results,count,page,pages,page_size,summary}`. Maximum page size is 100. Omitting `page` keeps the legacy array response, capped at 1,000 records. New clients should use pagination.
+
+Results and CSV export share `exam`, `search`, `department`, `status`, `outcome` and `days`. Supported periods are `all`, `7`, `30`, `90` and `365`. Insights use `GET /api/exams/{id}/insights/?days=90`; add `export=csv` for question analysis.
+
+Review writes should send both answer and grading revisions. After the first grading revision, omitting it returns a conflict. Reload the paper before retrying a stale review.
+
+## Answer saving and learner feedback
+
+The player sends one answer save at a time. Submission waits for pending saves and includes the latest answers. Connection failures keep the tab's draft in memory and retry. **Retry saving** requests another attempt. Closing or reloading can lose unsaved edits.
+
+Another tab's newer revision causes a conflict. Copy any local text before **Reload saved answers** replaces the draft. The timer continues through network failures. At expiry, only the server's last accepted answers count.
+
+Use the current `answer_revision` with API saves and submissions. Stale writes return HTTP 409 with `answer_conflict`. Repeating a completed submission returns the existing result. Legacy writes without a revision remain accepted but lack conflict protection.
+
+Learners can review responses and recorded feedback when the exam permits completed-response review. Avoid placing confidential answer keys in participant-visible feedback.
+
+## Closing SCORM lessons
+
+Use **Save and close**. The player waits for server acknowledgment before closing. If persistence fails, it stays open for another try. **Close without saving** becomes available after failure and can lose recent progress.
+
+A browser crash or shutdown cannot guarantee a final save. Reopening restores the last confirmed state. Progress comes from package completion/progress evidence, not from an exam score.
+
+## Read reports
+
+Open **Reports → Overview** for training totals and trends. **Results** filters attempts and exports the same selection to CSV. **Insights** shows exam score distributions, departments and question analysis. Managers see only records allowed by their result scope. Training schedulers see linked quiz pass status in the training page, without scores or answer details.
+
+Use the assignment report for required-training completion and overdue status. Learners see their own results under **My training → Results**. A pending essay keeps the final result awaiting review.
+
+## Guest invitation cohorts
+
+Open **Exams → Guest invitations → Create invitation batch**. Choose a published exam and paste/upload UTF-8 CSV with required `key` and optional `verification_email` headers. A batch accepts 1-200 recipients and up to 256 KB. Set a per-link limit of 1-100 attempts and validity of 1-90 days.
+
+```csv
+key,verification_email
+E1042,alex@example.com
+morgan@example.com,
+```
+
+Choose **Validate recipients**, then issue the batch. Aliases resolve to the same retained identity; duplicate or invalid recipients reject the batch. Unknown keys create guest identities, not login accounts. Account and guest attempts share the identity's exam budget; the link also has its own cap.
+
+Recipient e-mail verification is on by default in the organizer forms. Without it, anyone holding the link can use the named identity. Verification requires working e-mail. The system does not automatically send invitation links; distribute them through your approved channel.
+
+**Download invitation links CSV** before closing. Full links live in the dialog's memory; history retains metadata. If the response is lost, **Retry batch request** can recover the same request within ten minutes. Keep the dialog open. Reissuing links never resets attempt budgets.
+
+History supports search, filters and pagination. **Disable** rejects later guest requests, including saves from an active attempt. It retains answers and used attempts. Treat downloaded links as credentials.
+
+## Shared-office sign-in limits
+
+Password login and code requests/verification share 20 requests per account per ten minutes. Username, e-mail and employee ID aliases share the counter. Guest verification uses an invitation counter. The separate direct-peer limit defaults to 300 per ten minutes, controlled by `AUTH_NETWORK_LIMIT`. HTTP 429 includes `Retry-After`.
+
+The bundled Nginx peer is shared by users, so that limit is a deployment-wide allowance. Enforce real client-IP limits at the trusted outer proxy. General API throttles allow 600 requests per minute per authenticated user or anonymous direct peer. These are traffic controls, not a capacity promise.
+
+Sign-in codes have six digits, expire after ten minutes, allow at most five incorrect entries and are consumed on success. Unknown addresses receive the same response. Mail failures do not prove whether an account exists.
+
+## Directory provisioning operators
+
+Configure [the directory app](DEPLOYMENT.md#microsoft-entra-directory-provisioning), then open **People → Sync from Microsoft Entra**. Preview counts and samples before applying. Apply fetches a new complete listing. CLI dry-run and apply are also available:
+
+```bash
+DEBUG=true .venv/bin/python backend/manage.py sync_directory --help
+```
+
+In a deployment, run `python manage.py sync_directory` inside the API container for a dry run. Add `--apply` to write. `--from-file` accepts a complete Graph-shaped JSON listing with no next-page link. Never use a partial export: absence can mean a leaver.
+
+Eligibility requires Member, enabled status, a usable mail address or UPN, a license by default, and an allowed domain when configured. New people are learners with unusable passwords. Existing roles/employment remain. Nonempty directory fields can update linked profiles; blank values do not erase local values.
+
+Identifier collisions are reported, not merged. Directory subjects link identities; matching e-mail alone does not. Keep retained identities and learning evidence while resolving conflicts.
+
+Only explicit disablement or absence from a complete listing deactivates a linked account. Local, other-tenant, admin, staff and superuser accounts are protected. A local enable/disable clears directory ownership so sync cannot undo a local suspension.
+
+If deactivation candidates exceed `max(20, 10% of active linked accounts)`, no deactivations apply. Other safe changes can proceed. The CLI-only `--allow-mass-deactivation` override needs a reviewed complete source. Failed scheduled runs wait at least an hour; manual preview remains available.
+
+### Email codes for selected domains
+
+`EMAIL_CODE_DOMAINS` lists exact domains, such as `example.com`. With the global Entra code override false, only active directory-linked learners without staff/superuser flags can use this exception.
+
+For an unknown address in that list, an exact Graph mail lookup can create a learner only if one enabled Member matches and no identity collision exists. Bulk-sync license/domain filters do not govern this lookup. Explicit disablement or removal still affects these accounts.
+
+Empty the domain list to disable the exception. Previously issued codes for those directory users can no longer be verified. Their accounts and history remain.
+
+## Outside-company profile refresh at sign-in
+
+Members outside `DIRECTORY_EMAIL_DOMAINS` can refresh directory profile fields during Entra or e-mail-code sign-in. Refresh is limited to once per 24 hours with a 4.5-second deadline. E-mail comes from `mail`, not an external-guest UPN. Conflicting identifiers are skipped.
+
+Explicitly disabled Members cannot sign in. Guest objects are unchanged. Graph errors in profile refresh do not block sign-in. This does not widen bulk synchronization or pre-create outside-domain people.
+
+## Training groups
+
+Under **People**, manage groups and their members. Use manual groups for a selected roster. Course/exam assignments take a snapshot of the active members at assignment time. Groups can also define an exam audience, where current membership governs new access.
+
+System administrators can link a group to Microsoft Entra using a reviewed preview. Configure `GroupMember.Read.All` in addition to `User.Read.All`. Transitive user membership includes nested groups; devices, contacts and service principals are excluded. Unknown users are not created by group sync. Provision people separately.
+
+Linked memberships are read-only locally. Unlinking retains the current members and makes the group manual. A preview expires after 15 minutes and is rechecked on apply. Automatic sync refuses removals exceeding half of a group with at least ten members; use a fresh reviewed Sync now preview to resolve it. See [the group implementation](../backend/training/entra_groups.py).
+
+## Email notifications and delivery log
+
+Open **Settings → Email** (`/email`) for sender status, queued/failed counts and delivery history. **Send test email to me** allows three requests per rolling ten minutes, including failures. It sends only to your own address. Accepted means the service accepted the message, not that it reached the inbox.
+
+Notifications are English text/HTML with organization identity, event facts, an action link and a plain fallback URL. Meeting links appear only for approved recipients. The sender comes from the effective e-mail settings.
+
+Assignment, enrollment decisions, scheduled registration, pending requests, participant cancellation, session changes and session cancellation can enqueue mail. New one-step training enables reminders. Existing courses keep reminders off until enabled. Publication, grading and invitation-link creation do not send those links or results automatically.
+
+**E-mail reminders** controls session-tomorrow, quiz-ready and one quiz reminder. The quiz reminder is due 72 hours after the ready batch was produced and only for eligible people who have not passed. A person marked absent receives no after-session quiz mail. Disabling reminders cancels eligibility for queued reminders too. See [the exact reminder windows](SIMPLE-TRAINING-API.md).
+
+The scheduler claims messages before network I/O. Event keys prevent duplicate enqueueing. Messages use event-time address/content snapshots, and delivery rechecks recipient activity. Directory synchronization itself sends no mail.
+
+Mailbox rejection pauses the whole queue, including later additions. HTTP 429/503 can use Retry-After, clamped to one minute through one hour. Other retry pauses grow through 1, 2, 4, 8 and 15 minutes. A successful send, including a test, clears the pause. Queued mail resumes on a later scheduler tick.
+
+Ambiguous failures, including timeouts and HTTP 500/502/504, fail without automatic resend. The message may already have arrived. Review before choosing **Retry**. **Cancel** applies only to queued rows. Codes and test messages cannot be retried from this queue.
+
+The daily limit counts accepted platform messages in a rolling 24 hours. Codes and tests count but bypass the limit. Mail sent outside the platform is not counted. `EMAIL_NOTIFICATIONS_ENABLED=false` pauses notifications while preserving queued rows; synchronous codes/tests remain separate.
+
+Queue snapshots contain personal information. Define retention and restrict access to the delivery log and backups. Logs use sanitized reasons, not raw provider responses or credentials.
+
+## Cancel training or delete courses and exams
+
+Use the training menu's **Cancel training** to cancel unfinished sessions while preserving enrollment and attendance history. **Cancel session** affects one session and uses the existing cancellation notices.
+
+**Delete course** previews affected records and requires the exact title. It deletes course learning records but preserves linked exams/results. It does not physically purge all retained media files.
+
+**Delete exam** also requires the title. Any participant attempt, even in progress, blocks deletion. Unpublish the exam instead. Private previews alone do not block deletion. Unpublishing preserves results and attempt budgets.
+
+## Question figures and exam bundles
+
+Question figures support PNG, JPEG and WebP uploads. Use the question editor to upload and preview them. Figures travel with frozen attempt snapshots; do not replace historical evidence by editing a live file.
+
+The `import_exam_bundle` management command imports reviewed exam-bundle/1 JSON files as draft exams. Inspect its options before use:
+
+```bash
+DEBUG=true .venv/bin/python backend/manage.py import_exam_bundle --help
+```
+
+Keep source bundles outside public assets when they contain answer keys. Review all questions and figures before publishing.
 
 ## Operator checks and recovery
 
-**Settings & audit → Deployment readiness** shows local prerequisites without exposing credentials or calling a tenant API. Run `python manage.py check_deployment --strict` inside the API container for the same checks and a failing exit status when work is needed. Add `--require-entra` to require the three Entra settings. Configured settings are not evidence of successful tenant or email connectivity.
+Open **Settings → Settings → Advanced maintenance → Deployment readiness**, or run `python manage.py check_deployment --strict` in the API container. The checks report local configuration, not live provider acceptance. Email **Off** is listed as Off and does not fail the strict check.
 
-See [Peach1 handover](PEACH1-HANDOVER.md) for installation, Microsoft Graph contract, backup/restore commands and organizational acceptance tests. Backups require a maintenance window because the tool stops application writers while copying PostgreSQL and media. The application services that were running are restarted even if the backup fails; a failed/incomplete backup has no valid manifest and must not be used.
+Use [the backup and restore procedure](DEPLOYMENT.md#back-up-and-restore). Keep database, media and effective encryption keys together in the recovery plan. Restore into a fresh isolated project before routing traffic.
+
+## Migrations and rollback
+
+Deploy matching web, API, content and scheduler images. Keep the previous environment, images and consistent database/media backup. The [migration files](../backend/training/migrations/) are the schema record.
+
+| Migration | Upgrade or rollback concern |
+| --- | --- |
+| `0005` answer revision | Reload old attempt tabs after deployment. Saves use revisions to avoid overwriting another tab. |
+| `0007` numeric questions | Adds numeric tolerances without rewriting existing results. Old clients cannot author the new types. |
+| `0008` retry interval | Existing exams default to zero wait. |
+| `0009` text matching | Preserves existing matching defaults and frozen attempt rules. |
+| `0010` navigation/review | Existing behavior remains; new attempts freeze navigation rules. Review visibility stays a live policy. |
+| `0011` previews | Private preview state is separate from participant evidence. Keep it during image rollback. |
+| `0012` monitoring, `0013` reopening | Preserve extension and submission history. Deploy matching player/API/worker code and reload old tabs. |
+| `0014` grading revision/imports | Adds grading revisions and protected import receipts. Reload review tabs. Preserve applied receipts. |
+| `0015` enrollment approval | Existing courses stay open, enrollments approved. Upgrade content service with API; reopen SCORM to replace old participant-bound content cookies. |
+| `0016` covers/progress, `0017` rounds/sessions | Preserve covers, progress, rounds and session records. Old images cannot enforce the new session/round behavior. |
+| `0018` outbound e-mail | Migrate before starting the scheduler. No old assignments/enrollments are backfilled. |
+| `0019` directory/groups | Check case-equivalent subjects before the unique constraint. Disable scheduling for image rollback; keep people and schema. |
+| `0020` question figures | Keep schema applied. Before pre-feature image rollback, remove frozen grading guides as described below to avoid exposing them. |
+| `0021` linked groups | Leave applied for image rollback. Old images can modify memberships without respecting links; pause those operations. Reversing to `0020` drops link metadata but keeps groups/members. |
+| `0022` roles | Field-choice change with no SQL schema change. Before old-image rollback, record and map new role values to learner, or block their sign-in. Old dashboard behavior can expose aggregates to unknown roles. |
+| `0023` on-site courses | Keep migration applied. Old images hide material/attendance controls and cannot enforce venue rules. Do not edit those records through old code. |
+| `0024` registration keys | Keep migration applied. Old images ignore public registration keys; unrotated keys work again after redeployment. |
+| `0025` shared assessments | Keep migration applied. Old images see only the earliest surviving `Exam.course` link. Reversing to `0024` discards extra links. Avoid link edits through old images. |
+| `0026` course audience | Old images do not understand course-only audience. Review affected exams before rollback. |
+| `0027` simple training | Existing rows keep reminders off and immediate quiz release. Keep additive schema during image rollback. Old code ignores after-session gating and reminder revocation. Pause queue delivery and unpublish affected quizzes before rollback if early access must stay blocked. |
+| `0028` settings | Adds optional settings and nullable unique Google subject. Keep schema and encryption key; old images do not use saved provider settings. Restore environment configuration before reverting. |
+
+Do not reverse migrations as a routine image rollback. Reversal can discard evidence or metadata. See [deployment recovery](DEPLOYMENT.md#upgrade-and-roll-back).
+
+### Roll back question figures safely
+
+Before returning to images from before `0020_question_figures`, pause incoming requests and attempt creation. Back up and verify the database. While the current image is still running:
+
+```bash
+docker compose exec -T api python manage.py remove_snapshot_grading_guides --dry-run
+docker compose exec -T api python manage.py remove_snapshot_grading_guides
+```
+
+Then restore the old images, leave 0020 applied and resume traffic. The command removes only frozen `grading_guide` keys from active/finished attempt snapshots. Answers, figure references and question order remain. Question and bank guides stay stored. Staff lose frozen guides on those attempts.
+
+Reversing 0020 drops stored figures and grading-guide columns but does not scrub historical snapshot JSON. It is not a substitute for the command. Use reversal only when deliberately removing the feature, with a verified backup.

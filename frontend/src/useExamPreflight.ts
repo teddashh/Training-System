@@ -28,6 +28,14 @@ export function useExamPreflight(id?: number) {
   // Reopening the same exam still requires a fresh response. Cached metadata
   // cannot enable the button for a render before the new request starts.
   const current = result?.request === request ? result : null;
+  useEffect(() => {
+    const exam = current?.exam;
+    if (!exam?.next_round_at) return;
+    const delay = Date.parse(exam.next_round_at) - Date.parse(exam.server_time);
+    if (delay <= 0) return;
+    const timer = window.setTimeout(refresh, Math.min(delay + 100, 2147483647));
+    return () => clearTimeout(timer);
+  }, [current, refresh]);
   return {
     exam: current?.exam ?? null,
     loading: !!id && !current,

@@ -3,6 +3,7 @@ import type { LocaleTable } from '../types'
 // Descriptions of the global project themes. Keys: <themeId>Desc.
 const themes: LocaleTable = {
   en: {
+    companyDesc: '{organization} brand colors with Fluent-style controls',
     roseDesc: 'Pink accent, soft rounded buttons',
     oceanDesc: 'Blue accent, pill-shaped buttons',
     forestDesc: 'Green accent, square buttons',
@@ -17,6 +18,7 @@ const themes: LocaleTable = {
     customDesc: 'Your own color and corners (Project settings → Appearance)',
   },
   uk: {
+    companyDesc: 'Корпоративні кольори {organization} та елементи Fluent',
     roseDesc: 'Рожевий акцент, м’які заокруглені кнопки',
     oceanDesc: 'Блакитний акцент, кнопки-пігулки',
     forestDesc: 'Зелений акцент, кутасті кнопки',

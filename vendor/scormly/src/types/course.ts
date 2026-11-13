@@ -697,6 +697,7 @@ export interface Lesson {
 
 /** Built-in theme IDs (see src/theme). */
 export type PresetThemeId =
+  | 'company'
   | 'rose'
   | 'ocean'
   | 'forest'

@@ -1,3 +1,5 @@
+import { QuestionContent } from "./QuestionFigure";
+import { appPath } from "./paths";
 import { useEffect, useState } from "react";
 import {
   BarChart3,
@@ -23,7 +25,7 @@ import type { Exam, ExamInsights } from "./types";
 
 export default function Insights({ exams }: { exams: Exam[] }) {
   useLocale();
-  const managed = exams.filter((exam) => exam.can_manage);
+  const managed = exams.filter((exam) => exam.can_view_results);
   const [selected, setSelected] = useState(
     new URLSearchParams(window.location.search).get("exam") || "",
   );
@@ -66,18 +68,14 @@ export default function Insights({ exams }: { exams: Exam[] }) {
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">{t("ASSESSMENT INTELLIGENCE")}</div>
+
           <h1>{t("Assessment insights")}</h1>
-          <p>
-            {t(
-              "Find learning gaps and review question performance using actual assessment evidence.",
-            )}
-          </p>
+
         </div>
         {selected && (
           <a
             className="btn"
-            href={`/api/exams/${selected}/insights/?days=${days}&export=csv`}
+            href={appPath(`/api/exams/${selected}/insights/?days=${days}&export=csv`)}
           >
             <Download size={17} />
             {t("Export question analysis")}
@@ -191,7 +189,7 @@ export default function Insights({ exams }: { exams: Exam[] }) {
                       data={data.distribution}
                       margin={{ left: -20, right: 12, top: 12, bottom: 4 }}
                     >
-                      <CartesianGrid vertical={false} stroke="#eaf0f6" />
+                      <CartesianGrid vertical={false} stroke="var(--stroke-subtle)" />
                       <XAxis
                         dataKey="band"
                         tickLine={false}
@@ -204,11 +202,11 @@ export default function Insights({ exams }: { exams: Exam[] }) {
                         axisLine={false}
                         fontSize={12}
                       />
-                      <Tooltip cursor={{ fill: "#f1f7ff" }} />
+                      <Tooltip cursor={{ fill: "var(--blue-soft)" }} />
                       <Bar
                         dataKey="count"
                         name={t("Graded attempts")}
-                        fill="#2483df"
+                        fill="var(--brand-blue)"
                         radius={[6, 6, 0, 0]}
                         maxBarSize={52}
                       />
@@ -218,9 +216,7 @@ export default function Insights({ exams }: { exams: Exam[] }) {
               ) : (
                 <Empty
                   title={t("No graded attempts yet")}
-                  description={t(
-                    "Completed grading will populate the score and question analysis.",
-                  )}
+
                 />
               )}
             </section>
@@ -249,7 +245,7 @@ export default function Insights({ exams }: { exams: Exam[] }) {
                       <span
                         style={{
                           width: `${row.graded ? (row.passed / row.graded) * 100 : 0}%`,
-                          background: index % 2 ? "#2aa99a" : "#2581da",
+                          background: index % 2 ? "var(--brand-green-accent)" : "var(--brand-pink)",
                         }}
                       />
                     </div>
@@ -304,7 +300,7 @@ export default function Insights({ exams }: { exams: Exam[] }) {
                   {questions.map((q) => (
                     <tr key={q.variant}>
                       <td className="bank-description">
-                        <strong>{q.description}</strong>
+                        <QuestionContent question={q} heading="strong" />
                         <small className="cell-note">
                           {
                             questionTypes().find(
@@ -344,9 +340,7 @@ export default function Insights({ exams }: { exams: Exam[] }) {
             {!questions.length && (
               <Empty
                 title={t("No question analysis to show")}
-                description={t(
-                  "Completed grading will populate the score and question analysis.",
-                )}
+
               />
             )}
           </div>
@@ -355,9 +349,7 @@ export default function Insights({ exams }: { exams: Exam[] }) {
         !error && (
           <Empty
             title={t("Select an assessment to view its insights")}
-            description={t(
-              "Instructors can analyze their own assessments. Administrators can analyze all assessments.",
-            )}
+
           />
         )
       )}

@@ -1,13 +1,14 @@
 import { t, useLocale, getLocale, LanguagePicker } from "./i18n";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { ReactNode } from "react";
 import {
   X,
   LoaderCircle,
   Inbox,
   AlertCircle,
   ArrowUpRight,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 const modalStack: HTMLElement[] = [];
 let previousOverflow = "";
@@ -17,16 +18,39 @@ export function Modal({
   children,
   onClose,
   wide = false,
+  className = "",
+  closeDisabled = false,
+  fullViewport = false,
+  showLanguagePicker = true,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   wide?: boolean;
+  className?: string;
+  closeDisabled?: boolean;
+  fullViewport?: boolean;
+  showLanguagePicker?: boolean;
 }) {
   useLocale();
   const panel = useRef<HTMLDivElement>(null);
+  const [browserFullscreen, setBrowserFullscreen] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState(false);
+  useEffect(() => {
+    if (!fullViewport) return;
+    const changed = () => setBrowserFullscreen(!!document.fullscreenElement && !!panel.current?.contains(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", changed);
+    return () => document.removeEventListener("fullscreenchange", changed);
+  }, [fullViewport]);
+  async function toggleFullscreen() {
+    setFullscreenError(false);
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await panel.current?.requestFullscreen();
+    } catch { setFullscreenError(true); }
+  }
   const close = useRef(onClose);
-  close.current = onClose;
+  close.current = () => { if (!closeDisabled) onClose(); };
   useEffect(() => {
     const element = panel.current!;
     const previous = document.activeElement as HTMLElement | null;
@@ -36,7 +60,7 @@ export function Modal({
     const focusable = () =>
       Array.from(
         element.querySelectorAll<HTMLElement>(
-          "button,input,textarea,select,a[href],[tabindex]",
+          "button,input,textarea,select,a[href],summary,[tabindex]",
         ),
       ).filter(
         (node) =>
@@ -50,7 +74,10 @@ export function Modal({
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopImmediatePropagation();
-        close.current();
+        if (fullViewport) {
+          // Exiting browser fullscreen must never close or reload a lesson.
+          if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+        } else close.current();
       }
       if (event.key === "Tab") {
         const els = focusable(),
@@ -89,11 +116,11 @@ export function Modal({
     <div
       className="modal-shade"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) close.current();
       }}
     >
       <div
-        className={"modal " + (wide ? "wide" : "")}
+        className={"modal " + (wide ? "wide " : "") + (fullViewport ? "full-viewport " : "") + className}
         ref={panel}
         tabIndex={-1}
         role="dialog"
@@ -101,17 +128,27 @@ export function Modal({
         aria-label={title}
       >
         <header>
-          <h2>{title}</h2>
-          <LanguagePicker />
+          <h2 title={title}>{title}</h2>
+          {showLanguagePicker && <LanguagePicker />}
+          {fullViewport && document.fullscreenEnabled && <button
+            className="icon-btn"
+            type="button"
+            onClick={() => void toggleFullscreen()}
+            aria-label={t(browserFullscreen ? "Exit fullscreen" : "Enter fullscreen")}
+            title={t(browserFullscreen ? "Exit fullscreen" : "Enter fullscreen")}
+            aria-pressed={browserFullscreen}
+          >{browserFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}</button>}
           <button
             className="icon-btn"
             type="button"
             onClick={onClose}
+            disabled={closeDisabled}
             aria-label={t("Close")}
           >
             <X size={20} />
           </button>
         </header>
+        {fullscreenError && <p className="notice" role="status">{t("Fullscreen is unavailable. You can continue in this window.")}</p>}
         {children}
       </div>
     </div>,

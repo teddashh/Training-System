@@ -1,3 +1,6 @@
+import { GradingGuideEditor } from "./GradingGuide";
+import QuestionFigureEditor from "./QuestionFigureEditor";
+import QuestionFigure, { QuestionContent, questionPayload } from "./QuestionFigure";
 import { useEffect, useState } from "react";
 import { Plus, Search, Pencil, LibraryBig } from "lucide-react";
 import { api } from "./api";
@@ -15,8 +18,10 @@ export type BankQuestion = Question & {
 
 export function BankPicker({
   onAdd,
+  disabled = false,
 }: {
   onAdd: (questions: Question[]) => void;
+  disabled?: boolean;
 }) {
   useLocale();
   const [rows, setRows] = useState<BankQuestion[]>([]),
@@ -39,7 +44,7 @@ export function BankPicker({
   }
   return (
     <section className="bank-picker">
-      <button type="button" className="btn" onClick={load}>
+      <button type="button" className="btn" onClick={load} disabled={disabled}>
         <LibraryBig size={16} />
         {t("Add from question bank")}
       </button>
@@ -64,7 +69,8 @@ export function BankPicker({
                     .includes(search.toLowerCase()),
                 )
                 .map((q) => (
-                  <label className="checkbox" key={q.id}>
+                  <div className="bank-picker-question" key={q.id}>
+                  <label className="checkbox">
                     <input
                       type="checkbox"
                       checked={selected.includes(q.id)}
@@ -77,12 +83,14 @@ export function BankPicker({
                       }
                     />
                     <span>
-                      {q.description}
+                      <span className="preserve-lines">{q.description}</span>
                       <small className="cell-note">
                         {q.category} · {q.points} {t("points")}
                       </small>
                     </span>
                   </label>
+                  <QuestionFigure question={q} />
+                  </div>
                 ))}
               {!rows.length && (
                 <p>
@@ -107,6 +115,10 @@ export function BankPicker({
                       answer_tolerances: [...(q.answer_tolerances || [])],
                       answer_matching: [...(q.answer_matching || [])],
                       points: q.points,
+                      grading_guide: q.grading_guide,
+                      figure: q.figure,
+                      figure_alt: q.figure_alt,
+                      figure_caption: q.figure_caption,
                     })),
                 );
                 setSelected([]);
@@ -150,13 +162,9 @@ export default function QuestionBank() {
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">{t("ASSESSMENT LIBRARY")}</div>
+
           <h1>{t("Question bank")}</h1>
-          <p>
-            {t(
-              "Build a reusable library of reviewed questions for consistent assessments.",
-            )}
-          </p>
+
         </div>
         <button className="btn primary" onClick={() => setEditing(null)}>
           <Plus size={17} />
@@ -204,7 +212,7 @@ export default function QuestionBank() {
             <tbody>
               {visible.map((q) => (
                 <tr key={q.id}>
-                  <td className="bank-description">{q.description}</td>
+                  <td className="bank-description"><QuestionContent question={q} heading="span" /></td>
                   <td>
                     <Badge tone="blue">{q.category}</Badge>
                   </td>
@@ -226,9 +234,7 @@ export default function QuestionBank() {
         {!visible.length && (
           <Empty
             title={t("No questions to show")}
-            description={t(
-              "Create questions here, then add them to any exam you manage.",
-            )}
+
           />
         )}
       </div>
@@ -253,6 +259,7 @@ function BankEditor({
   onSaved: () => void;
 }) {
   useLocale();
+  const [uploads, setUploads] = useState(0);
   const [draft, setDraft] = useState<
     Question & { category: string; archived: boolean }
   >(
@@ -273,13 +280,14 @@ function BankEditor({
   }
   async function save(event: React.FormEvent) {
     event.preventDefault();
+    if (uploads) return;
     setBusy(true);
     setError("");
     try {
       await api(
         question ? `question-bank/${question.id}/` : "question-bank/",
         question ? "PATCH" : "POST",
-        draft,
+        questionPayload(draft),
       );
       onSaved();
       onClose();
@@ -343,6 +351,8 @@ function BankEditor({
             onChange={(e) => patch({ description: e.target.value })}
           />
         </label>
+        <QuestionFigureEditor question={draft} onChange={patch}
+          onBusyChange={delta => setUploads(current => current + delta)} />
         {(draft.type === "single" || draft.type === "multiple") && (
           <>
             <p className="notice">
@@ -410,11 +420,7 @@ function BankEditor({
           <TextAnswerFields question={draft} onChange={patch} />
         )}
         <StructuredQuestionFields question={draft} onChange={patch} />
-        {draft.type === "essay" && (
-          <p className="notice">
-            {t("This question needs manual grading, with points and feedback.")}
-          </p>
-        )}
+        <GradingGuideEditor question={draft} onChange={patch} />
         {question && (
           <label className="checkbox-label">
             <input
@@ -430,7 +436,7 @@ function BankEditor({
           <button type="button" className="btn" onClick={onClose}>
             {t("Cancel")}
           </button>
-          <button className="btn primary" disabled={busy}>
+          <button className="btn primary" disabled={busy || uploads > 0}>
             {busy ? t("Saving…") : t("Save question")}
           </button>
         </div>

@@ -119,11 +119,15 @@ export async function openRecentProject(
 
 /** Start a new project kept in this browser (no folder access needed). */
 export async function createBrowserProject(): Promise<void> {
+  return createBrowserProjectFromCourse(makeEmptyCourse(translate('welcome', 'untitledCourse')))
+}
+
+/** Keep an imported company course as a local draft, without publishing it. */
+export async function createBrowserProjectFromCourse(course: Course): Promise<void> {
   const id = uid('p')
   const handle = await browserProjectDir(id, true)
   if (!handle) throw new Error('Browser storage is unavailable')
   requestPersistentStorage()
-  const course = makeEmptyCourse(translate('welcome', 'untitledCourse'))
   await writeJson(handle, PROJECT_FILE, course)
   await syncAgentGuide(handle, course)
   await ensureUserInstructions(handle)

@@ -16,6 +16,10 @@ from django.db import transaction
 from django.db.models import (
     Case,
     CharField,
+    DateTimeField,
+    DurationField,
+    ExpressionWrapper,
+    IntegerField,
     Exists,
     F,
     OuterRef,
@@ -24,7 +28,7 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.functions import Coalesce, Greatest, Least
+from django.db.models.functions import Cast, Coalesce, Greatest, Least
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
@@ -37,7 +41,7 @@ from .i18n import translate
 from .models import Attempt, AttemptBudget, Exam, Invitation, InvitationBatch
 from .serializers import InvitationSerializer
 from .services import audit, hash_token, resolve_identity
-from .views import manage_exam, manager
+from .access import can_invite, require_invite, scope_q
 
 
 class InvitationOptions(serializers.Serializer):
@@ -169,7 +173,7 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
     serializer_class = InvitationSerializer
 
     def get_queryset(self):
-        if not manager(self.request.user):
+        if not can_invite(self.request.user):
             raise PermissionDenied()
         now = timezone.now()
         budget = AttemptBudget.objects.filter(
@@ -181,10 +185,13 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
             status="in_progress",
             deadline__gt=now,
         )
+        participant_attempts = Attempt.objects.filter(exam_id=OuterRef('exam_id'), identity_id=OuterRef('identity_id'))
+        unfinished_round = participant_attempts.filter(number__gt=OuterRef('budget_round_start')).exclude(status='graded', passed=False, graded_at__isnull=False)
         qs = (
             Invitation.objects.select_related("exam", "identity", "identity__user")
             .annotate(
-                budget_used=Coalesce(Subquery(budget.values("used")[:1]), Value(0)),
+                budget_round_start=Coalesce(Subquery(budget.values('round_start_used')[:1]), Value(0)),
+                budget_used=Coalesce(Subquery(budget.values("used")[:1]), Value(0)) - Coalesce(Subquery(budget.values('round_start_used')[:1]), Value(0)),
                 budget_limit=Coalesce(
                     Subquery(budget.values("limit_override")[:1]),
                     F("exam__max_attempts"),
@@ -192,11 +199,30 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
                 can_resume=Exists(active),
             )
             .annotate(
+                round_unfinished=Exists(unfinished_round),
+                has_passed=Exists(participant_attempts.filter(passed=True)),
+                last_graded=Subquery(participant_attempts.order_by('-graded_at').values('graded_at')[:1]),
+            )
+            # SQLite's duration arithmetic recognizes IntegerField, not its
+            # PositiveIntegerField subclass. Cast explicitly for both backends.
+            .annotate(round_wait=ExpressionWrapper(
+                Cast('exam__attempt_reset_minutes', IntegerField()) * timedelta(minutes=1),
+                output_field=DurationField(),
+            ))
+            .annotate(round_opens=ExpressionWrapper(
+                F('last_graded') + F('round_wait'), output_field=DateTimeField(),
+            ))
+            .annotate(budget_available=Case(
+                When(exam__attempt_reset_minutes__gt=0, budget_used__gte=F('budget_limit'), round_unfinished=False, has_passed=False, round_opens__lte=now, then=F('budget_limit')),
+                default=F('budget_limit')-F('budget_used'),
+                output_field=IntegerField(),
+            ))
+            .annotate(
                 remaining_new_attempts=Greatest(
                     Value(0),
                     Least(
                         F("max_attempts") - F("used"),
-                        F("budget_limit") - F("budget_used"),
+                        F('budget_available'),
                     ),
                 )
             )
@@ -217,11 +243,7 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
             )
             .order_by("-created_at", "-pk")
         )
-        return (
-            qs
-            if self.request.user.role == "admin"
-            else qs.filter(exam__owner=self.request.user)
-        )
+        return qs.filter(scope_q(self.request.user, 'exams', 'exam__'))
 
     def list(self, request):
         filters = InvitationFilters(data=request.query_params)
@@ -264,7 +286,7 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
         data = serializer.validated_data
         with transaction.atomic():
             exam = get_object_or_404(Exam.objects.select_for_update(), pk=data["exam"])
-            manage_exam(request.user, exam)
+            require_invite(request.user, exam)
             identity, email = recipient(
                 request.data.get("key", ""),
                 data["require_email_verification"],
@@ -274,7 +296,7 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
         response = Response(
             {
                 **self.get_serializer(self.get_queryset().get(pk=inv.pk)).data,
-                "url": settings.APP_ORIGIN + "/invite#" + token,
+                "url": settings.APP_ORIGIN + settings.APP_BASE_PATH + "/invite#" + token,
                 "note": translate(
                     "This link is also subject to the participant's total attempt limit."
                 ),
@@ -303,7 +325,7 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
             output.append(
                 {
                     **self.get_serializer(item).data,
-                    "url": settings.APP_ORIGIN + "/invite#" + token,
+                    "url": settings.APP_ORIGIN + settings.APP_BASE_PATH + "/invite#" + token,
                 }
             )
         response = Response(
@@ -333,7 +355,7 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
         ).hexdigest()
         with transaction.atomic():
             exam = get_object_or_404(Exam.objects.select_for_update(), pk=data["exam"])
-            manage_exam(request.user, exam)
+            require_invite(request.user, exam)
             if not exam.published:
                 raise ValidationError(
                     translate("Publish the exam before issuing a batch.")
@@ -389,12 +411,8 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
                         budget = AttemptBudget.objects.filter(
                             exam=exam, identity=identity
                         ).first()
-                        limit = (
-                            budget.limit_override or exam.max_attempts
-                            if budget
-                            else exam.max_attempts
-                        )
-                        used = budget.used if budget else 0
+                        from .attempt_rounds import round_status
+                        remaining = round_status(exam, budget)['attempts_remaining']
                         item.update(
                             identity_key=identity.key,
                             participant=identity.user.display_name
@@ -403,7 +421,7 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
                             else identity.label,
                             verification_email=email,
                             remaining_new_attempts=max(
-                                0, min(data["max_attempts"], limit - used)
+                                0, min(data["max_attempts"], remaining)
                             ),
                         )
                         if batch:

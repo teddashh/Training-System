@@ -1,3 +1,4 @@
+from training.access import has_exams
 import json
 from html import unescape
 from pathlib import Path
@@ -77,6 +78,9 @@ def convert_question(data):
             result["answer_tolerances"] = [
                 str(c.get("error_margin") or 0) for c in cases
             ]
+    for field in ("figure", "figure_alt", "figure_caption", "grading_guide"):
+        if field in data:
+            result[field] = data[field]
     serializer = QuestionSerializer(data=result)
     serializer.is_valid(raise_exception=True)
     return serializer.validated_data
@@ -93,11 +97,11 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         owner = User.objects.filter(
-            username=options["owner"], role__in=["admin", "instructor"]
+            username=options["owner"], is_active=True
         ).first()
-        if not owner:
+        if not owner or not has_exams(owner):
             raise CommandError(
-                "Owner must be an existing instructor or admin username."
+                "Owner must be an active username with exam authoring access."
             )
         file = Path(options["file"])
         if file.stat().st_size > 2 * 1024 * 1024:

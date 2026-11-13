@@ -19,7 +19,7 @@ export default function Readiness() {
       <h2>{t("Deployment readiness")}</h2>
       <p>
         {t(
-          "Local configuration checks for the Peach1 handover. Company sign-in, email delivery and Graph connectivity need acceptance testing on the target machine.",
+          "These checks inspect server configuration. They do not test company sign-in, email delivery or network connectivity.",
         )}
       </p>
       <ErrorBox message={error} />
@@ -42,7 +42,8 @@ export default function Readiness() {
                     ready: t("Ready"),
                     action_required: t("Action required"),
                     configured: t("Configured"),
-                    deferred: t("Connect on Peach1"),
+                    deferred: t("Verification needed"),
+                    off: t("Off"),
                   }[check.status]
                 }
               </Badge>

@@ -19,7 +19,9 @@ from rest_framework.decorators import api_view
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
+from .access import scorm_source, scorm_upload
 from .i18n import translate
+from .enrollments import check_learning_access
 from .models import Course, Enrollment, ScormPackage, ScormState, User
 from .services import audit
 
@@ -127,12 +129,14 @@ def inspect_package(upload):
 
 
 @api_view(["POST"])
+@transaction.atomic
 def upload_package(request, course_id):
-    course = get_object_or_404(Course, pk=course_id)
-    if request.user.role not in ("admin", "instructor") or (
-        request.user.role != "admin" and course.owner_id != request.user.id
-    ):
-        raise PermissionDenied()
+    course = get_object_or_404(Course.objects.select_for_update(), pk=course_id)
+    if not scorm_upload(request.user, course):
+        raise PermissionDenied(translate("Only administrators can upload trusted company content.")
+                               if settings.SCORM_TRUSTED_SAME_ORIGIN else None)
+    if course.venue == 'onsite':
+        raise ValidationError(translate('On-site courses cannot contain online lesson content. Create a separate course.'))
     upload = request.FILES.get("file")
     if not upload or upload.size > MAX_BYTES:
         raise ValidationError(translate("Provide a SCORM ZIP smaller than 100 MB."))
@@ -197,9 +201,7 @@ def upload_package(request, course_id):
 @api_view(["GET"])
 def download_source(request, course_id):
     course = get_object_or_404(Course, pk=course_id)
-    if request.user.role not in ("admin", "instructor") or (
-        request.user.role != "admin" and course.owner_id != request.user.id
-    ):
+    if not scorm_source(request.user, course):
         raise PermissionDenied()
     package = course.packages.order_by("-created_at").first()
     if not package or not package.has_source:
@@ -213,21 +215,18 @@ def download_source(request, course_id):
     )
 
 
-def check_learning_access(user, course):
-    if not course.published and not (
-        user.role == "admin"
-        or (user.role == "instructor" and course.owner_id == user.id)
-    ):
-        raise PermissionDenied()
-
-
 @api_view(["POST"])
+@transaction.atomic
 def launch(request, package_id):
     package = get_object_or_404(
         ScormPackage.objects.select_related("course"), pk=package_id
     )
-    check_learning_access(request.user, package.course)
-    Enrollment.objects.get_or_create(user=request.user, course=package.course)
+    course = Course.objects.select_for_update().get(pk=package.course_id)
+    check_learning_access(request.user, course)
+    enrollment, _ = Enrollment.objects.get_or_create(user=request.user, course=package.course)
+    from .enrollments import can_manage_course
+    timing = {'server_time': timezone.now(), 'access_ends_at':
+              enrollment.session.ends_at if enrollment.session_id and not can_manage_course(request.user, course) else None}
     import secrets
 
     nonce = secrets.token_urlsafe(24)
@@ -243,21 +242,31 @@ def launch(request, package_id):
         },
         salt="scorm-launch",
     )
+    if settings.SCORM_TRUSTED_SAME_ORIGIN:
+        # POST keeps the launch capability out of existing host proxy URL logs.
+        return Response({
+            "url": settings.APP_ORIGIN + settings.SCORM_BASE_PATH + "/launch",
+            "ticket": ticket, "nonce": nonce, "origin": settings.APP_ORIGIN,
+            **timing,
+        })
     return Response(
         {
             "url": settings.SCORM_ORIGIN + "/launch?ticket=" + quote(ticket),
             "nonce": nonce,
             "origin": settings.SCORM_ORIGIN,
+            **timing,
         }
     )
 
 
 @api_view(["POST"])
+@transaction.atomic
 def commit(request, package_id):
     package = get_object_or_404(
         ScormPackage.objects.select_related("course"), pk=package_id
     )
-    check_learning_access(request.user, package.course)
+    course = Course.objects.select_for_update().get(pk=package.course_id)
+    check_learning_access(request.user, course, save_progress=True)
     expected = request.session.get("scorm_launches", {}).get(str(package_id))
     if not expected or request.data.get("nonce") != expected:
         raise PermissionDenied(translate("Invalid player session."))
@@ -283,14 +292,23 @@ def commit(request, package_id):
             cmi.get("cmi.core.lesson_status") in ("passed", "completed")
             or cmi.get("cmi.completion_status") == "completed"
         )
+        from .scorm_progress import progress_percent
+        measured = progress_percent(cmi)
         if complete:
+            enrollment.progress_known = True
             enrollment.progress = 100
             enrollment.completed_at = enrollment.completed_at or timezone.now()
         elif enrollment.progress < 100:
-            enrollment.progress = max(enrollment.progress, 1)
+            if measured is not None:
+                previous = enrollment.progress if enrollment.progress_known else 0
+                enrollment.progress = max(previous, min(measured, 99))
+                enrollment.progress_known = True
+            elif enrollment.progress <= 1:
+                enrollment.progress = 1
+                enrollment.progress_known = False
         enrollment.save()
     return Response(
-        {"saved_at": timezone.now(), "completed": enrollment.progress == 100}
+        {"saved_at": timezone.now(), "completed": enrollment.progress == 100, "progress": enrollment.progress, "progress_known": enrollment.progress_known}
     )
 
 
@@ -305,14 +323,21 @@ def protected_headers(response):
 
 @xframe_options_exempt
 def content_launch(request):
+    if request.headers.get("X-Training-Content-Path") == "1" and not settings.SCORM_TRUSTED_SAME_ORIGIN:
+        return HttpResponseForbidden("Same-origin content is disabled.")
     try:
         payload = signing.loads(
-            request.GET.get("ticket", ""), salt="scorm-launch", max_age=120
+            (request.POST if settings.SCORM_TRUSTED_SAME_ORIGIN else request.GET).get("ticket", ""),
+            salt="scorm-launch", max_age=120
         )
     except signing.BadSignature:
         return HttpResponseForbidden("Launch ticket expired or invalid.")
-    package = get_object_or_404(ScormPackage, pk=payload["package"])
+    package = get_object_or_404(ScormPackage.objects.select_related("course"), pk=payload["package"])
     learner = get_object_or_404(User, pk=payload["user"], is_active=True)
+    try:
+        check_learning_access(learner, package.course)
+    except PermissionDenied:
+        return HttpResponseForbidden("Content access denied.")
     learner_name = learner.display_name or learner.get_full_name() or learner.username
     state = ScormState.objects.filter(package=package, user_id=payload["user"]).first()
     cmi = state.cmi.copy() if state else {}
@@ -333,7 +358,7 @@ def content_launch(request):
             "cmi": cmi,
             "origin": settings.APP_ORIGIN,
             "nonce": payload["nonce"],
-            "src": "/packages/" + str(package.id) + "/" + package.launch_path,
+            "src": settings.SCORM_BASE_PATH + "/packages/" + str(package.id) + "/" + package.launch_path,
         }
     ).replace("<", "\\u003c")
     runtime = (Path(__file__).parent / "scorm_runtime.js").read_text()
@@ -344,11 +369,11 @@ def content_launch(request):
         '<iframe id="sco" title="Course content" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"></iframe>'
         '<script>document.getElementById("sco").src=CONFIG.src;</script></body></html>'
     )
-    cookie = signing.dumps({"package": str(package.id)}, salt="scorm-content")
+    cookie = signing.dumps({"package": str(package.id), "user": learner.pk}, salt="scorm-content")
     response.set_cookie(
         "scorm_access_" + str(package.id),
         cookie,
-        path="/packages/" + str(package.id) + "/",
+        path=settings.SCORM_BASE_PATH + "/packages/" + str(package.id) + "/",
         max_age=8 * 3600,
         httponly=True,
         secure=not settings.DEBUG,
@@ -359,18 +384,29 @@ def content_launch(request):
 
 @xframe_options_exempt
 def content_file(request, package_id, path):
+    if request.headers.get("X-Training-Content-Path") == "1" and not settings.SCORM_TRUSTED_SAME_ORIGIN:
+        return HttpResponseForbidden("Same-origin content is disabled.")
     try:
         cookie = request.COOKIES.get("scorm_access_" + str(package_id), "")
         payload = signing.loads(cookie, salt="scorm-content", max_age=8 * 3600)
         if payload["package"] != str(package_id):
             raise signing.BadSignature()
+        learner = User.objects.filter(pk=payload.get("user"), is_active=True).first()
+        package = ScormPackage.objects.select_related("course").filter(pk=package_id).first()
+        if not learner or not package:
+            raise signing.BadSignature()
+        check_learning_access(learner, package.course)
         relative = safe_path(path)
-    except (signing.BadSignature, ValidationError, KeyError):
+    except (signing.BadSignature, PermissionDenied, ValidationError, KeyError):
         return HttpResponseForbidden("Content access denied.")
     root = (settings.MEDIA_ROOT / "packages" / str(package_id)).resolve()
     target = (root / relative).resolve()
     if not target.is_relative_to(root) or not target.is_file():
         return HttpResponse(status=404)
+    if target.suffix.lower() in (".html", ".htm"):
+        # Access was checked above; documents only, so assets add no queries.
+        from .attendance import record_content_access
+        record_content_access(learner, package.course)
     return protected_headers(
         FileResponse(
             target.open("rb"),

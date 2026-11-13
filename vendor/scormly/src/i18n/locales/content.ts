@@ -10,7 +10,7 @@ const content: LocaleTable = {
 
     // In-memory demo course (the "try without saving" flow)
     demoCourseTitle: 'New course',
-    demoCourseDescription: 'Scormly demo course',
+    demoCourseDescription: 'Training Content Studio demo course',
     demoLesson1: 'Getting started',
     demoLesson2: 'Core concepts',
     demoLesson3: 'Final test',
@@ -115,7 +115,7 @@ const content: LocaleTable = {
 
     // In-memory demo course (the "try without saving" flow)
     demoCourseTitle: 'Новий курс',
-    demoCourseDescription: 'Демонстраційний курс Scormly',
+    demoCourseDescription: 'Демонстраційний курс Training Content Studio',
     demoLesson1: 'Початок',
     demoLesson2: 'Основні поняття',
     demoLesson3: 'Підсумковий тест',

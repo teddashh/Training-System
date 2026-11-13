@@ -1,3 +1,4 @@
+import { resolveThemeAlias } from '../brand'
 // Repairs a loaded project.json so the editor, preview and player can't crash
 // on it. Projects edited by hand or by an AI (following AGENTS.md) may miss
 // ids, fields or whole objects, or use the wrong types. Only structure is
@@ -342,6 +343,7 @@ export function repairCourse(input: unknown): { course: Course; fixes: RepairFix
   const source: Obj = isObj(input) ? input : { lessons: [] }
   if (!Array.isArray(source.lessons)) source.lessons = []
   const course = r.course(source)
+  if (typeof course.theme === 'string') course.theme = resolveThemeAlias(course.theme) as Course['theme']
   return { course, fixes: r.fixes }
 }
 

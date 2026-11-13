@@ -1,6 +1,10 @@
+import {examAction} from "./navigation";
+import { figureFile, expectFigureLoaded } from "./figures";
 import { expect, type Page } from "@playwright/test";
 
 export async function previewWorkflow(page: Page) {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const gradingGuide = "Award points for a safe route.\nAccept equivalent reasoning.";
   async function request(path: string, method = "GET", data?: unknown) {
     return page.evaluate(
       async ({ path, method, data }) => {
@@ -35,7 +39,7 @@ export async function previewWorkflow(page: Page) {
     ends_at: new Date(Date.now() - 86400000).toISOString(),
     questions: [
       {
-        description: "Preview choice",
+        description: "Synthetic network context\nA second context line\n\nPreview choice",
         type: "single",
         options: ["Report safely", "Share credentials"],
         solution: [0],
@@ -50,15 +54,50 @@ export async function previewWorkflow(page: Page) {
       },
     ],
   });
-  await page.goto("/exams");
-  await page
-    .getByRole("button", { name: `Preview ${title}`, exact: true })
-    .click();
+  await page.goto("/exams?view=library");
+  await expect(page.locator(".exam-card").filter({hasText:title})).toContainText("Draft");
+  await expect(page.getByRole("button", {name:"Exam library",exact:true})).toHaveCount(0);
+  await page.getByRole("button", { name: `Edit ${title}`, exact: true }).click();
+  const editor = page.getByRole("dialog", { name: "Edit exam", exact: true });
+  await editor.getByLabel("Upload figure", { exact: true }).first().setInputFiles(figureFile);
+  await expect(editor.getByLabel("Alt text", { exact: true })).toHaveAttribute("maxlength", "2000");
+  await editor.getByLabel("Grading guide", { exact: true }).fill(gradingGuide);
+  await editor.getByLabel("Alt text", { exact: true }).fill("Two synthetic network nodes connected by a link");
+  await editor.getByLabel("Caption", { exact: true }).fill("Synthetic topology");
+  await editor.getByRole("button", { name: "Save exam", exact: true }).click();
+  await expect(editor).toHaveCount(0);
+  await expect(page.getByRole("dialog", {name: "Ready to start?", exact: true})).toHaveCount(0);
+  await examAction(page, title, "Preview exam");
   const modal = page.getByRole("dialog");
   await expect(modal.locator(".preview-question")).toHaveCount(2);
+  await expectFigureLoaded(modal, "Two synthetic network nodes connected by a link");
+  await expect(modal.locator(".question-context")).toHaveText("Synthetic network context\nA second context line");
+  const enlarge = modal.getByRole("button", { name: "Enlarge figure: Two synthetic network nodes connected by a link", exact: true });
+  const inlineWidth = await modal.locator(".figure-open img").evaluate(img => img.getBoundingClientRect().width);
+  await expect(enlarge.locator(".figure-enlarge-cue")).toBeVisible();
+  await expect(enlarge.locator(".figure-enlarge-cue")).toHaveAttribute("aria-hidden", "true");
+  await expect(enlarge.locator(".figure-enlarge-cue")).toHaveText("Enlarge");
+  expect(await enlarge.evaluate(button => {
+    const image = button.querySelector("img")!.getBoundingClientRect();
+    const cue = button.querySelector(".figure-enlarge-cue")!.getBoundingClientRect();
+    return cue.top >= image.bottom;
+  })).toBe(true);
+  await enlarge.click();
+  const figureDialog = page.getByRole("dialog", { name: "Figure", exact: true });
+  await expectFigureLoaded(figureDialog, "Two synthetic network nodes connected by a link");
+  await expect(figureDialog.getByRole("button", { name: "Close", exact: true })).toBeVisible();
+  await expect(figureDialog.locator(".language-picker")).toHaveCount(0);
+  const enlargedWidth = await figureDialog.locator("img").evaluate(img => img.getBoundingClientRect().width);
+  expect(enlargedWidth).toBeGreaterThan(inlineWidth);
+  expect(enlargedWidth).toBeGreaterThanOrEqual(1100);
+  expect(enlargedWidth).toBeLessThanOrEqual(1600);
+  await page.keyboard.press("Escape");
+  await expect(figureDialog).toHaveCount(0);
+  await expect(enlarge).toBeFocused();
   await modal
     .getByRole("checkbox", { name: "Show accepted answers", exact: true })
     .check();
+  await expect(modal.getByText(gradingGuide, { exact: true })).toBeVisible();
   await expect(modal.locator(".accepted-answer").first()).toHaveText(
     "Report safely",
   );
@@ -87,6 +126,12 @@ export async function previewWorkflow(page: Page) {
     ),
   ).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
+  await enlarge.click();
+  await expectFigureLoaded(figureDialog, "Two synthetic network nodes connected by a link");
+  expect(await figureDialog.locator("img").evaluate(img => img.getBoundingClientRect().width)).toBeGreaterThanOrEqual(800);
+  expect(await figureDialog.locator(".figure-scroll").evaluate(node => node.scrollWidth > node.clientWidth)).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(enlarge).toBeFocused();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -97,6 +142,7 @@ export async function previewWorkflow(page: Page) {
     .getByRole("button", { name: "Start untimed test", exact: true })
     .click();
   await expect(page.locator(".exam-timer strong")).toHaveText("Untimed");
+  await expect(page.getByText(gradingGuide, { exact: true })).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "Preview choice", exact: true }),
   ).toBeVisible();
@@ -161,9 +207,8 @@ export async function previewWorkflow(page: Page) {
   await page
     .getByRole("button", { name: "Back to exams", exact: true })
     .click();
-  await page
-    .getByRole("button", { name: `Preview ${title}`, exact: true })
-    .click();
+  await expect(page.getByRole("dialog", {name: "Ready to start?", exact: true})).toHaveCount(0);
+  await examAction(page, title, "Preview exam");
   await expect(modal.locator(".preview-session")).toHaveCount(1);
   await modal
     .getByRole("button", { name: "Open preview", exact: true })
@@ -193,6 +238,7 @@ export async function previewWorkflow(page: Page) {
   await expect(
     modal.getByText("Private practice response", { exact: true }),
   ).toBeVisible();
+  await expect(modal.getByText(gradingGuide, { exact: true })).toBeVisible();
   await modal.getByRole("spinbutton", { name: "Score", exact: true }).fill("9");
   await modal
     .getByRole("textbox", { name: "Feedback", exact: true })
@@ -221,9 +267,8 @@ export async function previewWorkflow(page: Page) {
   await page
     .getByRole("button", { name: "Back to exams", exact: true })
     .click();
-  await page
-    .getByRole("button", { name: `Preview ${title}`, exact: true })
-    .click();
+  await expect(page.getByRole("dialog", {name: "Ready to start?", exact: true})).toHaveCount(0);
+  await examAction(page, title, "Preview exam");
   await modal
     .getByRole("button", { name: "Delete preview", exact: true })
     .click();
@@ -241,9 +286,8 @@ export async function previewWorkflow(page: Page) {
   await page
     .getByRole("button", { name: "Back to exams", exact: true })
     .click();
-  await page
-    .getByRole("button", { name: `Preview ${title}`, exact: true })
-    .click();
+  await expect(page.getByRole("dialog", {name: "Ready to start?", exact: true})).toHaveCount(0);
+  await examAction(page, title, "Preview exam");
   await modal
     .getByRole("button", { name: "Delete preview", exact: true })
     .click();

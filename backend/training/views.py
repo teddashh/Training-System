@@ -2,7 +2,7 @@ import secrets
 from datetime import timedelta
 
 from django.db import transaction
-from django.db.models import Avg, Count, OuterRef, Prefetch, Q, Subquery
+from django.db.models import Avg, Case, Count, IntegerField, OuterRef, Prefetch, Q, Subquery, Value, When
 from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -11,19 +11,31 @@ from django.views.decorators.cache import never_cache
 from rest_framework import viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from rest_framework.permissions import AllowAny, BasePermission
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from .runtime_settings import verification_brand, verification_heading, from_email, mail_enabled
+from .access import (AdminOnly, has_courses, has_exams, manages_course, manages_exam,
+                     people_access, require_exam, require_results, role_access, scope, scope_q, system_admin)
+from .course_sessions import course_queryset
+
 from .i18n import translate
+from .enrollments import (
+    check_learning_access,
+    enroll,
+    enrollment_data,
+    roster,
+    review as review_course_enrollment,
+)
 from .models import (
     Attempt,
     AttemptBudget,
-    AuditEvent,
     Course,
     Enrollment,
     Exam,
     GuestEmailChallenge,
     Invitation,
+    Question,
     User,
 )
 from .serializers import (
@@ -48,18 +60,7 @@ from .services import (
 )
 
 
-def manager(user):
-    return user.is_authenticated and user.role in ("admin", "instructor")
 
-
-def manage_exam(user, exam):
-    if not manager(user) or (user.role != "admin" and exam.owner_id != user.id):
-        raise PermissionDenied(translate("You cannot manage this exam."))
-
-
-class AdminOnly(BasePermission):
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role == "admin"
 
 
 class Users(viewsets.ModelViewSet):
@@ -67,6 +68,23 @@ class Users(viewsets.ModelViewSet):
     queryset = User.objects.all().order_by("id")
     serializer_class = UserSerializer
     http_method_names = ["get", "post", "patch", "head", "options"]
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        # Read local access decisions after any in-flight directory write completes.
+        get_object_or_404(self.get_queryset().select_for_update(), pk=kwargs['pk'])
+        return super().update(request, *args, **kwargs)
+
+    def get_queryset(self):
+        from .people import filter_people
+        qs = super().get_queryset()
+        return filter_people(qs, self.request.query_params) if self.action == 'list' else qs
+
+    def list(self, request, *args, **kwargs):
+        from .people import page_people, departments
+        rows, pagination = page_people(self.get_queryset(), request.query_params)
+        return Response({**pagination, 'results': self.get_serializer(rows, many=True).data,
+                         'departments': departments()})
 
     @transaction.atomic
     def perform_create(self, serializer):
@@ -78,7 +96,7 @@ class Users(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         user = serializer.instance
         if user.id == self.request.user.id and (
-            serializer.validated_data.get("role", user.role) != "admin"
+            not role_access(serializer.validated_data.get("role", user.role))["system_admin"]
             or serializer.validated_data.get("is_active") is False
         ):
             raise ValidationError(
@@ -92,42 +110,188 @@ class Users(viewsets.ModelViewSet):
 
 class Courses(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
-    http_method_names = ["get", "post", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+
+    @action(detail=True, methods=['get'], url_path='deletion-preview')
+    def deletion_preview(self, request, pk=None):
+        from .lifecycle import deletion_preview
+        return Response(deletion_preview(request.user, Course, pk))
+
+    def destroy(self, request, pk=None):
+        from .lifecycle import delete_training
+        delete_training(request.user, Course, pk, request.data)
+        return Response(status=204)
+
+    @action(detail=True, methods=['post'], url_path='cancel-training')
+    def cancel_training(self, request, pk=None):
+        from .lifecycle import cancel_training
+        return Response(cancel_training(request.user, pk, request.data))
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        response["Cache-Control"] = response.get("Cache-Control", "no-store")
+        return response
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        # Serialize policy changes with admissions, completions and SCORM writes.
+        get_object_or_404(Course.objects.select_for_update(), pk=kwargs["pk"])
+        return super().update(request, *args, **kwargs)
 
     def get_queryset(self):
-        qs = Course.objects.all().order_by("-created_at")
-        if self.request.user.role == "admin":
+        qs = course_queryset(self.request.user).order_by("-created_at")
+        visible = Q(published=True) & (Q(release_at__isnull=True) | Q(release_at__lte=timezone.now()))
+        if scope(self.request.user, 'courses') == 'all':
             return qs
-        if self.request.user.role == "instructor":
-            return qs.filter(Q(published=True) | Q(owner=self.request.user))
-        return qs.filter(published=True)
+        return qs.filter(visible | scope_q(self.request.user, 'courses'))
+
+    @action(detail=False, methods=['get'])
+    def mine(self, request):
+        from .models import LearningAssignment
+        mine = Enrollment.objects.filter(user=request.user).filter(
+            ~Q(status__in=['cancelled', 'rejected']) | Q(progress__gt=0) | Q(progress_known=False) | Q(completed_at__isnull=False)
+        ).values('course_id')
+        assigned = LearningAssignment.objects.filter(user=request.user, cancelled_at=None).values('course_id')
+        # Personal learning follows publication even for organizers. Keep the underlying
+        # enrollment/assignment history so republishing restores the same progress.
+        rows = course_queryset(request.user).filter(published=True).filter(Q(pk__in=mine) | Q(pk__in=assigned)).order_by('title')
+        return Response(self.get_serializer(rows, many=True).data)
 
     def perform_create(self, serializer):
-        if not manager(self.request.user):
+        if not has_courses(self.request.user):
             raise PermissionDenied()
         course = serializer.save(owner=self.request.user)
         audit(self.request.user, "course.created", course.id)
 
     def perform_update(self, serializer):
-        if not manager(self.request.user) or (
-            self.request.user.role != "admin"
-            and serializer.instance.owner_id != self.request.user.id
-        ):
+        if not manages_course(self.request.user, serializer.instance):
             raise PermissionDenied()
         serializer.save()
         audit(self.request.user, "course.updated", serializer.instance.id)
 
+    @action(detail=True, methods=['get', 'post', 'patch'], url_path='assessments')
+    @transaction.atomic
+    def assessments(self, request, pk=None):
+        course = get_object_or_404(Course.objects.select_for_update(), pk=pk)
+        if not manages_course(request.user, course):
+            raise PermissionDenied()
+        if request.method in ('POST', 'PATCH'):
+            from rest_framework import serializers
+            class LinkInput(serializers.Serializer):
+                exam = serializers.IntegerField(min_value=1)
+                attach = serializers.BooleanField(default=True)
+                release = serializers.ChoiceField(choices=['immediate', 'after_session'], required=False)
+                publish = serializers.BooleanField(default=False)
+            form = LinkInput(data=request.data)
+            if request.method == 'PATCH':
+                form.fields['release'].required = True
+                form.fields.pop('attach')
+                form.fields.pop('publish')
+            form.is_valid(raise_exception=True)
+            from .assessments import require_release
+            require_release(course, form.validated_data.get('release'))
+            exam = get_object_or_404(Exam.objects.select_for_update(), pk=form.validated_data['exam'])
+            attach = form.validated_data.get('attach', True)
+            from .models import CourseAssessment
+            if request.method == 'PATCH':
+                link = get_object_or_404(CourseAssessment, course=course, exam=exam)
+                if link.release != form.validated_data['release']:
+                    link.release = form.validated_data['release']
+                    link.save(update_fields=['release'])
+                    audit(request.user, 'course.assessment_release', course.pk, {'exam': exam.pk, 'release': link.release})
+            elif attach:
+                from .assessments import attach_quiz
+                attach_quiz(request.user, course, exam, release=form.validated_data.get('release'),
+                            publish=form.validated_data.get('publish', False))
+            elif request.method == 'POST':
+                deleted, _ = CourseAssessment.objects.filter(course=course, exam=exam).delete()
+                if deleted:
+                    audit(request.user, 'course.assessment_detached', course.pk, {'exam': exam.pk})
+        from .assessments import exam_queryset, option
+        from .services import exam_audience_sets
+        membership = exam_audience_sets(request.user)
+        linked, available = [], []
+        for exam in exam_queryset(request.user).order_by('title', 'id'):
+            linked_here = any(link.course_id == course.pk for link in exam.assessment_links.all())
+            if not linked_here and exam.audience == 'invitation' and not manages_exam(request.user, exam):
+                continue
+            (linked if linked_here else available).append(option(exam, request.user, course.pk, membership))
+        order = {exam_id: index for index, exam_id in enumerate(course.assessment_links.values_list('exam_id', flat=True))}
+        linked.sort(key=lambda row: order[row['id']])
+        return Response({'linked': linked, 'available': available})
+
+    @action(detail=True, methods=['post'], url_path='registration-link')
+    def registration_link(self, request, pk=None):
+        from .registration import registration_link
+        return registration_link(request.user, pk, request.data)
+
     @action(detail=True, methods=["post"])
     def enroll(self, request, pk=None):
         course = self.get_object()
-        enrollment, _ = Enrollment.objects.get_or_create(
-            user=request.user, course=course
-        )
-        return Response({"progress": enrollment.progress})
+        row = enroll(request.user, course.pk, request.data)
+        return Response(enrollment_data(row))
+
+    @action(detail=True, methods=["get"])
+    def enrollments(self, request, pk=None):
+        return Response(roster(request.user, self.get_object(), request.query_params))
+
+    @action(detail=True, methods=['get', 'post'])
+    def sessions(self, request, pk=None):
+        from .course_sessions import visible_sessions, save_session
+        course = self.get_object()
+        if request.method == 'GET':
+            return Response(visible_sessions(request.user, course))
+        return Response(save_session(request.user, course.pk, request.data), status=201)
+
+    @action(detail=True, methods=['patch'], url_path=r'sessions/(?P<session_id>\d+)')
+    def session_detail(self, request, pk=None, session_id=None):
+        from .course_sessions import save_session
+        self.get_object()
+        return Response(save_session(request.user, pk, request.data, session_id))
+
+    @action(detail=True, methods=['post'], url_path='cancel-registration')
+    def cancel_registration(self, request, pk=None):
+        from .course_sessions import cancel_registration
+        self.get_object()
+        return Response(cancel_registration(request.user, pk, request.data))
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path=r"enrollments/(?P<enrollment_id>\d+)/review",
+    )
+    def review_enrollment(self, request, pk=None, enrollment_id=None):
+        self.get_object()
+        return review_course_enrollment(request.user, pk, enrollment_id, request.data)
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def content(self, request, pk=None):
+        course = self.get_object()
+        check_learning_access(request.user, course)
+        if course.blocks and not course.packages.exists():
+            from .attendance import record_content_access
+            record_content_access(request.user, course)
+        return Response(self.get_serializer(course).data)
+
+    @action(detail=True, methods=['get', 'post'], url_path=r'sessions/(?P<session_id>\d+)/attendance')
+    def attendance(self, request, pk=None, session_id=None):
+        from .attendance import attendance_data, mark_attendance, session_for_manager
+        if request.method == 'POST':
+            return Response(mark_attendance(request.user, pk, session_id, request.data))
+        return Response(attendance_data(session_for_manager(request.user, pk, session_id)))
+
+    @action(detail=True, methods=['get'], url_path=r'sessions/(?P<session_id>\d+)/export')
+    def session_export(self, request, pk=None, session_id=None):
+        from .session_exports import session_export
+        return session_export(request, pk, session_id)
 
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def complete(self, request, pk=None):
-        course = self.get_object()
+        self.get_object()
+        course = get_object_or_404(Course.objects.select_for_update(), pk=pk)
+        check_learning_access(request.user, course)
         if course.packages.exists() or not course.blocks:
             raise ValidationError(
                 translate(
@@ -137,79 +301,89 @@ class Courses(viewsets.ModelViewSet):
         Enrollment.objects.update_or_create(
             user=request.user,
             course=course,
-            defaults={"progress": 100, "completed_at": timezone.now()},
+            defaults={"progress": 100, "progress_known": True, "completed_at": timezone.now()},
         )
         return Response({"progress": 100})
 
 
 class Exams(viewsets.ModelViewSet):
     serializer_class = ExamSerializer
-    http_method_names = ["get", "post", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+
+    @action(detail=True, methods=['get'], url_path='deletion-preview')
+    def deletion_preview(self, request, pk=None):
+        from .lifecycle import deletion_preview
+        return Response(deletion_preview(request.user, Exam, pk))
+
+    def destroy(self, request, pk=None):
+        from .lifecycle import delete_training
+        delete_training(request.user, Exam, pk, request.data)
+        return Response(status=204)
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        # Validate the linked course against a fresh row, serialized with course-side linking.
+        get_object_or_404(Exam.objects.select_for_update(), pk=kwargs['pk'])
+        return super().update(request, *args, **kwargs)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['audience_sets'] = self.audience_sets()
+        return context
+
+    def audience_sets(self):
+        from .services import exam_audience_sets
+        if not hasattr(self, '_audience_sets'):
+            self._audience_sets = exam_audience_sets(self.request.user)
+        return self._audience_sets
 
     def get_queryset(self):
-        qs = (
-            Exam.objects.annotate(
-                last_user_attempt_started_at=Subquery(
-                    Attempt.objects.filter(
-                        exam=OuterRef("pk"), identity__user=self.request.user
-                    )
-                    .order_by("-number")
-                    .values("started_at")[:1]
-                )
-            )
-            .prefetch_related(
-                "allowed_users",
-                Prefetch(
-                    "attemptbudget_set",
-                    queryset=AttemptBudget.objects.filter(
-                        identity__user=self.request.user
-                    ),
-                    to_attr="user_budgets",
-                ),
-                Prefetch(
-                    "attempt_set",
-                    queryset=Attempt.objects.filter(
-                        identity__user=self.request.user,
-                        status="in_progress",
-                        deadline__gt=timezone.now(),
-                    ),
-                    to_attr="active_user_attempts",
-                ),
-            )
-            .order_by("-created_at")
-        )
-        if self.request.user.role == "admin":
+        from .assessments import exam_queryset
+        qs = exam_queryset(self.request.user).order_by('-created_at')
+        # Only management responses can serialize questions/answers.
+        if has_exams(self.request.user):
+            qs = qs.prefetch_related('allowed_users', 'allowed_groups', Prefetch(
+                'questions', queryset=Question.objects.select_related('figure').defer('figure__data')))
+        if scope(self.request.user, 'exams') == 'all':
             return qs
-        permitted = [
-            exam.pk
-            for exam in qs.filter(published=True)
-            if in_exam_audience(exam, self.request.user)
-        ]
-        if self.request.user.role == "instructor":
-            return qs.filter(Q(pk__in=permitted) | Q(owner=self.request.user))
-        return qs.filter(pk__in=permitted)
+        membership = self.audience_sets()
+        from .services import visible_exam
+        permitted = [exam.pk for exam in Exam.objects.filter(published=True)
+                     if visible_exam(exam, self.request.user, membership)]
+        return qs.filter(Q(pk__in=permitted) | scope_q(self.request.user, 'exams'))
+
+    @action(detail=False, methods=['get'], url_path='link-options')
+    def link_options(self, request):
+        if request.query_params.get('quizzes') == '1':
+            if not has_courses(request.user):
+                raise PermissionDenied()
+            qs = Exam.objects.annotate(question_count=Count('questions')).exclude(audience='invitation').filter(
+                Q(published=True) | (Q(owner=request.user, published=False, question_count__gt=0) if has_exams(request.user) else Q(pk__in=[])))
+            # gated: linking it "after the session" keeps everybody out until their session (drafts become course-only).
+            # The organizer's own quizzes come first: in a long company list those are the ones they are looking for.
+            qs = qs.annotate(other=Case(When(owner=request.user, then=Value(0)), default=Value(1), output_field=IntegerField()))
+            return Response([{**row, 'gated': row['audience'] == 'course' or (not row['published'] and row['audience'] == 'all')}
+                             for row in qs.order_by('other', 'title', 'id').values('id', 'title', 'published', 'audience', 'question_count')])
+        if not has_exams(request.user):
+            raise PermissionDenied()
+        qs = Course.objects.all()
+        if scope(request.user, 'exams') != 'all':
+            qs = qs.filter(scope_q(request.user, 'courses'))
+        return Response(list(qs.order_by('title', 'id').values('id', 'title', 'published')))
 
     @action(detail=False, methods=["get"], url_path="audience-options")
     def audience_options(self, request):
-        if not manager(request.user):
+        if not people_access(request.user):
             raise PermissionDenied()
-        people = list(
-            User.objects.filter(is_active=True)
-            .order_by("display_name", "id")
-            .values("id", "display_name", "username", "department")
-        )
-        return Response(
-            {
-                "people": people,
-                "departments": sorted(
-                    {person["department"] for person in people if person["department"]}
-                ),
-            }
-        )
+        from .people import filter_audience_people, page_people, departments
+        rows, pagination = page_people(filter_audience_people(User.objects.filter(is_active=True), request.query_params, request.user)
+                                       .order_by('display_name', 'id'), request.query_params)
+        return Response({**pagination, 'people': list(rows.values('id', 'display_name', 'username', 'department')),
+                         'departments': departments(active_only=True)})
 
     @transaction.atomic
     def perform_create(self, serializer):
-        if not manager(self.request.user):
+        if not has_exams(self.request.user):
             raise PermissionDenied()
         exam = serializer.save(owner=self.request.user)
         audit(self.request.user, "exam.created", exam.id)
@@ -217,7 +391,7 @@ class Exams(viewsets.ModelViewSet):
     @transaction.atomic
     def perform_update(self, serializer):
         exam = Exam.objects.select_for_update().get(pk=serializer.instance.pk)
-        manage_exam(self.request.user, exam)
+        require_exam(self.request.user, exam)
         serializer.save()
         audit(self.request.user, "exam.updated", exam.id)
 
@@ -229,10 +403,17 @@ class Exams(viewsets.ModelViewSet):
             headers={"Cache-Control": "no-store"},
         )
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["get", "post"])
     def budget(self, request, pk=None):
         exam = self.get_object()
-        manage_exam(request.user, exam)
+        if request.method == 'GET':
+            data = self.get_serializer(exam).data
+            from .services import exam_opens_for
+            data['starts_at'] = exam_opens_for(exam, request.user, self.audience_sets())
+            return Response({key: data[key] for key in (
+                'id', 'starts_at', 'ends_at', 'available_to_me', 'attempts_remaining',
+                'active_attempt_id', 'next_attempt_at', 'next_round_at', 'server_time')})
+        require_exam(request.user, exam)
         try:
             limit = int(request.data["limit"])
         except (KeyError, ValueError, TypeError):
@@ -245,7 +426,7 @@ class Exams(viewsets.ModelViewSet):
             budget, _ = AttemptBudget.objects.get_or_create(
                 exam=exam, identity=identity
             )
-            if limit < budget.used:
+            if limit < budget.used - budget.round_start_used:
                 raise ValidationError(
                     translate(
                         "The limit cannot be lower than the attempts already used."
@@ -291,6 +472,8 @@ def guest_exchange(request):
     ):
         request.session.pop(key, None)
     if inv.require_email_verification:
+        if not mail_enabled():
+            raise ValidationError(translate("Email is off."))
         request.session["guest_pending_invitation"] = str(inv.id)
         return Response(verification_info(inv))
     request.session["guest_invitation"] = str(inv.id)
@@ -298,6 +481,8 @@ def guest_exchange(request):
 
 
 def verification_info(inv):
+    if not mail_enabled():
+        raise ValidationError(translate("Email is off."))
     local, domain = inv.verification_email.rsplit("@", 1)
     return {
         "verification_required": True,
@@ -321,6 +506,9 @@ def pending_invite(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def guest_email_request(request):
+    if not mail_enabled():
+        raise ValidationError(translate("Email is off."))
+    from .notifications import record_verification
     from django.conf import settings
     from django.core.mail import send_mail
 
@@ -342,17 +530,18 @@ def guest_email_request(request):
     request.session["guest_challenge"] = str(challenge.pk)
     try:
         send_mail(
-            translate("Evitina Learn exam verification"),
-            translate("Your verification code: ")
+            translate("{organization} exam verification", organization=verification_brand(), locale="en"),
+            verification_heading() + "Your verification code: "
             + code
             + "\n"
-            + translate("Valid for 10 minutes."),
-            settings.DEFAULT_FROM_EMAIL,
+            + "Valid for 10 minutes.",
+            from_email(),
             [inv.verification_email],
         )
-    except Exception:
+    except Exception as error:
         challenge.delete()
         request.session.pop("guest_challenge", None)
+        record_verification("guest_verification", inv.verification_email, error=error)
         return Response(
             {
                 "detail": translate(
@@ -361,6 +550,7 @@ def guest_email_request(request):
             },
             status=503,
         )
+    record_verification("guest_verification", inv.verification_email)
     return Response(
         {
             "detail": translate(
@@ -374,6 +564,8 @@ def guest_email_request(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def guest_email_verify(request):
+    if not mail_enabled():
+        raise ValidationError(translate("Email is off."))
     from django.conf import settings
 
     from .auth_views import rate_limit
@@ -419,11 +611,9 @@ def guest_email_verify(request):
 
 def guest_info(inv):
     budget = AttemptBudget.objects.filter(exam=inv.exam, identity=inv.identity).first()
-    remaining = (
-        (budget.limit_override or inv.exam.max_attempts) - budget.used
-        if budget
-        else inv.exam.max_attempts
-    )
+    from .attempt_rounds import round_status
+    allowance = round_status(inv.exam, budget)
+    remaining = allowance['attempts_remaining']
     # The secret link identifies one pre-bound recipient; typing another email
     # never creates a new identity or budget. The link itself is a credential.
     now = timezone.now()
@@ -432,15 +622,21 @@ def guest_info(inv):
         attempts.order_by("-number").values_list("started_at", flat=True).first()
     )
     active = attempts.filter(status="in_progress", deadline__gt=now).first()
+    eligible = next_attempt_at(inv.exam, last_started_at)
+    if allowance['next_round_at']:
+        eligible = max(eligible, allowance['next_round_at']) if eligible else allowance['next_round_at']
     return {
         "exam_id": inv.exam_id,
         "title": inv.exam.title,
         "description": inv.exam.description,
         "duration_minutes": inv.exam.duration_minutes,
         "retry_interval_minutes": inv.exam.retry_interval_minutes,
+        "attempt_reset_minutes": inv.exam.attempt_reset_minutes,
+        "next_round_at": allowance['next_round_at'],
+        "round_awaiting_grading": allowance['round_awaiting_grading'],
         "allow_skip": inv.exam.allow_skip,
         "allow_response_review": inv.exam.allow_response_review,
-        "next_attempt_at": next_attempt_at(inv.exam, last_started_at),
+        "next_attempt_at": eligible,
         "server_time": now,
         "active_attempt_id": str(active.pk) if active else None,
         "remaining": max(0, min(remaining, inv.max_attempts - inv.used)),
@@ -464,6 +660,8 @@ def guest_exam(request):
 
 def accessible_attempt(request, attempt):
     if request.user.is_authenticated and attempt.identity.user_id == request.user.id:
+        # Existing owned attempts and historical results retain their admission.
+        # New starts/listing use in_exam_audience; invitation access stays separate.
         return
     inv = session_invite(request)
     if inv.identity_id != attempt.identity_id or inv.exam_id != attempt.exam_id:
@@ -524,11 +722,9 @@ def scoped_attempts(user):
     qs = Attempt.objects.select_related("exam", "identity", "identity__user").order_by(
         "-started_at"
     )
-    if user.role == "admin":
+    if scope(user, 'results') == 'all':
         return qs
-    if user.role == "instructor":
-        return qs.filter(exam__owner=user)
-    return qs.filter(identity__user=user)
+    return qs.filter(Q(identity__user=user) | scope_q(user, 'results', 'exam__'))
 
 
 @never_cache
@@ -541,7 +737,7 @@ def review(request, pk):
             ),
             pk=pk,
         )
-        manage_exam(request.user, attempt.exam)
+        require_results(request.user, attempt.exam)
         if attempt.status not in ("pending_review", "graded"):
             raise ValidationError(translate("This attempt has not been submitted."))
         if request.method == "POST":
@@ -591,18 +787,19 @@ def dashboard(request):
     except ValueError:
         raise ValidationError(translate("Invalid date range."))
     since = timezone.now() - timedelta(days=days)
+    # R-none users retain personal Overview scores; scoped_attempts excludes other people.
     attempts = scoped_attempts(user).filter(started_at__gte=since)
-    enrollments = Enrollment.objects.all()
+    # Admission requests are not learning activity. Retain prior learning evidence
+    # after access removal, including completed assignments and dashboard totals.
+    enrollments = Enrollment.objects.filter(Q(status="approved") | Q(progress__gt=0))
     people = User.objects.filter(is_active=True)
     courses = Course.objects.all()
-    if user.role == "learner":
-        enrollments = enrollments.filter(user=user)
-        people = people.filter(pk=user.pk)
-        courses = courses.filter(published=True)
-    elif user.role == "instructor":
-        enrollments = enrollments.filter(course__owner=user)
-        people = people.filter(enrollment__course__owner=user).distinct()
-        courses = courses.filter(owner=user)
+    if scope(user, 'courses') != 'all':
+        enrollments = enrollments.filter(Q(user=user) | scope_q(user, 'courses', 'course__'))
+        courses = courses.filter(scope_q(user, 'courses')) if has_courses(user) else courses.filter(published=True)
+    if not system_admin(user):
+        people = people.filter(Q(pk=user.pk) | Q(pk__in=enrollments.values('user_id'))
+                               | Q(pk__in=attempts.values('identity__user_id')))
     department = request.query_params.get("department")
     if department:
         attempts = attempts.filter(identity__user__department=department)
@@ -655,12 +852,8 @@ def dashboard(request):
 
 @api_view(["GET"])
 def audit_log(request):
-    if request.user.role != "admin":
+    if not system_admin(request.user):
         raise PermissionDenied()
-    return Response(
-        list(
-            AuditEvent.objects.order_by("-created_at").values(
-                "id", "actor__display_name", "action", "target", "detail", "created_at"
-            )[:200]
-        )
-    )
+    from .administration import activity_rows
+
+    return Response(activity_rows())

@@ -2,7 +2,10 @@ import { useSyncExternalStore } from "react";
 import { Languages } from "lucide-react";
 import messages from "../../shared/locales/messages.json";
 
-export type Locale = "en" | "zh-TW" | "es";
+import { brand } from "./brand";
+import { allowedLocales, resolveLocale, allLocales, type Locale } from "./localeResolution";
+export type { Locale } from "./localeResolution";
+let allowed = allLocales;
 export const locales: { value: Locale; label: string }[] = [
   { value: "en", label: "English" },
   { value: "zh-TW", label: "繁體中文" },
@@ -35,15 +38,22 @@ export function t(key: string, values: Record<string, string | number> = {}) {
     Object.hasOwn(values, name) ? String(values[name]) : match,
   );
 }
+export function countLabel(count: number, oneKey: string, otherKey: string) {
+  return t(count === 1 ? oneKey : otherKey, {count});
+}
+export function attemptCount(count: number) {
+  return t(count === 1 ? "{count} attempt" : "{count} attempts", { count });
+}
+
 function applyDocumentLocale() {
   document.documentElement.lang = locale;
-  document.title = "Evitina Learn · " + t("Enterprise learning platform");
+  document.title = brand.customized ? brand.title : t("{organization} · Enterprise learning platform", { organization: brand.organization });
   document.cookie = `django_language=${locale === "zh-TW" ? "zh-hant" : locale}; Path=/; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
 }
 export function setLocale(next: Locale) {
-  locale = next;
+  locale = resolveLocale(next, allowed);
   try {
-    localStorage.setItem(storageKey, next);
+    localStorage.setItem(storageKey, locale);
   } catch {
     /* Keep the in-memory preference. */
   }
@@ -55,8 +65,13 @@ window.addEventListener("storage", (event) => {
     setLocale(event.newValue);
 });
 applyDocumentLocale();
+export function setInterfaceLanguages(value: unknown) {
+  allowed = allowedLocales(value);
+  setLocale(resolveLocale(locale, allowed));
+}
 export function LanguagePicker() {
   const language = useLocale();
+  if (allowed.length < 2) return null;
   return (
     <label className="language-picker">
       <Languages size={17} aria-hidden="true" />
@@ -65,7 +80,7 @@ export function LanguagePicker() {
         value={language}
         onChange={(e) => setLocale(e.target.value as Locale)}
       >
-        {locales.map((l) => (
+        {allowed.map(code => locales.find(l => l.value === code)!).map((l) => (
           <option key={l.value} value={l.value}>
             {l.label}
           </option>

@@ -37,7 +37,7 @@ class Command(BaseCommand):
         rng = random.Random(27)
         admin = User.objects.create_superuser(
             "demo.admin",
-            "admin@evitina.example",
+            "admin@example.com",
             password,
             display_name="Alex Morgan",
             department="People & Development",
@@ -82,7 +82,7 @@ class Command(BaseCommand):
         for i, name in enumerate(names):
             u = User.objects.create_user(
                 f"demo.learner{i + 1}",
-                f"learner{i + 1}@evitina.example",
+                f"learner{i + 1}@example.com",
                 password,
                 display_name=name,
                 department=departments[i % len(departments)],
@@ -181,12 +181,13 @@ class Command(BaseCommand):
                 title=title,
                 description="Read each scenario and select the answer that best follows company working practices.",
                 owner=admin,
-                course=courses[0] if i == 0 else None,
                 duration_minutes=30,
                 max_attempts=3,
                 pass_score=70,
                 published=True,
             )
+            if i == 0:
+                exam.courses.add(courses[0])
             Question.objects.create(
                 exam=exam,
                 description="What should you do if an unexpected email asks for your company password?",
@@ -283,16 +284,20 @@ class Command(BaseCommand):
                 due_at=timezone.now() + timedelta(days=7),
                 notes="Achieve the passing score to fulfill this assessment requirement.",
             )
-        for question in exams[0].questions.all():
+        for question in exams[0].questions.select_related("figure").defer("figure__data"):
             BankQuestion.objects.create(
                 owner=admin,
                 category="Security & collaboration",
                 description=question.description,
+                grading_guide=question.grading_guide,
+                figure=question.figure,
+                figure_alt=question.figure_alt,
+                figure_caption=question.figure_caption,
                 type=question.type,
                 options=question.options,
                 solution=question.solution,
                 points=question.points,
             )
         self.stdout.write(
-            "Synthetic demo ready. Admin: admin@evitina.example; learner: learner1@evitina.example. Password comes from DEMO_PASSWORD."
+            "Synthetic demo ready. Admin: admin@example.com; learner: learner1@example.com. Password comes from DEMO_PASSWORD."
         )

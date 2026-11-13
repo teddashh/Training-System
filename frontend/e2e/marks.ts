@@ -1,3 +1,4 @@
+import {examAction} from "./navigation";
 import { readFile } from "node:fs/promises";
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
@@ -133,9 +134,7 @@ export async function marksImportWorkflow(page: Page, browser: Browser) {
     ).toBeVisible();
     const open = async (target: Page) => {
       await target.goto("/exams");
-      await target
-        .getByRole("button", { name: `Monitor ${title}`, exact: true })
-        .click();
+      await examAction(target, title, "Live exam monitor");
       return target.getByRole("dialog", {
         name: "Live exam monitor",
         exact: true,
@@ -289,9 +288,7 @@ export async function marksImportWorkflow(page: Page, browser: Browser) {
       dialog.getByRole("button", { name: "Retry saved import", exact: true }),
     ).toBeEnabled();
     await page.reload();
-    await page
-      .getByRole("button", { name: `Monitor ${title}`, exact: true })
-      .click();
+    await examAction(page, title, "Live exam monitor");
     await monitor
       .getByRole("button", { name: "Import marks", exact: true })
       .click();
@@ -319,6 +316,7 @@ export async function marksImportWorkflow(page: Page, browser: Browser) {
         exact: true,
       }),
     ).toBeVisible();
+    await expect(oldReview.getByLabel("Score", { exact: true })).toHaveValue("4");
     await oldReview
       .getByRole("button", { name: "Save grades & feedback", exact: true })
       .click();

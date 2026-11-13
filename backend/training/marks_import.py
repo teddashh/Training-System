@@ -25,7 +25,7 @@ from .models import Attempt, Exam, MarksImport
 from .monitoring import MonitorFilters, page_data
 from .reporting import safe_csv
 from .services import audit, grade, question_points
-from .views import manage_exam
+from .access import require_results
 
 MAX_BYTES = 256 * 1024
 MAX_ROWS = 500
@@ -320,7 +320,7 @@ def build_plan(exam, rows, skipped):
 @api_view(["GET"])
 def marks_template(request, pk):
     exam = get_object_or_404(Exam, pk=pk)
-    manage_exam(request.user, exam)
+    require_results(request.user, exam)
     filters = MonitorFilters(data=request.query_params)
     filters.is_valid(raise_exception=True)
     values = filters.validated_data
@@ -396,7 +396,7 @@ def marks_template(request, pk):
 def marks_imports(request, pk):
     with transaction.atomic():
         exam = get_object_or_404(Exam.objects.select_for_update(), pk=pk)
-        manage_exam(request.user, exam)
+        require_results(request.user, exam)
         if request.method == "GET":
             filters = MonitorFilters(data=request.query_params)
             filters.is_valid(raise_exception=True)
@@ -444,7 +444,7 @@ def marks_imports(request, pk):
 def marks_import_detail(request, pk, import_id):
     with transaction.atomic():
         exam = get_object_or_404(Exam.objects.select_for_update(), pk=pk)
-        manage_exam(request.user, exam)
+        require_results(request.user, exam)
         record = get_object_or_404(
             MarksImport.objects.select_for_update(of=("self",)).select_related("actor"),
             pk=import_id,

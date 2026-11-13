@@ -1,0 +1,50 @@
+/* Colour roles (legacy property names are the shared contract):
+   brand-blue: primary structure, links and mail; brand-pink: action accent;
+   brand-burgundy: dark accent; brand-cyan: decorative highlight;
+   brand-green / brand-green-accent: success and chart accents;
+   brand-brown / brand-brown-accent: warm chart accents;
+   surface / canvas / surface-muted: backgrounds; ink / text-secondary /
+   text-muted: text; stroke / stroke-subtle: dividers; focus: keyboard focus;
+   danger / warning: semantic states; *-soft: pale state backgrounds;
+   ms-*: Microsoft sign-in mark colours, not organization colours. */
+:root {
+  --brand-blue: #183e59;
+  --brand-pink: #176b67;
+  --brand-burgundy: #124c49;
+  --brand-cyan: #66b9b3;
+  --brand-green: #244e42;
+  --brand-green-accent: #287863;
+  --brand-brown: #514538;
+  --brand-brown-accent: #887255;
+  --surface: #ffffff;
+  --canvas: #f5f5f5;
+  --surface-muted: #fafafa;
+  --ink: #242424;
+  --text-secondary: #424242;
+  --text-muted: #616161;
+  --stroke: #d1d1d1;
+  --stroke-subtle: #e0e0e0;
+  --focus: #0f6cbd;
+  --danger: #b10e1e;
+  --warning: #8a3707;
+  --blue-soft: color-mix(in srgb, var(--brand-blue) 7%, var(--surface));
+  --pink-soft: color-mix(in srgb, var(--brand-pink) 7%, var(--surface));
+  --green-soft: color-mix(in srgb, var(--brand-green-accent) 10%, var(--surface));
+  --brown-soft: color-mix(in srgb, var(--brand-brown-accent) 10%, var(--surface));
+  --danger-soft: color-mix(in srgb, var(--danger) 7%, var(--surface));
+  --warning-soft: color-mix(in srgb, var(--warning) 7%, var(--surface));
+  --font-ui: system-ui, -apple-system, "Segoe UI", Arial, "Microsoft JhengHei", sans-serif;
+  --font-heading: system-ui, -apple-system, "Segoe UI", Arial, "Microsoft JhengHei", sans-serif;
+  --font-section: system-ui, -apple-system, "Segoe UI", Arial, "Microsoft JhengHei", sans-serif;
+  --font-title: 27px;
+  --font-section-size: 18px;
+  --font-body: 14px;
+  --font-caption: 12px;
+  --radius-control: 4px;
+  --radius-panel: 8px;
+  --shadow-dialog: 0 8px 32px color-mix(in srgb, var(--ink) 18%, transparent);
+  --ms-red: #f35325;
+  --ms-green: #81bc06;
+  --ms-blue: #05a6f0;
+  --ms-yellow: #ffba08;
+}

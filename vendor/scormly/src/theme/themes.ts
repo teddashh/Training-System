@@ -1,3 +1,4 @@
+import { brand, companyThemeTokens } from '../brand'
 // Global project themes (spec extension requested by the user).
 // There is one theme per course; it affects the accent color, button shape and
 // the style of interactive blocks (tabs/accordion/flashcards). Implemented via
@@ -18,6 +19,10 @@ export interface ThemeMeta {
 }
 
 export const THEMES: Record<PresetThemeId, ThemeMeta> = {
+  company: {
+    id: 'company', label: brand.organization, accent: companyThemeTokens.brand, shape: 'sharp',
+    description: '{organization} brand colors with Fluent-style controls',
+  },
   rose: {
     id: 'rose',
     label: 'Rose',
@@ -92,7 +97,7 @@ export const THEMES: Record<PresetThemeId, ThemeMeta> = {
 
 export const THEME_LIST: ThemeMeta[] = Object.values(THEMES)
 
-export const DEFAULT_THEME: PresetThemeId = 'rose'
+export const DEFAULT_THEME: PresetThemeId = 'company'
 
 /** The course's accent for swatches: the preset's, or the custom brand color. */
 export function themeAccent(course: Pick<Course, 'theme' | 'customTheme'>): string {

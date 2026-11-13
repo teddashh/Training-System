@@ -6,7 +6,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from django.core.management import CommandError, call_command
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -35,7 +35,7 @@ def text_question(**changes):
     }
 
 
-class TextRuleTests(SimpleTestCase):
+class TextRuleTests(TestCase):
     def test_yaksh_modes_preserve_case_spacing_and_line_semantics(self):
         question = text_question()
         for answer in (

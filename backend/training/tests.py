@@ -500,9 +500,39 @@ class EnterpriseTests(TestCase):
                 response = content.get("/launch", {"ticket": unquote(token)})
                 self.assertEqual(response.status_code, 200)
                 self.assertIn("frame-ancestors", response["Content-Security-Policy"])
+                self.assertEqual(content.get("/launch", {"ticket": unquote(token)}, HTTP_X_TRAINING_CONTENT_PATH="1").status_code, 403)
+                self.assertEqual(content.get(f"/packages/{package_id}/index.html", HTTP_X_TRAINING_CONTENT_PATH="1").status_code, 403)
                 self.assertEqual(
                     content.get(f"/packages/{package_id}/index.html").status_code, 200
                 )
+
+    @override_settings(SCORM_TRUSTED_SAME_ORIGIN=True, SCORM_BASE_PATH="/training/content")
+    def test_trusted_content_uses_post_launch_and_scoped_cookie(self):
+        course = Course.objects.create(title="Reviewed company course", owner=self.admin)
+        self.login(self.admin)
+        package = ScormPackage.objects.create(course=course, version="2004", launch_path="index.html", title=course.title)
+        launched = self.client.post(f"/api/scorm/{package.id}/launch/", {}, format="json").json()
+        self.assertEqual(launched["url"], settings.APP_ORIGIN + "/training/content/launch")
+        self.assertNotIn("?", launched["url"])
+        self.assertEqual(launched["origin"], settings.APP_ORIGIN)
+        with override_settings(ROOT_URLCONF="config.content_urls"):
+            content = APIClient()
+            self.assertEqual(content.get("/launch", {"ticket": launched["ticket"]}).status_code, 403)
+            self.assertEqual(content.post("/launch", {"ticket": "invalid"}).status_code, 403)
+            response = content.post("/launch", {"ticket": launched["ticket"]})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.cookies["scorm_access_" + str(package.id)]["path"], f"/training/content/packages/{package.id}/")
+            self.assertIn(f'/training/content/packages/{package.id}/index.html', response.content.decode())
+
+    @override_settings(SCORM_TRUSTED_SAME_ORIGIN=True)
+    def test_trusted_content_upload_requires_administrator(self):
+        instructor = User.objects.create_user("trusted-content-instructor", role="instructor")
+        course = Course.objects.create(title="Instructor-owned course", owner=instructor)
+        self.login(instructor)
+        upload = package_zip(); upload.name = "course.zip"
+        response = self.client.post(f"/api/courses/{course.id}/upload/", {"file": upload}, format="multipart")
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(ScormPackage.objects.filter(course=course).exists())
 
     def test_yaksh_adapter_preserves_correct_options(self):
         row = convert_question(

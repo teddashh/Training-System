@@ -18,7 +18,7 @@ const help: LocaleTable = {
     tourBack: 'Back',
     tourNext: 'Next',
     tourDone: 'Start building',
-    tourWelcomeTitle: 'Welcome to Scormly 👋',
+    tourWelcomeTitle: 'Welcome to Training Content Studio 👋',
     tourWelcomeText:
       'A one-minute tour of the builder. You can skip it now and take it any time from the Help menu.',
     tourLessonsTitle: 'Lessons',
@@ -37,7 +37,7 @@ const help: LocaleTable = {
     tourPreviewText: 'See the course exactly as a learner will, with working quizzes and navigation.',
     tourExportTitle: 'Export to your LMS',
     tourExportText:
-      'Download a SCORM 2004, SCORM 1.2 or cmi5 package and upload it to your LMS. Scormly checks the course for common problems first.',
+      'Download a SCORM 2004, SCORM 1.2 or cmi5 package and upload it to your LMS. Training Content Studio checks the course for common problems first.',
     tourSaveTitle: 'Saving',
     tourSaveText:
       'Everything is saved automatically to your project folder on this computer. Nothing is uploaded anywhere.',
@@ -49,7 +49,7 @@ const help: LocaleTable = {
     faqTitle: 'Questions & answers',
     faqQ1: 'Where is my course saved?',
     faqA1:
-      'In the folder you picked, on your own computer: project.json (the course), an assets/ folder with your media, and a history file for undo/redo. Scormly has no server — nothing is uploaded.',
+      'In the folder you picked, on your own computer: project.json (the course), an assets/ folder with your media, and a history file for undo/redo. Training Content Studio has no server — nothing is uploaded.',
     faqQ2: 'Do I need to press Save?',
     faqA2:
       'No. Changes are saved automatically about a second after you stop editing. Ctrl/⌘+S saves immediately. The Save button shows the state and turns red if saving fails.',
@@ -67,10 +67,10 @@ const help: LocaleTable = {
       'Images: PNG, JPEG, WebP, GIF, SVG (large images are resized automatically). Video: MP4, WebM. Audio: MP3, OGG, WAV, M4A. Media is copied into the project’s assets folder and bundled into exports.',
     faqQ7: 'How do I share a project with a colleague?',
     faqA7:
-      'Project menu → Download project (.zip). They unzip it into a folder and open that folder in Scormly.',
+      'Project menu → Download project (.zip). They unzip it into a folder and open that folder in Training Content Studio.',
     faqQ8: 'I deleted something by mistake.',
     faqA8:
-      'Use Undo (Ctrl/⌘+Z) or the Undo button in the notification. Scormly keeps the last 50 steps, and the last 20 survive reopening the project.',
+      'Use Undo (Ctrl/⌘+Z) or the Undo button in the notification. Training Content Studio keeps the last 50 steps, and the last 20 survive reopening the project.',
     faqQ9: 'Which browsers are supported?',
     faqA9:
       'Chrome, Edge, Opera and other Chromium browsers can save to a folder. Other browsers can use the builder without saving — download the project zip to keep your work.',
@@ -95,7 +95,7 @@ const help: LocaleTable = {
     tourBack: 'Назад',
     tourNext: 'Далі',
     tourDone: 'До роботи',
-    tourWelcomeTitle: 'Вітаємо в Scormly 👋',
+    tourWelcomeTitle: 'Вітаємо в Training Content Studio 👋',
     tourWelcomeText:
       'Хвилинний тур конструктором. Його можна пропустити зараз і пройти будь-коли з меню «Довідка».',
     tourLessonsTitle: 'Уроки',
@@ -114,7 +114,7 @@ const help: LocaleTable = {
     tourPreviewText: 'Подивіться на курс очима слухача — з робочими тестами й навігацією.',
     tourExportTitle: 'Експорт у LMS',
     tourExportText:
-      'Завантажте пакет SCORM 2004, SCORM 1.2 або cmi5 і додайте його у свою LMS. Перед цим Scormly перевірить курс на типові проблеми.',
+      'Завантажте пакет SCORM 2004, SCORM 1.2 або cmi5 і додайте його у свою LMS. Перед цим Training Content Studio перевірить курс на типові проблеми.',
     tourSaveTitle: 'Збереження',
     tourSaveText:
       'Усе зберігається автоматично в папку проєкту на цьому комп’ютері. Нічого нікуди не завантажується.',
@@ -125,7 +125,7 @@ const help: LocaleTable = {
     faqTitle: 'Питання й відповіді',
     faqQ1: 'Де зберігається мій курс?',
     faqA1:
-      'У папці, яку ви обрали, на вашому комп’ютері: project.json (сам курс), папка assets/ з медіа і файл історії для скасування дій. У Scormly немає сервера — нічого не завантажується.',
+      'У папці, яку ви обрали, на вашому комп’ютері: project.json (сам курс), папка assets/ з медіа і файл історії для скасування дій. У Training Content Studio немає сервера — нічого не завантажується.',
     faqQ2: 'Чи треба натискати «Зберегти»?',
     faqA2:
       'Ні. Зміни зберігаються автоматично приблизно за секунду після останньої правки. Ctrl/⌘+S зберігає одразу. Кнопка «Зберегти» показує стан і червоніє, якщо зберегти не вдалося.',
@@ -143,10 +143,10 @@ const help: LocaleTable = {
       'Зображення: PNG, JPEG, WebP, GIF, SVG (великі зменшуються автоматично). Відео: MP4, WebM. Аудіо: MP3, OGG, WAV, M4A. Медіа копіюються в папку assets проєкту й потрапляють в експорт.',
     faqQ7: 'Як поділитися проєктом з колегою?',
     faqA7:
-      'Меню проєкту → «Завантажити проєкт (.zip)». Колега розпаковує його в папку й відкриває цю папку в Scormly.',
+      'Меню проєкту → «Завантажити проєкт (.zip)». Колега розпаковує його в папку й відкриває цю папку в Training Content Studio.',
     faqQ8: 'Я випадково щось видалив(ла).',
     faqA8:
-      'Скасуйте дію (Ctrl/⌘+Z) або натисніть «Скасувати» у сповіщенні. Scormly пам’ятає останні 50 кроків, а останні 20 зберігаються й після повторного відкриття проєкту.',
+      'Скасуйте дію (Ctrl/⌘+Z) або натисніть «Скасувати» у сповіщенні. Training Content Studio пам’ятає останні 50 кроків, а останні 20 зберігаються й після повторного відкриття проєкту.',
     faqQ9: 'Які браузери підтримуються?',
     faqA9:
       'Chrome, Edge, Opera та інші браузери на Chromium вміють зберігати в папку. В інших браузерах конструктор працює без збереження — завантажуйте zip проєкту, щоб не втратити роботу.',

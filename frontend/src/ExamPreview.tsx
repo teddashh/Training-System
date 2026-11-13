@@ -1,3 +1,6 @@
+import { formatDateTime } from "./datetime";
+import { GradingGuide } from "./GradingGuide";
+import { QuestionContent } from "./QuestionFigure";
 import { useEffect, useState } from "react";
 import { api } from "./api";
 import { t, useLocale } from "./i18n";
@@ -82,6 +85,8 @@ export default function ExamPreview({
         ) : (
           <>
             <h3>{exam.title}</h3>
+            {exam.starts_at && <p className="muted">{t('Opens at')}: {formatDateTime(exam.starts_at, locale)}</p>}
+            {exam.ends_at && <p className="muted">{t('Closes at')}: {formatDateTime(exam.ends_at, locale)}</p>}
             <p className="notice exam-policy-notice">
               {t(
                 "Private test. No participant attempts, results or training completion are recorded.",
@@ -187,7 +192,8 @@ export default function ExamPreview({
                     {questionTypes().find(([value]) => value === q.type)?.[1]} ·{" "}
                     {q.points} {t("points")}
                   </Badge>
-                  <h3 className="review-answer">{q.description}</h3>
+                  <QuestionContent question={q} headingClassName="review-answer" />
+                  {showKey && <GradingGuide question={q} />}
                   {!!q.options.length && (
                     <ol>
                       {q.options.map((option, index) => (

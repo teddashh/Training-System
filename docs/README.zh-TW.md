@@ -1,52 +1,95 @@
-# Evitina Learn · 企業訓練與考核平台
+# Training System
 
-[English](../README.md) · 繁體中文 · [Español](README.es.md)
+供組織自行架設的訓練、課程編輯與評量系統。
 
-管理者可透過即時考試監控檢視已儲存進度、近期連線、篩選作答紀錄，並留下可稽核的延長時間紀錄。回應遺失後重試同一請求不會重複增加時間，作答計時器也會同步伺服器並保留本機編輯。管理者可唯讀檢視已儲存答案，並明確重新開放最新的提交。原答案、成績與回饋保留為唯讀歷程，沿用相同作答次數；目前成績與完成狀態會撤回，直到再次提交及評分。重新開放請求可安全重試，舊分頁需重新載入。近期連線不代表專注程度。請參閱[監控操作說明](OPERATIONS.md#live-exam-monitoring-and-extra-time)。
+[English](../README.md) · [Español](README.es.md)
 
-支援正式員工、非正式員工及受邀訪客的自架學習、教材製作、考試與評分平台。以 Yaksh 為來源重建現代化 API，並整合 Scormly。
+![訓練首頁](screenshots/dashboard-zh-TW.png)
 
-**預設介面為英文**，可在登入頁、平台、編輯器及考試頁切換繁體中文或西班牙文。平台與教材工作室共用語言偏好；切換不會清除未儲存的編輯或作答。使用者自行撰寫的教材、題目與姓名不會自動翻譯。
+## 可以做什麼
 
-**原始儲存庫的完整功能整合仍未完成。** [附原始碼證據的稽核報告](UPSTREAM-AUDIT.md) 檢查四個儲存庫、146 組功能、155 個 Yaksh 路由宣告及 32 種 Scormly 區塊，區分已驗證、部分實作、缺漏及僅保留原始碼的項目。缺漏功能仍屬必要的後續實作工作。教材發布可選 SCORM 1.2 或 2004，且僅列出作者有權管理的課程。
+- 學習：修習課程、繼續 SCORM 教材，並追蹤必修訓練。
+- 編輯：用 Studio 製作教材、匯入文件文字或上傳 SCORM 套件。
+- 辦理梯次：安排訓練、辦理報名並記錄出席。
+- 評量：建立考試、重複使用題庫並批改文字作答。
+- 報表：查看完成情形、考試成績與試題分析，並匯出紀錄。
+- 管理：管理人員、角色、組織設定、登入與電子郵件。
 
-主要功能包括 Entra ID SSO、Email／帳號／員工編號登入、SCORM 課程及續讀、教材發布與原始專案備份、獨立考試、個人次數限制、人工評分及 Dashboard。考試可限定正式員工、非正式員工、部門、指定人員或僅限邀請。訪客連結可要求收件者 Email 驗證，建立連結的介面預設啟用此功能。
+## 快速開始
 
-從專案根目錄執行：
+安裝 Docker Engine 與 Compose v2。在儲存庫根目錄執行：
 
 ```bash
 cp .env.example .env
-# 設定隨機 SECRET_KEY 與 POSTGRES_PASSWORD。
-docker compose up --build -d --wait
-docker compose exec api python manage.py createsuperuser
-docker compose exec api python manage.py shell -c \
-  "from training.models import User; User.objects.filter(is_superuser=True).update(role='admin')"
+chmod 600 .env
 ```
 
-開啟 <http://localhost:8080>。公司 Entra 與 SMTP 需另行設定；公開 GitHub 提供原始碼，不代表已部署公司正式服務。SCORM 為單一 SCO 執行期子集，尚非完整認證實作；舊 Yaksh 程式僅供封存與移轉參考，不應部署。
+編輯 `.env`：將 `SECRET_KEY` 與 `POSTGRES_PASSWORD` 換成各自獨立的隨機值。本機試用保留 `DEBUG=true`，並設為 `DEMO_MODE=false`。服務提供者的憑證先留白。
 
-完整建置、測試與範圍請參閱 [英文說明](../README.md)、[部署文件](DEPLOYMENT.md) 與[整合文件](INTEGRATIONS.md)。
+```bash
+docker compose up --build -d --wait
+docker compose exec api python manage.py createsuperuser --username training-admin
+docker compose exec api python manage.py shell -c "from training.models import User; u=User.objects.get(username='training-admin'); u.role='admin'; u.save(update_fields=['role'])"
+```
 
-![繁體中文介面與合成示範資料](screenshots/dashboard-zh-TW.png)
+依提示輸入管理員的電子郵件與密碼。最後一個指令會授予該帳號平台的「超級管理員」（Super administrator）角色。
 
-## 公司部署交接
+開啟 <http://localhost:8080> 並登入。在側邊欄開啟「設定」，再點「設定」分頁（Settings → Settings），設定組織名稱與標誌、介面語言、登入方式及電子郵件。儲存後，若已啟用電子郵件，請按「寄送測試郵件給我」（Send test email to me）。
 
-目前主分支支援設定兩次開始作答的最短間隔，帳號與同一身分的所有訪客連結共用等待時間，增加可考次數不會略過等待。開始作答前會依伺服器時間顯示下一次可考時間。`0008` 遷移讓既有考試維持 0 分鐘、無需等待的原有行為。請參閱[重考間隔說明](OPERATIONS.md#waiting-periods-between-exam-attempts)。
+這是本機試用環境。請依[入門指南](GETTING-STARTED.md)完成第一個訓練流程，並參閱[部署指南](DEPLOYMENT.md)設定 HTTPS 與正式環境。
 
-目前主分支加入整數題、各答案可設定容許誤差的數值題，以及排序題，完整支援題庫、試卷編輯、帳號與訪客作答、自動儲存、檢視答案和成績分析。`0007` 遷移新增容許誤差欄位，不改寫歷史作答與成績。請參閱[題型操作說明](OPERATIONS.md#integer-numeric-and-ordering-questions)及 [v1.3 後續升級說明](PEACH1-HANDOVER.md#changes-after-v13)。預設介面仍為英文。
+## 配合組織需求設定
 
-v1.3 加入最多 200 人的 CSV 批次邀請、收件者與登入別名驗證、整批建立，以及回應遺失後十分鐘內的相同請求復原。關閉前可下載個人連結；邀請紀錄支援搜尋、狀態篩選與分頁。停用帳號也會封鎖其既有訪客連結與工作階段，保留已儲存答案和應試次數。請參閱 [v1.2 升級說明](PEACH1-HANDOVER.md#upgrade-from-v12) 與[邀請操作說明](OPERATIONS.md#guest-invitation-cohorts)。公司 Entra／Graph 串接仍留待 Peach1。
+在設定中輸入組織名稱並上傳標誌。介面可開放英文、繁體中文或西班牙文。編寫的教材保留原本語言。
 
-v1.2 強化自動儲存順序、斷線重試與多視窗衝突處理，並讓學員查看自己的作答及講師回饋。SCORM 課程關閉前會等待儲存確認，題庫選擇視窗支援鍵盤操作。升級會套用答案版本欄位的資料庫遷移；請參閱 [Peach1 升級說明](PEACH1-HANDOVER.md#upgrade-from-v11)。Entra／Graph 串接仍留待 Peach1。
+登入可選 Microsoft Entra ID、Google Workspace，或使用密碼及電子郵件驗證碼的本機帳號。驗證碼需要可用的郵件服務。電子郵件可選 SMTP 伺服器、Microsoft 365 信箱或關閉。
 
-v1.1 加入伺服器分頁與篩選成績、符合相同篩選條件的 CSV 匯出、評量與題目分析，以及作答前的個人剩餘次數提示。報表採用每次作答保留的題目版本，並依管理員與講師權限限制資料範圍。[評量分析畫面](screenshots/insights.png)。
+由伺服器設定的欄位會顯示「由伺服器設定」（Set by the server）。可透過 `BRAND` 品牌套件在建置時變更色彩，請參閱[品牌指南](../DESIGN.md#brand-packs)。
 
-v1.0 加入必修訓練指派、截止日期、完成報表、可重複使用的題庫、隨機考題與選項、CSV 人員匯入及密碼管理。介面預設英文，亦提供繁體中文與西班牙文。請參閱 [Peach1 交接指南](PEACH1-HANDOVER.md) 與 [操作說明](OPERATIONS.md)。公司 Entra、Graph 同步及郵件連線於 Peach1 階段完成驗收。
+![組織設定](screenshots/settings.png)
+![登入設定](screenshots/settings-sign-in.png)
 
-簡答題現在可設定多個可接受的文字答案，並為每個答案選擇大小寫與空白比對規則。既有題目與歷史應試保留原有評分行為；編輯器、訪客應試、閱卷與報表共用相同比對規則。資料庫遷移 `0009` 新增此設定。詳見[文字答案操作說明](OPERATIONS.md#text-answer-matching)。
+## 畫面
 
-主辦者現在可要求依序作答，並控制交卷後的作答檢視。伺服器會在前面的答案儲存後才釋出後續題目；考試時間限制仍然有效。講師可在之後開放檢視作答，無須更改分數。遷移 `0010` 保留既有應試的操作行為。詳見[題目導覽與作答檢視政策](OPERATIONS.md#navigation-and-completed-response-review)。
+[課程](screenshots/courses.png) · [Studio](screenshots/studio.png) · [梯次](screenshots/sessions.png) · [考試](screenshots/exam.png) · [分析](screenshots/insights.png) · [手機版](screenshots/mobile.png)
 
-講師可檢視完整試卷與答案、模擬已開放考試的計時應試，或不限時測試草稿。私人預覽支援儲存、續答及測試評分，不會消耗應試次數，也不影響正式成績或訓練完成紀錄；預覽會在七天後刪除。[預覽操作說明](OPERATIONS.md#instructor-exam-previews)。
+## 文件
 
-評分 CSV 匯入現已支援帳號與訪客已提交的試卷。管理者可下載範本、核對分數與回饋變更，再整批套用；七種題型皆可匯入評分。過時試算表與評分表單會被拒絕，回應遺失可恢復同一筆紀錄，原有答案與作答額度不變。預設介面仍為英文，另提供繁體中文與西班牙文。操作限制與格式請參閱[評分匯入說明](OPERATIONS.md#marks-csv-imports)。
+| 指南 | 用途 |
+| --- | --- |
+| [入門](GETTING-STARTED.md) | 完成第一個訓練流程 |
+| [部署](DEPLOYMENT.md) | 安裝、設定、備份與升級 |
+| [操作](OPERATIONS.md) | 管理人員、課程、梯次、考試與報表 |
+| [入門課程庫](course-library-sources.md) | 建置並匯入 60 門課程草稿 |
+| [整合](INTEGRATIONS.md) / [API](SIMPLE-TRAINING-API.md) | 查看原始碼整合方式與 API 契約 |
+| [安全](../SECURITY.md) / [設計](../DESIGN.md) | 查看信任邊界與品牌套件 |
+| [上游稽核](UPSTREAM-AUDIT.md) | 查看已實作功能與待補項目 |
+
+## 開發
+
+使用 Python 3.13 與 Node.js 24：
+
+```bash
+python3.13 -m venv .venv
+.venv/bin/pip install -r backend/requirements.txt
+npm ci --prefix frontend
+npm ci --prefix vendor/scormly
+DEBUG=true .venv/bin/python backend/manage.py check
+python3 scripts/check_upstream_audit.py
+```
+
+[本機開發指南](DEPLOYMENT.md#develop-locally)說明資料庫遷移與服務啟動。檢查包括 Django 測試、兩個前端建置、前端單元測試與 Studio 測試。並行檢查需要 PostgreSQL；瀏覽器流程需要獨立且已啟動的測試環境。
+
+## 現況與限制
+
+這是單一組織的工作區。尚未涵蓋所有上游功能，待完成項目記錄在稽核文件中。請在自己的部署環境驗證登入、寄信、還原與預期負載。
+
+SCORM 支援單一 SCO 的 1.2/2004 執行功能子集，不支援多 SCO 定序，也未取得完整認證。LMS 不匯入 cmi5，也不提供 xAPI LRS。考試不支援監考、檔案上傳作答或隔離的程式執行環境。文件匯入只擷取文字，不包含 OCR 或投影片版面。
+
+## 授權
+
+新程式碼採用 [BSD 3-Clause](../LICENSE)。保留的上游原始碼維持原授權，詳見[第三方聲明](../THIRD_PARTY_NOTICES.md)。
+
+[FOSSEE Yaksh](https://github.com/FOSSEE/online_test)提供保留的評量原始碼與遷移基礎。
+
+[Scormly](https://github.com/dmmat/Scormly)提供整合的課程編輯器與匯出播放器。

@@ -1,0 +1,40 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {navigationAreas, activeArea, canOpenRoute} from './navigation.ts';
+import type {Access} from './types';
+const learner: Access = {courses:'none',exams:'none',results:'none',assign:false,invitations:false,system_admin:false,people:false,scorm_upload:false,scorm_source:false};
+const scheduler: Access = {...learner,courses:'own',exams:'own'};
+const admin: Access = {...learner,courses:'all',exams:'all',results:'all',assign:true,invitations:true,system_admin:true,people:true};
+test('learner, scheduler and administrator area contracts',()=>{
+ assert.deepEqual(navigationAreas(learner).map(a=>a.label),['Home','My training']);
+ assert.deepEqual(navigationAreas(scheduler).map(a=>a.label),['Home','My training','Training','Exams']);
+ assert.equal(navigationAreas(admin).length,7);
+ assert.deepEqual(navigationAreas(learner)[1].tabs.map(t=>t.path),['/my-training','/my-exams','/results','/courses']);
+ assert.deepEqual(navigationAreas(admin)[1].tabs.map(t=>t.path),['/my-training','/my-exams','/courses']);
+ assert.equal(navigationAreas(scheduler)[2].tabs.length,1);
+ assert.deepEqual(navigationAreas({...learner,courses:'own',assign:true}).map(a=>a.id),['home','learning','training']);
+ assert.deepEqual(navigationAreas({...learner,exams:'all',results:'all',assign:true,invitations:true}).find(a=>a.id==='training')?.tabs.map(t=>t.path),['/assignments']);
+ assert.equal(navigationAreas({...admin,system_admin:false}).length,5);
+});
+test('areas choose the first permitted tab, including assignment-only access',()=>{
+ const areas=navigationAreas({...learner,assign:true,invitations:true});
+ assert.equal(areas.find(a=>a.id==='training')?.tabs[0].path,'/assignments');
+ assert.equal(areas.find(a=>a.id==='exams')?.tabs[0].path,'/invitations');
+});
+test('deep links preserve access and identify their area',()=>{
+ assert.equal(activeArea(learner,'/exams','?exam=1&action=start')?.id,'learning');
+ assert.equal(activeArea(admin,'/exams','?exam=1&action=start')?.id,'learning');
+ assert.equal(activeArea(admin,'/exams','?exam=1&action=edit')?.id,'exams');
+ assert.equal(activeArea(learner,'/attempt/synthetic')?.id,'learning');
+ assert.equal(activeArea(admin,'/preview/synthetic')?.id,'exams');
+ assert.equal(activeArea(learner,'/assignments')?.id,'learning');
+ assert.equal(activeArea(admin,'/assignments')?.id,'training');
+ assert.equal(activeArea(learner,'/results')?.id,'learning');
+ assert.equal(activeArea(admin,'/results')?.id,'reports');
+ for(const path of ['/assignments','/results','/exams'])assert.equal(canOpenRoute(learner,path),true);
+ assert.equal(canOpenRoute(scheduler,'/reports'),true);
+ assert.equal(activeArea(scheduler,'/reports')?.id,'home');
+ assert.equal(navigationAreas(scheduler).find(a=>a.id==='reports'),undefined);
+ assert.equal(navigationAreas(admin).find(a=>a.id==='reports')?.tabs[0].path,'/reports');
+ for(const path of ['/reports','/authoring','/insights','/question-bank','/manage','/people','/settings','/email'])assert.equal(canOpenRoute(learner,path),false);
+});

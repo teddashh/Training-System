@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { openCompanyCourse, useCompanyCourse, workspaceBase } from '../lib/companyCourse'
 import Header from './layout/Header'
 import Sidebar from './layout/Sidebar'
 import Workspace from './layout/Workspace'
@@ -40,6 +41,7 @@ export default function Builder() {
   const { lang } = useLang()
   const { t } = useT('common')
   const { t: tw } = useT('welcome')
+  const companyCourse = useCompanyCourse(state => state.binding?.course)
   const [skipped, setSkipped] = useState(false)
   const openSample = () => {
     useCourseStore.getState().loadSampleCourse(lang)
@@ -54,14 +56,19 @@ export default function Builder() {
   }, [demo])
   // Try to restore the project named in the URL (after a page refresh / shared link).
   const [restoring, setRestoring] = useState(true)
+  const [openError, setOpenError] = useState('')
+  const opening = useRef<Promise<void> | null>(null)
 
   useEffect(() => {
     let active = true
-    void restoreOpenProject(projectKey).then((ok) => {
-      // No project could be restored — fall back to a clean /#/app URL.
+    // StrictMode can run the effect twice; importing a draft must run only once.
+    opening.current ??= (async () => {
+      if (await openCompanyCourse(projectKey)) return
+      const ok = await restoreOpenProject(projectKey)
       if (!ok && projectKey) navigate('app')
-      if (active) setRestoring(false)
-    })
+    })()
+    void opening.current.catch(error => { if (active) setOpenError((error as Error).message) })
+      .finally(() => { if (active) setRestoring(false) })
     return () => {
       active = false
     }
@@ -86,12 +93,13 @@ export default function Builder() {
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [skipped])
 
-  if (restoring && !directoryHandle) {
+  if (openError) return <div className="p-6 text-sm"><p role="alert">{openError}</p><a className="btn-secondary mt-4 inline-flex" href={workspaceBase + 'authoring'}>{t('backToCourses')}</a></div>
+  if (restoring) {
     return (
-      <div className="flex h-full items-center justify-center bg-gray-50" role="status">
+      <><ZipUpdateDialog /><div className="flex h-full items-center justify-center bg-gray-50" role="status">
         <span className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-brand" />
         <span className="sr-only">{t('opening')}</span>
-      </div>
+      </div></>
     )
   }
 
@@ -119,6 +127,9 @@ export default function Builder() {
   return (
     <ThemeProvider>
       <ZipUpdateDialog />
+      <div className="studio-context flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 text-sm">
+        <a className="py-3 text-brand" href={workspaceBase + 'authoring'}>← {t('backToCourses')}</a><span className="studio-course-context text-gray-600" title={companyCourse?.title}>{companyCourse ? t('editingCourse', { title: companyCourse.title }) : t('studioTitle')}</span>
+      </div>
       <Header />
       {!directoryHandle && (
         <div className="flex shrink-0 flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs text-amber-900 sm:text-sm">

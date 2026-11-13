@@ -7,7 +7,7 @@ import msal
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.core.mail import send_mail
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
@@ -16,9 +16,13 @@ from rest_framework.exceptions import Throttled, ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from .runtime_settings import verification_brand, verification_heading, sign_in_config, organization, allowed_languages, from_email, mail_enabled
+from .access import access_for
 from .i18n import translate
 from .models import AuthRate, EmailCode, User
 from .services import audit, find_user, identity_for_user
+from .notifications import record_verification
+from . import directory
 
 
 def user_data(user):
@@ -28,16 +32,18 @@ def user_data(user):
         "email": user.email,
         "display_name": user.display_name or user.username,
         "role": user.role,
+        "access": access_for(user),
+        "is_staff": user.is_staff,
         "department": user.department,
         "employment": user.employment,
         "employee_id": user.employee_id,
     }
 
 
-def rate_limit(request, identifier):
+def rate_limit(request, identifier=None):
     now = timezone.now()
     # Do not trust an arbitrary X-Forwarded-For header supplied by a client.
-    account = find_user(identifier)
+    account = find_user(identifier) if identifier is not None else None
     identity = (
         f"user:{account.pk}"
         if account
@@ -47,6 +53,8 @@ def rate_limit(request, identifier):
         ("network", request.META.get("REMOTE_ADDR", ""), settings.AUTH_NETWORK_LIMIT),
         ("account", identity, settings.AUTH_ACCOUNT_LIMIT),
     ]:
+        if scope == "account" and identifier is None:
+            continue
         key = hashlib.sha256(f"{scope}:{item}".encode()).hexdigest()
         with transaction.atomic():
             row, _ = AuthRate.objects.get_or_create(key=key, defaults={"window": now})
@@ -74,13 +82,13 @@ def session(request):
     return Response(
         {
             "user": user_data(request.user) if request.user.is_authenticated else None,
+            "languages": allowed_languages(),
+            "organization": organization(),
+            "sign_in": {p: sign_in_config()["configured"] and sign_in_config()["provider"] == p for p in ("entra", "google")},
+            "email_enabled": mail_enabled(),
             "demo_mode": settings.DEBUG
             and __import__("os").getenv("DEMO_MODE") == "true",
-            "entra_enabled": bool(
-                settings.ENTRA_TENANT_ID
-                and settings.ENTRA_CLIENT_ID
-                and settings.ENTRA_CLIENT_SECRET
-            ),
+            "entra_enabled": sign_in_config()['configured'] and sign_in_config()['provider'] == 'entra',
         }
     )
 
@@ -107,10 +115,21 @@ def password_login(request):
     return Response({"user": user_data(user)})
 
 
+def email_code_allowed(user):
+    return bool(user and user.is_active and (
+        not user.entra_subject or settings.EMAIL_CODE_FOR_ENTRA_USERS
+        # Deliberately unchanged: email-code eligibility is learners only.
+        or (user.role == 'learner' and not user.is_staff and not user.is_superuser
+            and directory.email_code_domain(user.email))
+    ))
+
+
 @csrf_protect
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def email_request(request):
+    if not mail_enabled():
+        raise ValidationError(translate("Email is off."))
     email = str(request.data.get("email", "")).strip().casefold()
     rate_limit(request, email)
     user = (
@@ -118,7 +137,9 @@ def email_request(request):
         if email
         else None
     )
-    if user:
+    if not user:
+        user = directory.provision_email_user(email)
+    if email_code_allowed(user):
         code = f"{secrets.randbelow(1000000):06d}"
         digest = hashlib.sha256(
             (settings.SECRET_KEY + email + code).encode()
@@ -133,17 +154,20 @@ def email_request(request):
         )
         try:
             send_mail(
-                translate("Evitina Learn sign-in code"),
-                translate("Your verification code: ")
+                translate("{organization} sign-in code", organization=verification_brand(), locale="en"),
+                verification_heading() + "Your verification code: "
                 + code
                 + "\n"
-                + translate("Valid for 10 minutes."),
-                settings.DEFAULT_FROM_EMAIL,
+                + "Valid for 10 minutes.",
+                from_email(),
                 [email],
             )
-        except Exception:
+        except Exception as error:
             EmailCode.objects.filter(email=email, digest=digest).delete()
+            record_verification("sign_in_code", email, user=user, error=error)
             # Same response prevents disclosing whether the account exists.
+        else:
+            record_verification("sign_in_code", email, user=user)
     return Response(
         {
             "detail": translate(
@@ -157,6 +181,8 @@ def email_request(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def email_verify(request):
+    if not mail_enabled():
+        raise ValidationError(translate("Email is off."))
     email = str(request.data.get("email", "")).strip().casefold()
     rate_limit(request, email)
     digest = hashlib.sha256(
@@ -177,10 +203,13 @@ def email_verify(request):
         if valid and email
         else None
     )
-    if not user:
+    if not email_code_allowed(user):
         raise ValidationError(
             translate("The code is invalid, already used or expired.")
         )
+    # Bulk directory sync scope/behavior stays unchanged; outside Members refresh only here.
+    if not directory.refresh_signin_profile(user):
+        raise ValidationError(translate("This account is disabled."))
     identity_for_user(user)
     login(request, user)
     audit(user, "auth.email", user.id)
@@ -194,20 +223,12 @@ def sign_out(request):
 
 
 def entra_client():
-    if not all(
-        [
-            settings.ENTRA_TENANT_ID,
-            settings.ENTRA_CLIENT_ID,
-            settings.ENTRA_CLIENT_SECRET,
-        ]
-    ):
-        raise ValidationError(
-            translate("Company Microsoft Entra ID has not been configured.")
-        )
+    config = sign_in_config()
+    if config['provider'] != 'entra' or not config['configured']:
+        raise ValidationError(translate("Company Microsoft Entra ID has not been configured."))
     return msal.ConfidentialClientApplication(
-        settings.ENTRA_CLIENT_ID,
-        authority=f"https://login.microsoftonline.com/{settings.ENTRA_TENANT_ID}",
-        client_credential=settings.ENTRA_CLIENT_SECRET,
+        config['client_id'], authority=f"https://login.microsoftonline.com/{config['tenant_id']}",
+        client_credential=config['client_secret'],
     )
 
 
@@ -238,30 +259,39 @@ def entra_callback(request):
     claims = result.get("id_token_claims", {})
     if (
         not claims.get("oid")
-        or claims.get("tid", "").casefold() != settings.ENTRA_TENANT_ID.casefold()
+        or claims.get("tid", "").casefold() != sign_in_config().get('tenant_id', '').casefold()
     ):
         raise ValidationError(
             translate("SSO sign-in failed or the tenant did not match.")
         )
-    subject = f"{claims['tid']}:{claims['oid']}"
-    user = User.objects.filter(entra_subject=subject).first()
+    subject = f"{claims['tid']}:{claims['oid']}".casefold()
+    user = User.objects.filter(entra_subject__iexact=subject).first()
     if not user:
         email = str(claims.get("preferred_username", "")).casefold()
-        if find_user(email):
-            raise ValidationError(
-                translate(
+        try:
+            with transaction.atomic():
+                if find_user(email):
+                    # A sync may have inserted this exact subject after our first read.
+                    user = User.objects.filter(entra_subject__iexact=subject).first()
+                    if not user:
+                        raise ValidationError(translate(
+                            "This email already exists. Ask an administrator to link the account using its Entra subject."
+                        ))
+                else:
+                    user = User.objects.create_user(
+                        username="entra_" + claims["oid"].casefold(), email=email if "@" in email else "",
+                        display_name=claims.get("name", ""), entra_subject=subject,
+                    )
+        except IntegrityError:
+            user = User.objects.filter(entra_subject__iexact=subject).first()
+            if not user:
+                raise ValidationError(translate(
                     "This email already exists. Ask an administrator to link the account using its Entra subject."
-                )
-            )
-        user = User.objects.create_user(
-            username="entra_" + claims["oid"],
-            email=email if "@" in email else "",
-            display_name=claims.get("name", ""),
-            entra_subject=subject,
-        )
-    if not user.is_active:
+                )) from None
+    # Bulk directory sync scope/behavior stays unchanged; outside Members refresh only here.
+    if not user.is_active or not directory.refresh_signin_profile(user):
         raise ValidationError(translate("This account is disabled."))
     identity_for_user(user)
     login(request, user)
     audit(user, "auth.entra", user.id)
-    return HttpResponseRedirect(settings.APP_ORIGIN + "/")
+    return HttpResponseRedirect(settings.APP_ORIGIN + settings.APP_BASE_PATH + "/")

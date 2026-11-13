@@ -20,7 +20,7 @@ from .services import (
     question_snapshot,
     record_answers,
 )
-from .views import manage_exam
+from .access import require_exam
 
 
 def finish_preview(preview):
@@ -55,7 +55,7 @@ def own_preview(request, pk):
         expires_at__gt=timezone.now(),
     )
     # Ownership changes or removal of instructor permissions revoke access.
-    manage_exam(request.user, preview.exam)
+    require_exam(request.user, preview.exam)
     return preview
 
 
@@ -64,7 +64,7 @@ def own_preview(request, pk):
 def exam_previews(request, pk):
     with transaction.atomic():
         exam = get_object_or_404(Exam.objects.select_for_update(), pk=pk)
-        manage_exam(request.user, exam)
+        require_exam(request.user, exam)
         now = timezone.now()
         existing = ExamPreview.objects.filter(
             exam=exam, owner=request.user, expires_at__gt=now

@@ -1,4 +1,8 @@
-import { t, useLocale, getLocale, LanguagePicker } from "./i18n";
+import { brand } from "./brand";
+import { QuestionContent } from "./QuestionFigure";
+import { formatDateTime } from "./datetime";
+import Brand from "./Brand";
+import { countLabel, attemptCount, t, useLocale, getLocale, LanguagePicker } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -10,15 +14,27 @@ import {
   Trophy,
   FileCheck2,
 } from "lucide-react";
-import { api } from "./api";
+import { api, ApiError } from "./api";
 import { useAttemptSession } from "./useAttemptSession";
-import type { Attempt as Data, Guest, GuestChallenge } from "./types";
+import type { Attempt as Data, Exam, Guest, GuestChallenge } from "./types";
 import { Spinner, ErrorBox, Modal, Badge } from "./ui";
 import { questionTypes, answerText, answerProvided } from "./questionTypes";
 import ExamPolicyNotice from "./ExamPolicyNotice";
 import OrderingAnswer from "./OrderingAnswer";
 import { ReviewModal } from "./Management";
 import { RetryNotice, useRetryAvailability } from "./RetryAvailability";
+
+function ResultRetryNotice({examId, refreshKey}: {examId: number; refreshKey: string}) {
+  const [exam, setExam] = useState<Exam | null>(null), [error, setError] = useState('');
+  useEffect(() => {
+    let active = true;
+    setExam(null); setError('');
+    api<Exam>(`exams/${examId}/`).then(value => { if (active) { setExam(value); setError(''); } })
+      .catch(e => { if (active && !(e instanceof ApiError && [403, 404].includes(e.status))) setError(e.message); });
+    return () => { active = false; };
+  }, [examId, refreshKey]);
+  return <>{exam && <RetryNotice value={exam}/>}<ErrorBox message={error}/></>;
+}
 export function GuestExam({ go }: { go: (p: string) => void }) {
   useLocale();
   const [guest, setGuest] = useState<Guest | GuestChallenge | null>(null),
@@ -71,10 +87,10 @@ export function GuestExam({ go }: { go: (p: string) => void }) {
     <div className="guest-page">
       <LanguagePicker />
       <div className="guest-brand">
-        <ShieldCheck size={25} /> evitina learn
+        <Brand /><strong>{brand.organization}</strong>
       </div>
       <div className="guest-card">
-        <span className="eyebrow">{t("YOUR PERSONAL INVITATION")}</span>
+
         <h1>{t("Welcome to your assessment")}</h1>
         <ErrorBox message={error} />
         {guest ? (
@@ -83,7 +99,7 @@ export function GuestExam({ go }: { go: (p: string) => void }) {
               {t("Personal invitation \u00B7 No account required")}
             </Badge>
             <h2>{guest.title}</h2>
-            <p>{guest.description}</p>
+            <p className="preserve-lines">{guest.description}</p>
             <div className="guest-details">
               <div>
                 <span>{t("Participant")}</span>
@@ -92,21 +108,19 @@ export function GuestExam({ go }: { go: (p: string) => void }) {
               <div>
                 <span>{t("Time allowed")}</span>
                 <strong>
-                  {guest.duration_minutes}
-                  {" " + t("min")}
+                  {countLabel(guest.duration_minutes, "{count} minute", "{count} minutes")}
                 </strong>
               </div>
               <div>
                 <span>{t("New attempts remaining")}</span>
                 <strong>
-                  {guest.remaining}
-                  {" " + t("attempts")}
+                  {attemptCount(guest.remaining)}
                 </strong>
               </div>
               <div>
                 <span>{t("Link expires")}</span>
                 <strong>
-                  {new Date(guest.expires_at).toLocaleString(getLocale())}
+                  {formatDateTime(guest.expires_at, getLocale())}
                 </strong>
               </div>
             </div>
@@ -140,7 +154,7 @@ export function GuestExam({ go }: { go: (p: string) => void }) {
         )}
       </div>
       <p className="muted">
-        {t("Evitina Learn \u00B7 Enterprise learning platform")}
+        {t("{organization} · Enterprise learning platform", { organization: brand.organization })}
       </p>
     </div>
   );
@@ -187,7 +201,7 @@ function GuestVerification({
     <div className="guest-page">
       <LanguagePicker />
       <div className="guest-brand">
-        <ShieldCheck size={25} /> evitina learn
+        <Brand /><strong>{brand.organization}</strong>
       </div>
       <div className="guest-card">
         <h1>{t("Verify your email to continue")}</h1>
@@ -264,12 +278,13 @@ export default function Attempt({
     setIndex(0);
     setConfirm(false);
   }, [id]);
+  const examsPath = preview && attempt ? `/exams?exam=${attempt.exam_id}` : "/exams";
   if (!attempt)
     return (
       <div className="attempt-shell">
         <ErrorBox message={error} />
         {preview && (
-          <button className="btn" onClick={() => go("/exams")}>
+          <button className="btn" onClick={() => go(examsPath)}>
             {t("Back to exams")}
           </button>
         )}
@@ -305,7 +320,7 @@ export default function Attempt({
               saveState,
             )
           }
-          onClick={() => go("/exams")}
+          onClick={() => go(examsPath)}
         >
           {t("Back to exams")}
         </button>
@@ -320,7 +335,7 @@ export default function Attempt({
         <div className={"result-emblem " + (attempt.passed ? "passed" : "")}>
           <Trophy size={44} />
         </div>
-        <span className="eyebrow">{t("ASSESSMENT COMPLETE")}</span>
+
         <h1>
           {attempt.status === "pending_review"
             ? t("Submitted, awaiting instructor review")
@@ -350,6 +365,7 @@ export default function Attempt({
                   : t("Review the course and prepare for your next attempt."),
               })}
         </p>
+        {!preview && !guest && !attempt.passed && <ResultRetryNotice examId={attempt.exam_id} refreshKey={attempt.server_time}/>}
         {attempt.review_available ? (
           <section
             className="response-review"
@@ -362,9 +378,7 @@ export default function Attempt({
               const response = answerText(question, answer);
               return (
                 <article className="response-item" key={question.id}>
-                  <h3>
-                    {i + 1}. {question.description}
-                  </h3>
+                  <QuestionContent question={question} prefix={`${i + 1}. `} />
                   <p className="review-answer">
                     {response.trim() || t("No answer provided")}
                   </p>
@@ -387,7 +401,7 @@ export default function Attempt({
         ) : (
           <p className="notice exam-policy-notice">
             {t(
-              "Response review is currently disabled. Your score will remain available after grading.",
+              "You can see your score, but not your answers.",
             )}
           </p>
         )}
@@ -411,7 +425,7 @@ export default function Attempt({
         <button
           className="btn primary"
           onClick={() =>
-            go(preview ? "/exams" : guest ? "/invite" : "/results")
+            go(preview ? examsPath : guest ? "/invite" : "/results")
           }
         >
           {preview
@@ -476,10 +490,10 @@ export default function Attempt({
         <p className="notice exam-policy-notice" id="sequential-rules">
           {attempt.deadline
             ? t(
-                "Questions unlock in order after answers are saved. You can revisit unlocked questions. Answer every question before submitting; the timer still applies.",
+                "Save each answer to unlock the next question. You can revisit unlocked questions. Answer all before submitting; the timer keeps running.",
               )
             : t(
-                "Questions unlock in order after answers are saved. You can revisit unlocked questions. Answer every question before submitting.",
+                "Save each answer to unlock the next question. You can revisit unlocked questions. Answer all before submitting.",
               )}
         </p>
       )}
@@ -563,7 +577,7 @@ export default function Attempt({
               {" " + t("points") + " "}
             </Badge>
           </div>
-          <h2>{q.description}</h2>
+          <QuestionContent question={q} heading="h2" />
           {q.type === "single" || q.type === "multiple" ? (
             <div className="answer-options">
               {q.options.map((option, i) => {
@@ -612,7 +626,7 @@ export default function Attempt({
                 {q.type === "integer"
                   ? t("Enter a whole number.")
                   : t(
-                      "Use a decimal point (for example, 12.5). Scientific notation is supported.",
+                      "Use decimals (12.5) or scientific notation.",
                     )}
               </p>
               <input
@@ -630,7 +644,7 @@ export default function Attempt({
               {q.type === "short" && (
                 <p className="field-hint" id="text-answer-format">
                   {t(
-                    "Follow the format requested in the question. Capitalization, spaces and line breaks may affect your score.",
+                    "Match the requested capitalization, spacing and line breaks.",
                   )}
                 </p>
               )}

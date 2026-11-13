@@ -14,14 +14,14 @@ export default function ExamPolicyNotice({
       {!value.allow_skip && !value.active_attempt_id && (
         <p className="notice exam-policy-notice">
           {t(
-            "This exam requires answers in order. Questions unlock after each answer is saved; all questions need an answer before submission.",
+            "Save each answer to unlock the next question. Answer all questions before submitting.",
           )}
         </p>
       )}
       {!value.allow_response_review && (
         <p className="notice exam-policy-notice">
           {t(
-            "Response review is currently disabled. Your score will remain available after grading.",
+            "You can see your score, but not your answers.",
           )}
         </p>
       )}

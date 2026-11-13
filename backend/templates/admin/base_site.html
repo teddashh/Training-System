@@ -1,0 +1,10 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block extrastyle %}{{ block.super }}
+<link rel="icon" href="{% static 'brand/logo.svg' %}" type="image/svg+xml">
+<link rel="stylesheet" href="{% static 'brand/tokens.css' %}">
+<link rel="stylesheet" href="{% static 'training/admin-brand.css' %}">
+{% endblock %}
+{% block branding %}
+<div id="site-name"><a href="{{ site_url }}"><img class="brand-admin-logo" src="{% static 'brand/logo-horizontal.svg' %}" alt="{{ brand.logo_alt }}"></a><span>{{ site_header }}</span></div>
+{% endblock %}

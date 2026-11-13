@@ -1,3 +1,4 @@
+import { appPath } from "./paths";
 import { useEffect, useState } from "react";
 import { Download, Upload } from "lucide-react";
 import { api, ApiError } from "./api";
@@ -146,7 +147,7 @@ export default function MarksImport({
         status: filters.status,
       });
       if (filters.number) params.set("number", filters.number);
-      const response = await fetch(`/api/${endpoint}template/?${params}`, {
+      const response = await fetch(appPath(`/api/${endpoint}template/?${params}`), {
         credentials: "same-origin",
         headers: { "Accept-Language": locale === "zh-TW" ? "zh-hant" : locale },
       });

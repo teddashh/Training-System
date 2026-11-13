@@ -1,19 +1,26 @@
 # Scormly
 
-## Company integration overrides
+## Platform integration overrides
 
-This vendored copy runs inside Evitina Learn at `/studio/`. The company picker
-offers English (default), Traditional Chinese and Spanish, sharing
-`training-language` with the platform. Upstream Ukrainian dictionaries remain
-for source compatibility. Add company translations to
-`../../shared/locales/messages.json`; use `studio.<namespace>.<key>` entries
-when the same English word needs different translations by context. Namespace
-English/Ukrainian source keys remain in `src/i18n/locales/`.
+This integrated workspace is **Training Content Studio**, served under `/studio/`.
+The `BRAND` build argument selects `shared/brand/<pack>/` through `@brand`.
+Use `src/brand.ts` for organization identity, logos and company theme colours.
+New courses use the `company` preset. Pack `studio_theme_aliases` map older
+company theme IDs when projects open; preserve all upstream themes and IDs.
+The exported player receives the company's resolved tokens in its package.
 
-Publish to LMS uploads a SCORM package and editable project backup to the
-company server. Local editing still works without publication. Keep interface
-copy accurate about this upload. Docker/CI in the repository root deploy this
-integrated version; the upstream GitHub Pages notes below describe Scormly.
+Read allowed interface languages from the platform session endpoint. English,
+Traditional Chinese and Spanish are the fallback when the endpoint is unavailable.
+Share `training-language` with the platform, keep it in the allowed list, and hide
+all interface language controls for a single-language deployment. Upstream
+Ukrainian dictionaries remain for source compatibility. Add translations to
+`../../shared/locales/messages.json`; use `studio.<namespace>.<key>` for contextual
+translations. English/Ukrainian source keys remain in `src/i18n/locales/`.
+
+Publish to course uploads a package and editable backup to the platform. Local
+editing remains available without publication. Root Docker configuration deploys
+this integration; upstream GitHub Pages notes below describe upstream Scormly.
+These integration rules override conflicting upstream branding guidance.
 
 A local-first, block-based course builder that
 exports to **SCORM 1.2 / 2004** and **cmi5**. It runs entirely client-side, with

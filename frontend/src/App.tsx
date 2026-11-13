@@ -1,32 +1,38 @@
-import { t, useLocale, LanguagePicker } from "./i18n";
+import { brand, applySessionSettings, type SessionSettings } from "./brand";
+import { navigationAreas, activeArea, canOpenRoute } from "./navigation";
+import AreaTabs from "./AreaTabs";
+import LazyPageBoundary from "./LazyPageBoundary";
+import { AccessContext, CurrentUserContext, roleLabel } from "./access";
+import Brand from "./Brand";
+import { t, useLocale, LanguagePicker, setInterfaceLanguages } from "./i18n";
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import {
   LayoutDashboard,
-  BookOpen,
   ClipboardCheck,
   Layers3,
-  Link2,
   BarChart3,
   Users,
   Settings as SettingsIcon,
   Search,
   HelpCircle,
   Menu,
-  X,
   LogOut,
   ChevronRight,
   ArrowUpRight,
-  ShieldCheck,
   RefreshCw,
-  ClipboardList,
-  LibraryBig,
+  GraduationCap,
 } from "lucide-react";
 import { api } from "./api";
+import { appPath, routePath } from "./paths";
 import type { Course, Exam, User } from "./types";
 import Login from "./Login";
+import Registration from "./Registration";
+import { parseRegistrationReturn, completeRegistration } from "./registration";
 
 import Courses from "./Courses";
 import Exams from "./Exams";
+import MyTraining from "./MyTraining";
+import MyExams from "./MyExams";
 import Attempt, { GuestExam } from "./Attempt";
 import { Invitations, People, Results, Settings } from "./Management";
 import { Modal, ErrorBox, Spinner } from "./ui";
@@ -34,66 +40,21 @@ import Assignments from "./Assignments";
 import QuestionBank from "./QuestionBank";
 
 import { PasswordDialog } from "./PeopleTools";
+import NewTraining from "./NewTraining";
+import TrainingPage from "./TrainingPage";
+const ReportsOverview = lazy(() => import("./ReportsOverview"));
 const Dashboard = lazy(() => import("./Dashboard"));
 const Insights = lazy(() => import("./Insights"));
+const Administration = lazy(() => import("./Administration"));
+const Email = lazy(() => import("./Email"));
 
-const getNav = () => [
-  {
-    path: "/",
-    label: t("Overview Dashboard"),
-    icon: LayoutDashboard,
-    group: t("Workspace"),
-  },
-  { path: "/courses", label: t("Learning courses"), icon: BookOpen },
-  { path: "/assignments", label: t("Assigned training"), icon: ClipboardList },
-  { path: "/exams", label: t("Exams & assessments"), icon: ClipboardCheck },
-  { path: "/results", label: t("Results & reviews"), icon: BarChart3 },
-  {
-    path: "/insights",
-    label: t("Assessment insights"),
-    icon: BarChart3,
-    manage: true,
-  },
-  {
-    path: "/authoring",
-    label: t("Authoring studio"),
-    icon: Layers3,
-    manage: true,
-    group: t("Content & administration"),
-  },
-  {
-    path: "/invitations",
-    label: t("Guest exam invitations"),
-    icon: Link2,
-    manage: true,
-  },
-  {
-    path: "/question-bank",
-    label: t("Question bank"),
-    icon: LibraryBig,
-    manage: true,
-  },
-  {
-    path: "/people",
-    label: t("People & permissions"),
-    icon: Users,
-    admin: true,
-  },
-  {
-    path: "/settings",
-    label: t("Settings & audit"),
-    icon: SettingsIcon,
-    admin: true,
-  },
-];
 export default function App() {
   useLocale();
-  const nav = getNav();
   const [user, setUser] = useState<User | null>(null),
     [ready, setReady] = useState(false),
     [entra, setEntra] = useState(false),
     [demo, setDemo] = useState(false),
-    [path, setPath] = useState(window.location.pathname),
+    [path, setPath] = useState(routePath()),
     [courses, setCourses] = useState<Course[]>([]),
     [exams, setExams] = useState<Exam[]>([]),
     [error, setError] = useState(""),
@@ -104,23 +65,67 @@ export default function App() {
     [profile, setProfile] = useState(false),
     [password, setPassword] = useState(false),
     [loading, setLoading] = useState(false);
+  const [registrationResult, setRegistrationResult] = useState<{course: string; message: string} | null>(null);
+  const [registrationBusy, setRegistrationBusy] = useState(false);
   const go = useCallback((next: string) => {
-    history.pushState({}, "", next);
+    history.pushState({}, "", appPath(next));
     setPath(new URL(next, window.location.origin).pathname);
     setMobile(false);
     setQuery("");
     window.scrollTo(0, 0);
   }, []);
+  useEffect(() => {
+    if (!ready) return;
+    const params = new URLSearchParams(window.location.search);
+    try {
+      if (!user) {
+        const kind = path === "/courses" ? "course" : path === "/exams" ? "exam" : null;
+        const id = kind ? params.get(kind) : null;
+        if (kind && id && /^[1-9]\d*$/.test(id)) {
+          sessionStorage.setItem("training-registration", JSON.stringify({
+            kind, id, register: kind === "course" && params.get("action") === "register", time: Date.now(),
+          }));
+        }
+      } else {
+        // Email verification on the public page completes locally.
+        if (path === "/register") return;
+        const raw = sessionStorage.getItem("training-registration");
+        sessionStorage.removeItem("training-registration");
+        const target = parseRegistrationReturn(raw);
+        if (target?.choice) {
+          setRegistrationBusy(true);
+          void completeRegistration(Number(target.id), target.session).then(message => {
+            setRegistrationResult({course: target.id, message});
+            go(`/courses?course=${target.id}&action=register`);
+          }).catch(error => {
+            setRegistrationResult({course: target.id, message: error.message});
+            go(`/courses?course=${target.id}&action=register`);
+          }).finally(() => {
+            // The picker must use availability fetched after the admission attempt.
+            setCourses([]); setExams([]); setLoading(true);
+            setRefreshKey(value => value + 1); setRegistrationBusy(false);
+          });
+        } else if (target?.kind === "course") {
+          go(`/courses?course=${target.id}${target.register ? "&action=register" : ""}`);
+        } else if (target?.kind === "exam") {
+          go(`/exams?exam=${target.id}`);
+        }
+      }
+    } catch { /* Storage can be disabled; the signed-in catalog remains available. */ }
+  }, [ready,user,path,go]);
   const refresh = useCallback(() => setRefreshKey((v) => v + 1), []);
   useEffect(() => {
-    const pop = () => setPath(window.location.pathname);
+    const pop = () => setPath(routePath());
     window.addEventListener("popstate", pop);
-    api<{
+    const refreshSession = () => api<SessionSettings & {
       user: User | null;
       entra_enabled: boolean;
       demo_mode?: boolean;
+      languages: string[];
     }>("auth/session/")
       .then((s) => {
+        applySessionSettings(s);
+        setInterfaceLanguages(s.languages);
         setUser(s.user);
         setEntra(s.entra_enabled);
         setDemo(!!s.demo_mode);
@@ -130,10 +135,12 @@ export default function App() {
         setError(e.message);
         setReady(true);
       });
-    return () => window.removeEventListener("popstate", pop);
+    void refreshSession();
+    window.addEventListener('training-settings', refreshSession);
+    return () => { window.removeEventListener("popstate", pop); window.removeEventListener('training-settings', refreshSession); };
   }, []);
   useEffect(() => {
-    if (!user || path.startsWith("/attempt/") || path.startsWith("/preview/"))
+    if (!user || path === "/register" || path.startsWith("/attempt/") || path.startsWith("/preview/"))
       return;
     let alive = true;
     setLoading(true);
@@ -179,6 +186,8 @@ export default function App() {
         </button>
       </div>
     );
+  if (registrationBusy) return <Spinner />;
+  if (path === "/register") return <Registration user={user} entra={entra} onLogin={setUser} />;
   if (path === "/invite") return <GuestExam go={go} />;
   if (path.startsWith("/attempt/"))
     return <Attempt key={path} id={path.split("/")[2]} go={go} guest={!user} />;
@@ -188,36 +197,39 @@ export default function App() {
         entra={entra}
         onLogin={(u) => {
           setUser(u);
-          go("/");
+          go(path === "/manage" && u.access.system_admin ? "/manage" : "/");
         }}
       />
     );
   if (path.startsWith("/preview/"))
     return <Attempt key={path} id={path.split("/")[2]} go={go} preview />;
-  const current = nav.find((n) => n.path === path),
-    allowed =
-      current &&
-      (!current.admin || user.role === "admin") &&
-      (!current.manage || user.role !== "learner");
+  const nav = navigationAreas(user.access);
+  // New training and training pages live under the Trainings tab and share its capability.
+  const trainingRoute = /^\/authoring\/(new|[1-9]\d*)$/.test(path);
+  const route = trainingRoute ? "/authoring" : path;
+  const current = activeArea(user.access, route, window.location.search);
+  const allowed = canOpenRoute(user.access, route);
+  const icons = {home: LayoutDashboard, learning: GraduationCap, training: Layers3, exams: ClipboardCheck, reports: BarChart3, people: Users, settings: SettingsIcon};
   const matches = [
     ...courses
       .filter((c) => c.title.toLowerCase().includes(query.toLowerCase()))
       .map((c) => ({
         id: "c" + c.id,
         title: c.title,
-        type: t("Learning courses"),
-        path: "/courses",
+        type: t("Courses"),
+        path: c.published ? `/courses?course=${c.id}` : `/authoring?course=${c.id}&action=edit`,
       })),
     ...exams
-      .filter((e) => e.title.toLowerCase().includes(query.toLowerCase()))
+      .filter((e) => [e.title, ...e.course_links.map(c => c.title)].some(title => title.toLowerCase().includes(query.toLowerCase())))
       .map((e) => ({
         id: "e" + e.id,
         title: e.title,
         type: t("Assessment"),
-        path: "/exams",
+        path: `/exams?exam=${e.id}${e.published ? "" : "&action=edit"}`,
       })),
   ].slice(0, 8);
   return (
+    <AccessContext.Provider value={user.access}><CurrentUserContext.Provider value={user}>
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
         {t("Skip to main content") + " "}
@@ -232,78 +244,30 @@ export default function App() {
       <aside className={"sidebar " + (mobile ? "open" : "")}>
         <a
           className="brand"
-          href="/"
+          href={appPath("/")}
           onClick={(e) => {
             e.preventDefault();
             go("/");
           }}
         >
-          <span className="brand-mark">
-            <Layers3 size={23} />
-          </span>
-          <span>
-            evitina<span className="brand-light"> learn</span>
-            <small>{t("Enterprise learning platform")}</small>
-          </span>
+          <Brand />
+          {brand.customized && <span className="organization-name">{brand.organization}</span>}
         </a>
-        <div className="workspace-picker">
-          <div className="workspace-avatar">E</div>
-          <div>
-            <strong>{t("Company learning workspace")}</strong>
-            <span>{t("Enterprise workspace")}</span>
-          </div>
-          <ShieldCheck size={16} />
-        </div>
         <nav aria-label={t("Main navigation")}>
-          {nav
-            .filter(
-              (n) =>
-                (!n.admin || user.role === "admin") &&
-                (!n.manage || user.role !== "learner"),
-            )
-            .map((n) => (
-              <div key={n.path}>
-                {n.group && <div className="nav-group">{n.group}</div>}
-                <a
-                  href={n.path}
-                  className={path === n.path ? "active" : ""}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    go(n.path);
-                  }}
-                >
-                  <n.icon size={19} />
-                  <span>{n.label}</span>
-                  {path === n.path && <span className="nav-active-dot" />}
-                </a>
-              </div>
-            ))}
+          {nav.map(area => { const Icon = icons[area.id]; return <a key={area.id}
+            href={appPath(area.tabs[0].path)} className={current?.id === area.id ? "active" : ""}
+            aria-current={current?.id === area.id ? "page" : undefined}
+            onClick={e => {e.preventDefault(); go(area.tabs[0].path);}}>
+            <Icon size={19}/><span>{t(area.label)}</span>
+          </a>; })}
         </nav>
         <div className="sidebar-bottom">
-          <div className="grow-card">
-            <div className="grow-icon">
-              <BookOpen size={22} />
-              <span>+</span>
-            </div>
-            <h3>{t("Growth starts with learning.")}</h3>
-            <p>{t("Every step brings new possibilities.")}</p>
-            <button onClick={() => go("/courses")}>
-              {t("Explore learning resources") + " "}
-              <ArrowUpRight size={15} />
-            </button>
-          </div>
           <button className="sidebar-help" onClick={() => setHelp(true)}>
             <HelpCircle size={17} />
             {t("Help & support") + " "}
             <ArrowUpRight size={14} />
           </button>
-          <div className="sidebar-version">
-            <span className="live-dot" />
-            {demo
-              ? t("Demo environment \u00B7 Synthetic data")
-              : t("Enterprise training workspace")}
-            <span>v1.3</span>
-          </div>
+          {demo && <div className="sidebar-version">{t("Demo environment · Synthetic data")}</div>}
         </div>
       </aside>
       <div className="main-wrap">
@@ -315,11 +279,6 @@ export default function App() {
           >
             <Menu size={22} />
           </button>
-          <div className="breadcrumb">
-            <span>{t("Workspace")}</span>
-            <ChevronRight size={14} />
-            <strong>{current?.label || t("Page")}</strong>
-          </div>
           <div className="topbar-right">
             <LanguagePicker />
             <div className="global-search">
@@ -349,13 +308,6 @@ export default function App() {
                 </div>
               )}
             </div>
-            <button
-              className="icon-btn help-top"
-              onClick={() => setHelp(true)}
-              aria-label={t("Help")}
-            >
-              <HelpCircle size={19} />
-            </button>
             <span className="topbar-divider" />
             <div className="profile-wrap">
               <button
@@ -367,13 +319,7 @@ export default function App() {
                 <div>
                   <strong>{user.display_name}</strong>
                   <span>
-                    {
-                      {
-                        admin: t("System administrator"),
-                        instructor: t("Training instructor"),
-                        learner: t("Learning member"),
-                      }[user.role]
-                    }
+                    {roleLabel(user.role)}
                   </span>
                 </div>
                 <ChevronRight size={14} />
@@ -399,7 +345,8 @@ export default function App() {
             </div>
           </div>
         </header>
-        <main id="main-content">
+        <main id="main-content" className={["/manage", "/people", "/settings", "/email"].includes(path) ? "management-surface" : undefined}>
+          {current && <AreaTabs area={current} go={go}/>}
           <Suspense fallback={<Spinner />}>
             <ErrorBox message={error} />
             {loading && !courses.length && !exams.length ? (
@@ -411,18 +358,27 @@ export default function App() {
                   {t("Back to overview") + " "}
                 </button>
               </div>
+            ) : path === "/manage" ? (
+              <LazyPageBoundary key={path}><Administration go={go} /></LazyPageBoundary>
             ) : path === "/" ? (
-              <Dashboard
+              <LazyPageBoundary key={path}><Dashboard
                 user={user}
                 courses={courses}
                 exams={exams}
                 go={go}
                 refreshKey={refreshKey}
-              />
+              /></LazyPageBoundary>
+            ) : path === "/reports" ? (
+              <LazyPageBoundary key={path}><ReportsOverview user={user} exams={exams} go={go} refreshKey={refreshKey}/></LazyPageBoundary>
+            ) : path === "/my-training" ? (
+              <MyTraining refreshKey={refreshKey} onSaved={refresh} go={go}/>
+            ) : path === "/my-exams" ? (
+              <MyExams exams={exams}/>
             ) : path === "/courses" ? (
-              <Courses courses={courses} user={user} onSaved={refresh} />
+              <Courses registrationMessage={registrationResult?.course === new URLSearchParams(window.location.search).get('course') ? t(registrationResult.message) : undefined} key={"courses" + window.location.search} courses={courses} exams={exams} user={user} onSaved={refresh} />
             ) : path === "/assignments" ? (
               <Assignments
+                key={"assignments" + window.location.search}
                 user={user}
                 courses={courses}
                 exams={exams}
@@ -432,11 +388,15 @@ export default function App() {
             ) : path === "/question-bank" ? (
               <QuestionBank />
             ) : path === "/insights" ? (
-              <Insights exams={exams} />
+              <LazyPageBoundary key={path}><Insights exams={exams} /></LazyPageBoundary>
             ) : path === "/authoring" ? (
-              <Courses courses={courses} user={user} onSaved={refresh} studio />
+              <Courses key={"authoring" + window.location.search} courses={courses} exams={exams} user={user} onSaved={refresh} go={go} studio />
+            ) : path === "/authoring/new" ? (
+              <NewTraining go={go} />
+            ) : trainingRoute ? (
+              <TrainingPage key={path} id={Number(path.split("/")[2])} go={go} onSaved={refresh} />
             ) : path === "/exams" ? (
-              <Exams
+              <Exams key={"exams" + window.location.search}
                 exams={exams}
                 courses={courses}
                 user={user}
@@ -454,19 +414,16 @@ export default function App() {
                 go={go}
               />
             ) : path === "/people" ? (
-              <People />
+              <People currentUser={user} />
+            ) : path === "/email" ? (
+              <LazyPageBoundary key={path}><Email /></LazyPageBoundary>
             ) : (
-              <Settings entra={entra} />
+              <Settings user={user} go={go} />
             )}
             <footer className="app-footer">
               <span>
-                © {new Date().getFullYear()} Evitina Learn
-                <span className="inline-sep">·</span>
-                {t("Make learning a part of growth") + " "}
-              </span>
-              <span>
-                <ShieldCheck size={13} />
-                {t("Enterprise learning platform") + " "}
+                © {new Date().getFullYear()} {brand.organization}
+
               </span>
             </footer>
           </Suspense>
@@ -475,28 +432,28 @@ export default function App() {
       {password && <PasswordDialog onClose={() => setPassword(false)} />}
       {help && (
         <Modal
-          title={t("Welcome to Evitina Learn")}
+          title={t("Welcome to {organization}", { organization: brand.organization })}
           onClose={() => setHelp(false)}
         >
           <div className="modal-form help-content">
             <h3>{t("Start learning")}</h3>
             <p>
               {t(
-                "Open a course from Learning courses. SCORM courses save progress automatically so you can continue later.",
+                "Open a course to start or continue learning.",
               ) + " "}
             </p>
             <h3>{t("Take an assessment")}</h3>
             <p>
               {t(
-                "Find available exams in Exams & assessments. The timer keeps running once you start. Answers save automatically; view submitted results in Results & reviews.",
+                "Find available exams in Exams. The timer keeps running once you start. Answers save automatically; view submitted results in Results.",
               ) + " "}
             </p>
-            {user.role !== "learner" && (
+            {(user.access.courses !== "none" || user.access.invitations) && (
               <>
                 <h3>{t("Create content and invite participants")}</h3>
                 <p>
                   {t(
-                    "Write lessons in Authoring studio or use Scormly to create interactive SCORM courses. Guests can take exams through personal links, with a shared attempt budget for each identity.",
+                    "Create a course, edit its content, then publish. Send personal exam links to guests.",
                   ) + " "}
                 </p>
               </>
@@ -510,5 +467,6 @@ export default function App() {
         </Modal>
       )}
     </div>
+    </CurrentUserContext.Provider></AccessContext.Provider>
   );
 }

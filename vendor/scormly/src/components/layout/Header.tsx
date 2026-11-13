@@ -42,7 +42,7 @@ export default function Header() {
   const { t } = useT('common')
   const { t: tw } = useT('welcome')
   const { t: tp } = useT('preview')
-  const { lang, setLang } = useLang()
+  const { lang, setLang, languages } = useLang()
   const moreRef = useRef<HTMLDivElement>(null)
   const moreTriggerRef = useRef<HTMLButtonElement>(null)
 
@@ -58,7 +58,7 @@ export default function Header() {
           : tw('save')
 
   return (
-    <header className="relative z-20 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-gray-200/80 bg-white/90 px-3 shadow-[0_1px_0_rgba(15,23,42,0.02),0_4px_16px_-12px_rgba(15,23,42,0.15)] backdrop-blur-xl sm:px-4">
+    <header className="studio-chrome relative z-20 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-gray-200/80 bg-white/90 px-3 shadow-[0_1px_0_rgba(15,23,42,0.02),0_4px_16px_-12px_rgba(15,23,42,0.15)] backdrop-blur-xl sm:px-4">
       <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"
@@ -69,13 +69,13 @@ export default function Header() {
           ☰
         </button>
         <div className="shrink-0">
-          <Logo />
+          <Logo compact />
         </div>
-        <ProjectMenu />
+        <div className="hidden xl:block"><ProjectMenu /></div>
       </div>
 
       {/* Desktop controls */}
-      <div className="hidden items-center gap-2 md:flex">
+      <div className="hidden items-center gap-2 xl:flex">
         <div className="flex items-center gap-0.5">
           <button
             type="button"
@@ -144,25 +144,12 @@ export default function Header() {
             {tw('saveZip')}
           </button>
         )}
-        {inBrowser && (
-          <button
-            type="button"
-            onClick={() => void runExport('project')}
-            disabled={exporting}
-            title={tw('downloadZipBrowserTitle')}
-            className={zipButton}
-          >
-            <DownloadIcon />
-            {tw('downloadZip')}
-          </button>
-        )}
         <ExportMenu />
         <PublishLms />
       </div>
 
       {/* Mobile controls */}
-      <div className="flex items-center gap-1.5 md:hidden">
-        <PublishLms />
+      <div className="flex items-center gap-1.5 xl:hidden">
         <button
           type="button"
           onClick={() => setPreviewOpen(true)}
@@ -243,13 +230,13 @@ export default function Header() {
                   setMoreOpen(false)
                 }}
               />
-              <MoreItem
+              {languages.length > 1 && <MoreItem
                 label={`${t('language')}: ${lang.toUpperCase()}`}
                 onClick={() => {
-                  setLang(lang === 'en' ? 'uk' : 'en')
+                  setLang(languages[(languages.indexOf(lang) + 1) % languages.length])
                   setMoreOpen(false)
                 }}
-              />
+              />}
               <div className="my-1 h-px bg-gray-100" />
               <MoreItem
                 label={th('menuTour')}
@@ -286,7 +273,10 @@ export default function Header() {
           )}
         </div>
       </div>
-
+      <div className="studio-mobile-project flex w-full items-center justify-between gap-2 xl:hidden">
+        <ProjectMenu />
+        <PublishLms />
+      </div>
     </header>
   )
 }

@@ -17,7 +17,8 @@ from rest_framework.response import Response
 from .i18n import translate
 from .models import Attempt, AttemptTimeExtension, Exam
 from .services import answer_provided, audit, finalize_if_expired
-from .views import accessible_attempt, manage_exam
+from .views import accessible_attempt
+from .access import require_results
 
 
 class MonitorFilters(serializers.Serializer):
@@ -66,7 +67,7 @@ def extension_data(extension):
 @api_view(["GET"])
 def exam_monitor(request, pk):
     exam = get_object_or_404(Exam, pk=pk)
-    manage_exam(request.user, exam)
+    require_results(request.user, exam)
     filters = MonitorFilters(data=request.query_params)
     filters.is_valid(raise_exception=True)
     values = filters.validated_data
@@ -175,7 +176,7 @@ def time_extensions(request, pk):
             Attempt.objects.select_for_update(of=("self",)).select_related("exam"),
             pk=pk,
         )
-        manage_exam(request.user, attempt.exam)
+        require_results(request.user, attempt.exam)
         if request.method == "GET":
             filters = MonitorFilters(data=request.query_params)
             filters.is_valid(raise_exception=True)

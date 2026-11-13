@@ -8,7 +8,8 @@ from django.conf import settings
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 
-from .models import User
+from .runtime_settings import mail_config, sign_in_config
+from .access import system_admin_users
 
 
 def deployment_readiness():
@@ -34,8 +35,12 @@ def deployment_readiness():
     app, content = urlparse(settings.APP_ORIGIN), urlparse(settings.SCORM_ORIGIN)
     add(
         "origins",
-        "HTTPS and isolated course content",
-        app.scheme == content.scheme == "https" and app.netloc != content.netloc,
+        "HTTPS and trusted company content" if settings.SCORM_TRUSTED_SAME_ORIGIN else "HTTPS and isolated course content",
+        app.scheme == content.scheme == "https" and (
+            app.netloc == content.netloc if settings.SCORM_TRUSTED_SAME_ORIGIN else app.netloc != content.netloc
+        ),
+        "Same-origin mode: only administrators may upload reviewed company packages. Content scripts have application-origin privileges."
+        if settings.SCORM_TRUSTED_SAME_ORIGIN else
         "Use separate HTTPS origins on the same registrable site; verify the reverse proxy and browser cookies.",
     )
     add(
@@ -56,7 +61,7 @@ def deployment_readiness():
         add(
             "administrator",
             "Active platform administrator",
-            User.objects.filter(role="admin", is_active=True).exists(),
+            system_admin_users().exists(),
             "Provision at least one administrator and a separate operator recovery account.",
         )
     except Exception:
@@ -83,34 +88,29 @@ def deployment_readiness():
             False,
             "Create and mount writable persistent media storage for the API.",
         )
-    smtp = (
-        settings.EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
-        and settings.EMAIL_HOST not in ("", "localhost")
-        and not settings.DEFAULT_FROM_EMAIL.endswith("@example.com")
-    )
-    add(
-        "email",
-        "Company email configuration",
-        smtp,
-        "Configuration check only. Test a real sign-in code and a verified guest invitation after deployment.",
-    )
-    configured = all(
-        (
-            settings.ENTRA_TENANT_ID,
-            settings.ENTRA_CLIENT_ID,
-            settings.ENTRA_CLIENT_SECRET,
+    mail = mail_config()
+    if mail["provider"] == "off":
+        # Off is a supported choice, not missing setup: it does not hold back readiness.
+        checks.append({"key": "email", "label": "Company email configuration", "status": "off", "detail": "Email is off."})
+    else:
+        add(
+            "email",
+            "Company email configuration",
+            mail["configured"],
+            "Configuration check only. Test a real sign-in code and a verified guest invitation after deployment.",
         )
-    )
+    configured = sign_in_config()['configured']
     checks.append(
         {
             "key": "entra",
-            "label": "Microsoft Entra configuration",
+            "label": "Google Workspace configuration" if sign_in_config()["provider"] == "google" else "Microsoft Entra configuration",
             "status": "configured" if configured else "deferred",
-            "detail": "Tenant connectivity, consent and Graph synchronization must be verified on Peach1. No tenant API was called.",
+            "detail": "Tenant connectivity, consent and Graph synchronization require separate verification. No tenant API was called.",
         }
     )
     return {
         "checks": checks,
-        "ready": all(c["status"] == "ready" for c in checks if c["key"] != "entra"),
-        "entra_configured": configured,
+        "ready": all(c["status"] in ("ready", "off") for c in checks if c["key"] != "entra"),
+        "entra_configured": configured and sign_in_config()["provider"] == "entra",
+        "sign_in_configured": configured,
     }

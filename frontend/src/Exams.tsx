@@ -1,8 +1,16 @@
+import ActionMenu from "./ActionMenu";
+import { DeleteTraining } from "./TrainingLifecycle";
+import { AssessmentWindow } from "./AssessmentBlock";
+import { GradingGuideEditor } from "./GradingGuide";
+import QuestionFigureEditor from "./QuestionFigureEditor";
+import { questionPayload } from "./QuestionFigure";
+import { GroupPicker } from "./Groups";
+import { PeoplePicker } from "./PeopleDirectory";
 import ExamBudget from "./ExamBudget";
 import { useExamPreflight } from "./useExamPreflight";
-import { useRetryAvailability } from "./RetryAvailability";
-import { t, useLocale } from "./i18n";
-import { useEffect, useState } from "react";
+import { RetryNotice, useRetryAvailability } from "./RetryAvailability";
+import { countLabel, t, useLocale } from "./i18n";
+import { useEffect, useRef, useState } from "react";
 import {
   Plus,
   Search,
@@ -10,11 +18,7 @@ import {
   Target,
   FileQuestion,
   ArrowRight,
-  Pencil,
-  Link2,
   Trash2,
-  Eye,
-  Activity,
 } from "lucide-react";
 import { api } from "./api";
 import type { Exam, Course, Question, User, Attempt } from "./types";
@@ -25,25 +29,30 @@ import StructuredQuestionFields from "./StructuredQuestionFields";
 import TextAnswerFields from "./TextAnswerFields";
 import ExamPreview from "./ExamPreview";
 import ExamMonitor from "./ExamMonitor";
-function ExamEditor({
+export function ExamEditor({
   exam,
+  initialCourseId,
   courses,
   onSaved,
   onClose,
 }: {
   exam: Exam | null;
+  initialCourseId?: number;
   courses: Course[];
-  onSaved: () => void;
+  onSaved: (published?: boolean) => void;
   onClose: () => void;
 }) {
   useLocale();
+  const [linkOptions, setLinkOptions] = useState<Pick<Course, "id" | "title" | "published">[]>(courses.filter(c => c.can_manage));
+  useEffect(() => { api<typeof linkOptions>("exams/link-options/").then(setLinkOptions).catch(e => setError(e.message)); }, []);
   const [audience, setAudience] = useState<Exam["audience"]>(
-    exam?.audience || "all",
+    exam?.audience || (initialCourseId ? "course" : "all"),
   );
   const [departments, setDepartments] = useState(
     exam?.allowed_departments || [],
   );
   const [people, setPeople] = useState<number[]>(exam?.allowed_users || []);
+  const [groups, setGroups] = useState<number[]>(exam?.allowed_groups || []);
   const [shuffleQuestions, setShuffleQuestions] = useState(
     exam?.shuffle_questions || false,
   );
@@ -53,24 +62,28 @@ function ExamEditor({
   const [sample, setSample] = useState(
     exam?.questions_per_attempt?.toString() || "",
   );
+  const [renew, setRenew] = useState(!!exam?.attempt_reset_minutes);
+  const [renewUnit, setRenewUnit] = useState(!exam?.attempt_reset_minutes || exam.attempt_reset_minutes % 1440 === 0 ? 1440 : exam.attempt_reset_minutes % 60 === 0 ? 60 : 1);
+  const [renewValue, setRenewValue] = useState(exam?.attempt_reset_minutes ? exam.attempt_reset_minutes / renewUnit : 1);
   const [options, setOptions] = useState<{
     departments: string[];
     people: Pick<User, "id" | "display_name" | "username" | "department">[];
   }>({ departments: [], people: [] });
   useEffect(() => {
-    api<typeof options>("exams/audience-options/")
+    api<typeof options>("exams/audience-options/?page_size=1")
       .then(setOptions)
       .catch((e) => setError(e.message));
   }, []);
+  const [uploads, setUploads] = useState(0);
   const [title, setTitle] = useState(exam?.title || ""),
     [description, setDescription] = useState(exam?.description || ""),
-    [course, setCourse] = useState(exam?.course?.toString() || ""),
+    [linkedCourses, setLinkedCourses] = useState<number[]>(exam?.courses || (initialCourseId ? [initialCourseId] : [])),
     [minutes, setMinutes] = useState(exam?.duration_minutes || 30),
     [limit, setLimit] = useState(exam?.max_attempts || 2),
     [retryInterval, setRetryInterval] = useState(
       exam?.retry_interval_minutes || 0,
     ),
-    [pass, setPass] = useState(exam?.pass_score || 70),
+    [pass, setPass] = useState(exam?.pass_score ?? 70),
     [published, setPublished] = useState(exam?.published || false),
     [allowSkip, setAllowSkip] = useState(exam?.allow_skip ?? true),
     [allowReview, setAllowReview] = useState(
@@ -110,10 +123,18 @@ function ExamEditor({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   function patch(i: number, p: Partial<Question>) {
-    setQuestions(questions.map((q, j) => (i === j ? { ...q, ...p } : q)));
+    setQuestions(current => current.map((q, j) => (i === j ? { ...q, ...p } : q)));
   }
+  const [optionsOpen, setOptionsOpen] = useState(() => !!initialCourseId || !!exam && (
+    exam.duration_minutes !== 30 || exam.max_attempts !== 2 || !!exam.retry_interval_minutes || !!exam.attempt_reset_minutes ||
+    !!exam.starts_at || !!exam.ends_at || !exam.allow_skip || !exam.allow_response_review || exam.audience !== 'all' ||
+    exam.shuffle_questions || exam.shuffle_options || !!exam.questions_per_attempt || !!exam.description || !!exam.courses.length
+  ));
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    // This editor can be a portal inside the course form.
+    e.stopPropagation();
+    if (uploads) return;
     setBusy(true);
     setError("");
     try {
@@ -123,10 +144,11 @@ function ExamEditor({
         {
           title,
           description,
-          course: course ? Number(course) : null,
+          courses: linkedCourses,
           duration_minutes: minutes,
           max_attempts: limit,
           retry_interval_minutes: retryInterval,
+          attempt_reset_minutes: renew ? renewValue * renewUnit : 0,
           allow_skip: allowSkip,
           allow_response_review: allowReview,
           pass_score: pass,
@@ -134,19 +156,20 @@ function ExamEditor({
           audience,
           allowed_departments: departments,
           allowed_users: people,
+          allowed_groups: groups,
           shuffle_questions: shuffleQuestions,
           shuffle_options: shuffleOptions,
           questions_per_attempt: sample ? Number(sample) : null,
           starts_at: start ? new Date(start).toISOString() : null,
           ends_at: end ? new Date(end).toISOString() : null,
           questions: questions.map((q, i) => ({
-            ...q,
+            ...questionPayload(q),
             id: undefined,
             position: i,
           })),
         },
       );
-      onSaved();
+      onSaved(published);
       onClose();
     } catch (e) {
       setError((e as Error).message);
@@ -157,7 +180,7 @@ function ExamEditor({
   return (
     <Modal
       title={
-        exam ? t("Edit exam") : t("Create standalone exam / course assessment")
+        exam ? t("Edit exam") : t("Create exam")
       }
       onClose={onClose}
       wide
@@ -173,6 +196,21 @@ function ExamEditor({
               maxLength={200}
             />
           </label>
+          <label>
+            {t("Passing score") + " "}
+            <input
+              type="number"
+              min={0}
+              max={100}
+              required
+              value={pass}
+              onChange={(e) => setPass(Number(e.target.value))}
+            />
+          </label>
+        </div>
+        <details className="course-options" open={optionsOpen} onToggle={e => setOptionsOpen(e.currentTarget.open)}>
+          <summary>{t("More options")}</summary>
+          <div className="form-grid">
           <label className="span-2">
             {t("Instructions") + " "}
             <textarea
@@ -181,21 +219,26 @@ function ExamEditor({
               rows={2}
             />
           </label>
+          <div className="span-2">
+            <span className="field-label">{t("Linked courses")}</span>
+            <div className="heading-actions linked-course-chips">
+              {linkedCourses.map(id => {
+                const course = linkOptions.find(c => c.id === id) || exam?.course_links.find(c => c.id === id) || courses.find(c => c.id === id);
+                return <span className="badge neutral" key={id}>{course?.title || t("Current linked course")}
+                  {linkOptions.some(c => c.id === id) && <button type="button" className="icon-btn" aria-label={t("Remove {title}", {title: course?.title || String(id)})} onClick={() => setLinkedCourses(ids => ids.filter(value => value !== id))}>×</button>}
+                </span>;
+              })}
+            </div>
+            {linkedCourses.length > 0 && <p className="muted">{t(audience === "invitation" ? "Invitation only: participants of linked courses can't take this exam." : audience === "course" ? "Approved participants of linked courses can take this exam." : audience === "all" ? "Everyone with an account can take this exam once it is published, not only course participants." : "Approved participants of linked courses can also take this exam.")}</p>}
+            <label>{t("Add course")}
+              <select value="" onChange={e => { if (e.target.value) setLinkedCourses(ids => [...ids, Number(e.target.value)]); }}>
+                <option value="">{t("Choose a course")}</option>
+                {linkOptions.filter(c => !linkedCourses.includes(c.id)).map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+              </select>
+            </label>
+          </div>
           <label>
-            {t("Linked course") + " "}
-            <select value={course} onChange={(e) => setCourse(e.target.value)}>
-              <option value="">{t("Standalone exam (no course)")}</option>
-              {courses
-                .filter((c) => c.can_manage)
-                .map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.title}
-                  </option>
-                ))}
-            </select>
-          </label>
-          <label>
-            {t("Time allowed (minutes)") + " "}
+            {t("Minutes allowed") + " "}
             <input
               type="number"
               min={1}
@@ -206,7 +249,7 @@ function ExamEditor({
             />
           </label>
           <label>
-            {t("Default attempts per participant") + " "}
+            {t(renew ? "Attempts per round" : "Attempts allowed") + " "}
             <input
               type="number"
               min={1}
@@ -216,19 +259,9 @@ function ExamEditor({
               onChange={(e) => setLimit(Number(e.target.value))}
             />
           </label>
-          <label>
-            {t("Passing score (out of 100)") + " "}
-            <input
-              type="number"
-              min={0}
-              max={100}
-              required
-              value={pass}
-              onChange={(e) => setPass(Number(e.target.value))}
-            />
-          </label>
+
           <label className="span-2">
-            {t("Minimum time between attempt starts (minutes)")}
+            {t("Retry wait (minutes)")}
             <input
               type="number"
               min={0}
@@ -240,12 +273,16 @@ function ExamEditor({
             />
             <span className="field-hint">
               {t(
-                "Use 0 for no waiting period. The interval starts when an attempt begins; resuming an active attempt does not restart it.",
+                "Wait from the last start; 0 means no wait.",
               )}
             </span>
           </label>
+          <div className="form-section span-2">
+            <label className="checkbox-label"><input type="checkbox" checked={renew} onChange={e => setRenew(e.target.checked)} />{t("Renew failed rounds")}</label>
+            {renew && <><div className="form-grid"><label>{t("Renewal wait")}<input type="number" min={1} max={Math.floor(525600/renewUnit)} step={1} required value={renewValue} onChange={e => setRenewValue(Number(e.target.value))} /></label><label>{t("Waiting period unit")}<select value={renewUnit} onChange={e => {setRenewUnit(Number(e.target.value));setRenewValue(1);}}><option value={1}>{t("Minutes")}</option><option value={60}>{t("Hours")}</option><option value={1440}>{t("Days")}</option></select></label></div><p className="field-hint">{t("After {count} graded failures, renew in {duration} {unit}; results stay saved.", {count: limit, duration: renewValue, unit: t(renewUnit === 1440 ? "Days" : renewUnit === 60 ? "Hours" : "Minutes")})}</p></>}
+          </div>
           <label>
-            {t("Opens at (optional)") + " "}
+            {t("Opens at") + " "}
             <input
               type="datetime-local"
               value={start}
@@ -253,7 +290,7 @@ function ExamEditor({
             />
           </label>
           <label>
-            {t("Closes at (optional)") + " "}
+            {t("Closes at") + " "}
             <input
               type="datetime-local"
               value={end}
@@ -262,56 +299,58 @@ function ExamEditor({
           </label>
         </div>
         <div className="exam-randomization">
-          <h3>{t("Navigation and response review")}</h3>
+          <h3>{t("Navigation and review")}</h3>
           <label className="checkbox-label">
             <input
               type="checkbox"
               checked={allowSkip}
               onChange={(event) => setAllowSkip(event.target.checked)}
             />
-            {t("Allow participants to skip questions")}
+            {t("Allow skipping")}
           </label>
-          <p className="field-hint">
+          {!allowSkip && <p className="field-hint">
             {t(
-              "When disabled, questions unlock in order after answers are saved. Every question needs an answer before manual submission. This setting applies to new attempts.",
+              "New attempts require each answer before the next question.",
             )}
-          </p>
+          </p>}
           <label className="checkbox-label">
             <input
               type="checkbox"
               checked={allowReview}
               onChange={(event) => setAllowReview(event.target.checked)}
             />
-            {t("Allow participants to review responses and feedback")}
+            {t("Allow response review")}
           </label>
-          <p className="field-hint">
+          {!allowReview && <p className="field-hint">
             {t(
-              "Controls future access to completed attempts. Scores remain visible. Instructors retain full review access.",
+              "Hides responses from learners; scores and instructor access remain.",
             )}
-          </p>
+          </p>}
         </div>
         <div className="form-section">
           <h3>{t("Exam audience")}</h3>
           <p>
             {t(
-              "Audience rules apply to new account attempts. Personal invitations grant access separately; existing attempts remain available.",
+              "Applies to new attempts; invitations and active attempts keep access.",
             )}
           </p>
         </div>
         <label>
-          {t("Who can take this exam?")}
+          {t("Audience")}
           <select
-            aria-label={t("Who can take this exam?")}
+            aria-label={t("Audience")}
             value={audience}
             onChange={(e) => setAudience(e.target.value as Exam["audience"])}
           >
             {(
               [
                 ["all", "Everyone with an account"],
+                ["course", "Linked course participants only"],
                 ["employees", "Employees"],
                 ["contractors", "Contractors"],
                 ["departments", "Selected departments"],
                 ["people", "Selected people"],
+                ["groups", "Groups"],
                 ["invitation", "Invitation only"],
               ] as const
             ).map(([value, label]) => (
@@ -321,6 +360,10 @@ function ExamEditor({
             ))}
           </select>
         </label>
+        {audience === "course" && <>
+          <p className="field-hint">{t("Approved participants of the linked courses can take it, plus anyone you assign or invite.")}</p>
+          {!linkedCourses.length && <p className="field-hint">{t("Link a course, or only people you assign or invite can take it.")}</p>}
+        </>}
         {audience === "departments" && (
           <fieldset className="audience-options">
             <legend>{t("Selected departments")}</legend>
@@ -349,51 +392,9 @@ function ExamEditor({
             )}
           </fieldset>
         )}
-        {audience === "people" && (
-          <fieldset className="audience-options">
-            <legend>{t("Selected people")}</legend>
-            {options.people.map((person) => (
-              <label className="checkbox" key={person.id}>
-                <input
-                  type="checkbox"
-                  checked={people.includes(person.id)}
-                  onChange={(e) =>
-                    setPeople(
-                      e.target.checked
-                        ? [...people, person.id]
-                        : people.filter((id) => id !== person.id),
-                    )
-                  }
-                />
-                {person.display_name || person.username}{" "}
-                {person.department && `· ${person.department}`}
-              </label>
-            ))}
-          </fieldset>
-        )}
-        <div className="form-section">
-          <h3>
-            {t("Exam questions") + " "}
-            <Badge tone="neutral">
-              {questions.length}
-              {" " + t("questions")}
-            </Badge>
-          </h3>
-          <p>
-            {t(
-              "Choice, short-answer, numeric and ordering questions are graded automatically. Written responses are reviewed by an instructor.",
-            )}
-          </p>
-        </div>
-        <BankPicker
-          onAdd={(items) =>
-            setQuestions((current) =>
-              current.length === 1 && !current[0].description
-                ? items
-                : [...current, ...items],
-            )
-          }
-        />
+        {audience === "people" && <PeoplePicker selected={people} onChange={setPeople} />}
+        {audience === 'groups' && <><GroupPicker selected={groups} onChange={setGroups} /><p className="muted">{t('Active group members and assigned people can take this exam.')}</p></>}
+
         <div className="exam-randomization">
           <h3>{t("Exam variation")}</h3>
           <label className="checkbox-label">
@@ -413,7 +414,7 @@ function ExamEditor({
             {t("Shuffle answer options")}
           </label>
           <label>
-            {t("Questions per attempt (blank uses all)")}
+            {t("Questions per attempt")}
             <input
               type="number"
               min={1}
@@ -424,10 +425,35 @@ function ExamEditor({
           </label>
           <p className="notice">
             {t(
-              "A random subset is selected when an attempt starts. Its questions and option order stay fixed when resumed.",
+              "Leave blank for all questions; resumed attempts keep their order.",
             )}
           </p>
         </div>
+        </details>
+        <div className="form-section">
+          <h3>
+            {t("Exam questions") + " "}
+            <Badge tone="neutral">
+              {questions.length}
+              {" " + t("questions")}
+            </Badge>
+          </h3>
+          <p>
+            {t(
+              "Only essays need manual grading.",
+            )}
+          </p>
+        </div>
+        <BankPicker
+          disabled={uploads > 0}
+          onAdd={(items) =>
+            setQuestions((current) =>
+              current.length === 1 && !current[0].description
+                ? items
+                : [...current, ...items],
+            )
+          }
+        />
         {questions.map((q, i) => (
           <div className="question-editor" key={i}>
             <div className="question-toolbar">
@@ -463,6 +489,7 @@ function ExamEditor({
                 type="button"
                 className="icon-btn"
                 aria-label={t("Delete question {v0}", { v0: i + 1 })}
+                disabled={uploads > 0}
                 onClick={() =>
                   setQuestions(questions.filter((_, j) => i !== j))
                 }
@@ -478,6 +505,8 @@ function ExamEditor({
               placeholder={t("Enter the question")}
               rows={2}
             />
+            <QuestionFigureEditor question={q} onChange={values => patch(i, values)}
+              onBusyChange={delta => setUploads(current => current + delta)} />
             {["single", "multiple"].includes(q.type) && (
               <>
                 <p className="field-hint">{t("Select the correct answers")}</p>
@@ -540,13 +569,7 @@ function ExamEditor({
               question={q}
               onChange={(values) => patch(i, values)}
             />
-            {q.type === "essay" && (
-              <p className="notice">
-                {t(
-                  "This question needs manual grading, with points and feedback.",
-                )}
-              </p>
-            )}
+            <GradingGuideEditor question={q} onChange={values => patch(i, values)} />
           </div>
         ))}
         <button
@@ -581,7 +604,7 @@ function ExamEditor({
           <button type="button" className="btn" onClick={onClose}>
             {t("Cancel") + " "}
           </button>
-          <button className="btn primary" disabled={busy}>
+          <button className="btn primary" disabled={busy || uploads > 0}>
             {busy ? t("Saving\u2026") : t("Save exam")}
           </button>
         </div>
@@ -613,7 +636,42 @@ export default function Exams({
     [limit, setLimit] = useState(3),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
-  const manage = user.role !== "learner";
+  const courseParam = new URLSearchParams(window.location.search).get("course") || "";
+  const linkedCourseId = /^[1-9]\d*$/.test(courseParam) ? Number(courseParam) : null;
+  if (linkedCourseId) exams = exams.filter(e => e.courses.includes(linkedCourseId));
+  const manage = user.access.exams !== "none";
+  const openedLink = useRef(false);
+  useEffect(() => {
+    const destination = new URLSearchParams(window.location.search);
+    const selected = exams.find(exam => exam.id === Number(destination.get("exam")));
+    if (openedLink.current) return;
+    if (selected && !destination.get("action")) {
+      if (!selected.can_manage && selected.available_to_me) {
+        openedLink.current = true;
+        if (!selected.active_attempt_id && selected.last_result) go(`/attempt/${selected.last_result.id}`);
+        else setStarting(selected);
+      }
+      return;
+    }
+    if (selected?.available_to_me && destination.get("action") === "start") {
+      openedLink.current = true; setStarting(selected); return;
+    }
+    if (selected?.can_manage && destination.get("action") === "preview") {
+      openedLink.current = true; setPreviewing(selected.id); return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    if (manage && params.get("action") === "create") {
+      openedLink.current = true;
+      setEditing(null);
+      return;
+    }
+    const target = exams.find(exam => exam.id === Number(params.get("exam")));
+    if (target?.can_manage && params.get("action") === "edit") {
+      openedLink.current = true;
+      setEditing(target);
+    }
+  }, [exams, manage]);
+  const visibleExams = exams.filter(e => manage ? e.can_manage : e.published);
   const preflight = useExamPreflight(starting?.id);
   const waiting = useRetryAvailability(preflight.exam);
   async function start() {
@@ -663,181 +721,68 @@ export default function Exams({
       )}
       <div className="page-heading">
         <div>
-          <div className="eyebrow">{t("ASSESSMENT CENTER")}</div>
-          <h1>{t("Exams & assessments")}</h1>
-          <p>
-            {t("Plan assessments independently and make progress visible.")}
-          </p>
+
+          <h1>{t(linkedCourseId ? "Course assessment" : "Exams")}</h1>
+
         </div>
         {manage && (
           <button className="btn primary" onClick={() => setEditing(null)}>
             <Plus size={17} />
-            {t("Create exam") + " "}
+            {t("New exam")}
           </button>
         )}
       </div>
-      <div className="summary-strip">
-        <div>
-          <FileQuestion size={22} />
-          <strong>{exams.length}</strong>
-          <span>{t("exams")}</span>
-        </div>
-        <div>
-          <Target size={22} />
-          <strong>{exams.filter((e) => !e.course).length}</strong>
-          <span>{t("standalone assessments")}</span>
-        </div>
-        <div>
-          <Clock3 size={22} />
-          <strong>{exams.filter((e) => e.published).length}</strong>
-          <span>{t("published")}</span>
-        </div>
-      </div>
-      <div className="toolbar">
-        <h2>
-          {t("All exams") + " "}
-          <span className="count">{exams.length}</span>
-        </h2>
+      {linkedCourseId && <button className="text-btn" onClick={() => go("/courses")}>{t("Back to courses")}</button>}
+      {visibleExams.length > 8 && <div className="toolbar">
         <div className="search-field">
-          <Search size={16} />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label={t("Search exams")}
-            placeholder={t("Search exam titles\u2026")}
-          />
+          <Search size={16}/><input value={search} onChange={e => setSearch(e.target.value)} aria-label={t('Search exams')} placeholder={t('Search exam titles…')}/>
         </div>
-      </div>
+      </div>}
       <ErrorBox message={error} />
-      {exams.filter((e) => e.title.includes(search)).length ? (
-        <div className="exam-list">
-          {exams
-            .filter((e) => e.title.includes(search))
+      {visibleExams.filter((e) => e.title.toLowerCase().includes(search.toLowerCase())).length ? (
+        <div className={manage ? "exam-list exam-manage-list" : "exam-list"}>
+          {visibleExams
+            .filter((e) => e.title.toLowerCase().includes(search.toLowerCase()))
             .map((exam) => (
               <article className="exam-card" key={exam.id}>
-                <div className="exam-card-icon">
-                  <FileQuestion size={26} />
-                </div>
                 <div className="exam-main">
-                  <div className="exam-title">
-                    <h2>{exam.title}</h2>
-                    <Badge tone={exam.published ? "teal" : "neutral"}>
-                      {exam.published ? t("Published") : t("Draft")}
-                    </Badge>
-                    <Badge tone="blue">
-                      {exam.course
-                        ? t("Course assessment")
-                        : t("Standalone exam")}
-                    </Badge>
+                  <div className="exam-title"><h2>{exam.title}</h2>
+                    {!exam.published && <Badge tone="neutral">{t('Draft')}</Badge>}
                   </div>
-                  <p>
-                    {exam.description ||
-                      t(
-                        "Check the time limit and available attempts before starting.",
-                      )}
-                  </p>
-                  <div className="exam-details">
-                    <span>
-                      {exam.question_count}
-                      {" " + t("questions")}
-                    </span>
-                    <span>
-                      {exam.duration_minutes}
-                      {" " + t("min")}
-                    </span>
-                    <span>
-                      {t("Pass") + " "}
-                      {exam.pass_score}
-                      {" " + t("points")}
-                    </span>
-                    <span>
-                      {t("Your limit") + " "}
-                      {exam.effective_attempt_limit}
-                      {" " + t("attempts")}
-                    </span>
-                    <span>
-                      {t("Used") + " "}
-                      {exam.attempts_used}
-                      {" " + t("attempts")}
-                    </span>
-                  </div>
+                  <div className="exam-details">{countLabel(exam.question_count, '{count} question', '{count} questions')}</div>
+                  {exam.published && <AssessmentWindow exam={exam}/>}
+                  {!manage && exam.available_to_me && <RetryNotice value={exam}/>}
                 </div>
                 <div className="exam-actions">
-                  <button
-                    className="btn primary-soft"
-                    disabled={
-                      !exam.published ||
-                      (exam.attempts_remaining === 0 && !exam.active_attempt_id)
-                    }
-                    onClick={() => {
-                      setError("");
-                      setStarting(exam);
-                    }}
-                  >
-                    {t("Start / resume") + " "}
-                    <ArrowRight size={15} />
-                  </button>
-                  {exam.can_manage && (
-                    <div className="exam-tools">
-                      <button
-                        className="icon-btn"
-                        title={t("Live exam monitor")}
-                        aria-label={t("Monitor {title}", { title: exam.title })}
-                        onClick={() => setMonitoring(exam.id)}
-                      >
-                        <Activity size={16} />
-                      </button>
-                      <button
-                        title={t("Preview exam")}
-                        className="icon-btn"
-                        aria-label={t("Preview {title}", { title: exam.title })}
-                        onClick={() => setPreviewing(exam.id)}
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        title={t("Edit questions")}
-                        aria-label={t("Edit ") + exam.title}
-                        className="icon-btn"
-                        onClick={() => setEditing(exam)}
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        title={t("Individual attempt limits")}
-                        aria-label={
-                          t("Set ") + exam.title + t(" attempt limit")
-                        }
-                        className="icon-btn"
-                        onClick={() => {
-                          setError("");
-                          setBudget(exam);
-                        }}
-                      >
-                        <Target size={16} />
-                      </button>
-                      <button
-                        title={t("Invite guest")}
-                        aria-label={t("Invite ") + exam.title + t(" guests")}
-                        className="icon-btn"
-                        onClick={() => go("/invitations")}
-                      >
-                        <Link2 size={16} />
-                      </button>
-                    </div>
-                  )}
+                  {!manage && exam.available_to_me && <button className="btn" disabled={!exam.published || (exam.attempts_remaining === 0 && !exam.active_attempt_id && !exam.next_round_at && !exam.round_awaiting_grading)} onClick={() => {setError(''); setStarting(exam);}}>{t('Start / resume')}</button>}
+                  {exam.can_manage && <>
+                    <button className="btn" aria-label={t("Edit ") + exam.title} onClick={() => setEditing(exam)}>{t('Edit')}</button>
+                    <ActionMenu title={exam.title}>
+                      {!exam.published && <button type="button" disabled={busy || !exam.question_count} onClick={async () => {
+                        setBusy(true); setError('');
+                        try {await api(`exams/${exam.id}/`, 'PATCH', {published: true}); onSaved();}
+                        catch (e) {setError((e as Error).message);} finally {setBusy(false);}
+                      }}>{t('Publish exam')}</button>}
+                      <button type="button" onClick={() => setPreviewing(exam.id)}>{t('Preview exam')}</button>
+                      {exam.published && exam.can_view_results && <button type="button" onClick={() => setMonitoring(exam.id)}>{t('Live exam monitor')}</button>}
+                      {exam.published && <button type="button" onClick={() => {setError(''); setBudget(exam);}}>{t('Individual attempt limits')}</button>}
+                      {exam.published && user.access.invitations && <button type="button" onClick={() => go('/invitations')}>{t('Invite guest')}</button>}
+                      <DeleteTraining kind="exam" target={exam} onDeleted={onSaved} />
+                    </ActionMenu>
+                  </>}
                 </div>
               </article>
             ))}
         </div>
       ) : (
-        <Empty title={t("No matching exams")} />
+        <Empty title={t("No matching exams")} description="" />
       )}
       {editing !== undefined && (
         <ExamEditor
           exam={editing}
+          initialCourseId={courses.find(c => c.can_manage && c.id === Number(new URLSearchParams(window.location.search).get("course")))?.id}
           courses={courses}
-          onSaved={onSaved}
+          onSaved={() => onSaved()}
           onClose={() => setEditing(undefined)}
         />
       )}{" "}
@@ -845,12 +790,12 @@ export default function Exams({
         <Modal title={t("Ready to start?")} onClose={() => setStarting(null)}>
           <div className="modal-form">
             <h3>{starting.title}</h3>
+            {starting.description && <p className="preserve-lines">{starting.description}</p>}
             <div className="preflight">
               <div>
                 <Clock3 />
                 <strong>
-                  {starting.duration_minutes}
-                  {" " + t("min")}
+                  {countLabel(starting.duration_minutes, "{count} minute", "{count} minutes")}
                 </strong>
                 <span>{t("Time allowed")}</span>
               </div>
@@ -865,13 +810,12 @@ export default function Exams({
               <div>
                 <FileQuestion />
                 <strong>
-                  {starting.question_count}
-                  {" " + t("questions")}
+                  {countLabel(starting.question_count, "{count} question", "{count} questions")}
                 </strong>
                 <span>{t("Total questions")}</span>
               </div>
             </div>
-            {preflight.exam && <ExamBudget exam={preflight.exam} />}
+            {preflight.exam && <><ExamBudget exam={preflight.exam} /><AssessmentWindow exam={preflight.exam}/></>}
             <ErrorBox message={preflight.error} />
             <button
               type="button"
@@ -888,7 +832,7 @@ export default function Exams({
             </button>
             <p className="notice">
               {t(
-                "Starting uses one attempt. Refreshing or returning resumes an active attempt. The timer does not pause; saved answers are submitted when time runs out.",
+                "Starting uses one attempt; returning resumes it. The timer never pauses. Saved answers submit when time ends.",
               ) + " "}
             </p>
             <ErrorBox message={error} />
@@ -902,6 +846,11 @@ export default function Exams({
                   busy ||
                   preflight.loading ||
                   !preflight.exam ||
+                  !preflight.exam.available_to_me ||
+                  (!preflight.exam.active_attempt_id && (
+                    (!!preflight.exam.starts_at && Date.parse(preflight.exam.starts_at) > Date.now()) ||
+                    (!!preflight.exam.ends_at && Date.parse(preflight.exam.ends_at) <= Date.now())
+                  )) ||
                   waiting ||
                   (preflight.exam.attempts_remaining === 0 &&
                     !preflight.exam.active_attempt_id)

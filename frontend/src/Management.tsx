@@ -1,8 +1,17 @@
+import OrganizationSettings from "./OrganizationSettings";
+import { roleInfo, roleLabel, rolesFor } from "./access";
+import { formatDateTime } from "./datetime";
+import { GradingGuide } from "./GradingGuide";
+import { QuestionContent } from "./QuestionFigure";
+import { AddToGroup, GroupFilter, GroupsView } from "./Groups";
+import { DirectorySync, PeoplePagination, usePeoplePage } from "./PeopleDirectory";
+import { appPath } from "./paths";
 import Readiness from "./Readiness";
+import Activity, { activityLabel, type ActivityEntry } from "./Activity";
 import { answerText, acceptedAnswerText } from "./questionTypes";
 import InvitationBatch from "./InvitationBatch";
 import { PeopleImport, PersonEditor } from "./PeopleTools";
-import { t, useLocale } from "./i18n";
+import { getLocale, t, useLocale } from "./i18n";
 import { useEffect, useState } from "react";
 import {
   Plus,
@@ -15,7 +24,6 @@ import {
   Users as UsersIcon,
   ShieldCheck,
   Mail,
-  KeyRound,
   FileCheck2,
   ExternalLink,
 } from "lucide-react";
@@ -152,13 +160,9 @@ export function Invitations({ exams }: { exams: Exam[] }) {
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">{t("GUEST ACCESS")}</div>
+
           <h1>{t("Guest exam invitations")}</h1>
-          <p>
-            {t(
-              "A personal link for each participant, including people without accounts.",
-            )}
-          </p>
+
         </div>
         <div className="heading-actions">
           <button className="btn" onClick={() => setBatch(true)}>
@@ -273,7 +277,7 @@ export function Invitations({ exams }: { exams: Exam[] }) {
                       })}
                     </small>
                   </td>
-                  <td>{date(row.expires_at)}</td>
+                  <td>{row.expires_at ? formatDateTime(row.expires_at, getLocale()) : "—"}</td>
                   <td>
                     <Badge
                       tone={
@@ -316,11 +320,7 @@ export function Invitations({ exams }: { exams: Exam[] }) {
                 ? t("No matching invitations")
                 : t("No invitations yet")
             }
-            description={t(
-              query || state || filterExam
-                ? "Try another search or change the filters."
-                : "Create a link and share it with the intended participant.",
-            )}
+
           />
         )}
       </div>
@@ -506,7 +506,7 @@ export function Invitations({ exams }: { exams: Exam[] }) {
                 </div>
                 <p className="notice">
                   {t(
-                    "To increase the total attempt budget, use Exams & assessments \u2192 Individual attempt limits. Creating another link does not reset usage.",
+                    "To increase the total attempt budget, use Exams \u2192 Individual attempt limits. Creating another link does not reset usage.",
                   ) + " "}
                 </p>
                 <div className="modal-footer">
@@ -541,8 +541,10 @@ export function ReviewModal({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   useEffect(() => {
+    let alive = true;
     api<Attempt>(`${preview ? "previews" : "results"}/${id}/review/`)
       .then((a) => {
+        if (!alive) return;
         setAttempt(a);
         setMarks(
           Object.fromEntries(
@@ -554,7 +556,10 @@ export function ReviewModal({
           ),
         );
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => {
+        if (alive) setError(e.message);
+      });
+    return () => { alive = false; };
   }, [id, preview]);
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -602,7 +607,8 @@ export function ReviewModal({
                     {i + 1} · {q.points}
                     {" " + t("points") + " "}
                   </Badge>
-                  <h3>{q.description}</h3>
+                  <QuestionContent question={q} />
+                  <GradingGuide question={q} />
                   <p className="review-answer">
                     {answerText(q, attempt.answers[String(q.id)]) ||
                       t("(Unanswered)")}
@@ -703,10 +709,11 @@ export function Results({
   go: (p: string) => void;
 }) {
   const locale = useLocale();
+  const [group, setGroup] = useState<number | null>(null);
   const [data, setData] = useState<ResultsPage | null>(null),
     [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
-    [status, setStatus] = useState(""),
+    [status, setStatus] = useState(new URLSearchParams(window.location.search).get("status") === "pending_review" ? "pending_review" : ""),
     [exam, setExam] = useState(""),
     [outcome, setOutcome] = useState(""),
     [days, setDays] = useState("all"),
@@ -731,6 +738,7 @@ export function Results({
     page_size: "25",
   });
   if (exam) params.set("exam", exam);
+  if (group) params.set("group", String(group));
   const parameters = params.toString();
   useEffect(() => {
     let alive = true;
@@ -755,14 +763,14 @@ export function Results({
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">{t("PERFORMANCE & INSIGHTS")}</div>
-          <h1>{t("Results & reviews")}</h1>
-          <p>{t("Use each assessment to guide the next improvement.")}</p>
+
+          <h1>{t("Results")}</h1>
+
         </div>
-        <a className="btn" href={"/api/results/export/?" + parameters}>
+        {user.access.results !== "none" && <a className="btn" href={appPath("/api/results/export/?" + parameters)}>
           <Download size={17} />
           {t("Export results CSV") + " "}
-        </a>
+        </a>}
       </div>
       <div className="summary-strip">
         <div>
@@ -815,6 +823,7 @@ export function Results({
         </div>
       </div>
       <div className="report-filters">
+        {user.access.people && <GroupFilter value={group} onChange={id => { setGroup(id); setPage(1); }} />}
         <label>
           {t("Exam")}
           <select
@@ -864,7 +873,7 @@ export function Results({
             ))}
           </select>
         </label>
-        {user.role !== "learner" && (
+        {user.access.results !== "none" && (
           <button
             className="btn"
             onClick={() => go("/insights" + (exam ? "?exam=" + exam : ""))}
@@ -938,7 +947,7 @@ export function Results({
                   </td>
                   <td>{date(r.submitted_at)}</td>
                   <td>
-                    {user.role !== "learner" && r.status !== "in_progress" ? (
+                    {r.can_view_results && r.status !== "in_progress" ? (
                       <button
                         className="text-btn"
                         onClick={() => setReview(r.id)}
@@ -947,7 +956,7 @@ export function Results({
                           ? t("Grade attempt")
                           : t("View attempt")}
                       </button>
-                    ) : user.role === "learner" ? (
+                    ) : !r.can_view_results ? (
                       <button
                         className="text-btn"
                         onClick={() => go("/attempt/" + r.id)}
@@ -1008,22 +1017,31 @@ function ClockIcon() {
   useLocale();
   return <FileCheck2 size={23} />;
 }
-export function People() {
+export function People({ currentUser }: { currentUser: User }) {
   useLocale();
-  const [users, setUsers] = useState<User[]>([]),
-    [editingPerson, setEditingPerson] = useState<User | null>(null),
+  const [view, setView] = useState('people');
+  return <><div className="tabs people-views" aria-label={t('People views')}>
+    <button className={view === 'people' ? 'active' : ''} onClick={() => setView('people')}>{t('People')}</button>
+    <button className={view === 'groups' ? 'active' : ''} onClick={() => setView('groups')}>{t('Groups')}</button>
+  </div>{view === 'people' ? <PeopleTable currentUser={currentUser} /> : <GroupsView />}</>;
+}
+function PeopleTable({ currentUser }: { currentUser: User }) {
+  useLocale();
+  const [editingPerson, setEditingPerson] = useState<User | null>(null),
     [importing, setImporting] = useState(false),
     [search, setSearch] = useState(""),
+    [roleFilter, setRoleFilter] = useState("all"),
+    [statusFilter, setStatusFilter] = useState("all"),
+    [confirming, setConfirming] = useState<User | null>(null),
     [open, setOpen] = useState(false),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
-  const load = () =>
-    api<User[]>("users/")
-      .then(setUsers)
-      .catch((e) => setError(e.message));
-  useEffect(() => {
-    void load();
-  }, []);
+  const [page, setPage] = useState(1), [signedIn, setSignedIn] = useState('all'), [department, setDepartment] = useState('');
+  const [group, setGroup] = useState<number | null>(null), [selected, setSelected] = useState<number[]>([]), [addingToGroup, setAddingToGroup] = useState(false);
+  const { data, loading, error: loadError, reload: load } = usePeoplePage('users/', {
+    search, role: roleFilter, status: statusFilter, signed_in: signedIn, department, page, group: group || '',
+  });
+  const matching = data.results;
   async function create(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -1040,23 +1058,26 @@ export function People() {
     }
   }
   async function toggle(user: User) {
+    setBusy(true);
     try {
       await api(`users/${user.id}/`, "PATCH", { is_active: !user.is_active });
       await load();
+      setConfirming(null);
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setBusy(false);
     }
   }
   return (
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">{t("PEOPLE DIRECTORY")}</div>
-          <h1>{t("People & permissions")}</h1>
-          <p>
-            {t("Connect employees and partners in a shared learning space.")}
-          </p>
+
+          <h1>{t("People")}</h1>
+
         </div>
+        <div className="heading-actions">
         <button className="btn" onClick={() => setImporting(true)}>
           {t("Import participants")}
         </button>
@@ -1070,11 +1091,13 @@ export function People() {
           <Plus size={17} />
           {t("Add person") + " "}
         </button>
+        </div>
       </div>
-      <div className="toolbar">
+      <DirectorySync onApplied={load} />
+      <div className="toolbar people-toolbar">
         <h2>
           {t("All people") + " "}
-          <span className="count">{users.length}</span>
+          <span className="count">{data.total}</span>
         </h2>
         <div className="search-field">
           <Search size={16} />
@@ -1082,12 +1105,44 @@ export function People() {
             placeholder={t("Search names, email or departments\u2026")}
             aria-label={t("Search people")}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
+        <label className="people-filter">{t("Role")}
+          <select aria-label={t("Filter people by role")} value={roleFilter} onChange={event => { setRoleFilter(event.target.value); setPage(1); }}>
+            <option value="all">{t("All roles")}</option>
+            {(Object.keys(roleInfo) as User["role"][]).map(key => <option key={key} value={key}>{roleLabel(key)}</option>)}
+          </select>
+        </label>
+        <label className="people-filter">{t("Status")}
+          <select aria-label={t("Filter people by status")} value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1); }}>
+            <option value="all">{t("All statuses")}</option>
+            <option value="active">{t("Active")}</option>
+            <option value="disabled">{t("Disabled")}</option>
+          </select>
+        </label>
+        <label className="people-filter">{t('Sign-in')}
+          <select value={signedIn} onChange={e => { setSignedIn(e.target.value); setPage(1); }}>
+            <option value="all">{t('All people')}</option><option value="yes">{t('Signed in')}</option><option value="no">{t('Not signed in yet')}</option>
+          </select>
+        </label>
+        <label className="people-filter">{t('Department')}
+          <select value={department} onChange={e => { setDepartment(e.target.value); setPage(1); }}>
+            <option value="">{t('All departments')}</option>{data.departments.map(name => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </label>
       </div>
-      <ErrorBox message={error} />
-      <div className="panel table-panel">
+      <div className="toolbar people-toolbar">
+        <GroupFilter value={group} onChange={id => { setGroup(id); setPage(1); }} />
+        <label className="checkbox"><input type="checkbox" disabled={loading || !matching.length || new Set([...selected, ...matching.map(u => u.id)]).size > 1000} checked={!!matching.length && matching.every(u => selected.includes(u.id))} onChange={e => setSelected(e.target.checked ? [...new Set([...selected, ...matching.map(u => u.id)])] : selected.filter(id => !matching.some(u => u.id === id)))} />{t('Select this page')}</label>
+        <span>{t('{count} people selected', { count: selected.length })}</span>
+        <button className="btn" disabled={!selected.length} onClick={() => setAddingToGroup(true)}>{t('Add to group')}</button>
+        <button className="text-btn" disabled={!selected.length} onClick={() => setSelected([])}>{t('Clear selection')}</button>
+      </div>
+      {addingToGroup && <AddToGroup userIds={selected} onClose={() => setAddingToGroup(false)} onSaved={() => { setSelected([]); load(); }} />}
+      <ErrorBox message={error || loadError} />
+      {loading && <p role="status">{t("Loading…")}</p>}
+      <div className="panel table-panel people-table">
         <div className="table-scroll">
           <table>
             <thead>
@@ -1102,26 +1157,27 @@ export function People() {
               </tr>
             </thead>
             <tbody>
-              {users
-                .filter((u) =>
-                  (u.display_name + u.email + u.department).includes(search),
-                )
+              {matching
                 .map((u) => (
                   <tr key={u.id}>
                     <td>
                       <div className="cell-person">
+                        <input type="checkbox" aria-label={t('Select {name}', { name: u.display_name || u.username })} disabled={loading || selected.length >= 1000 && !selected.includes(u.id)} checked={selected.includes(u.id)} onChange={e => setSelected(e.target.checked ? [...selected, u.id] : selected.filter(id => id !== u.id))} />
                         <div className="avatar soft">
                           {u.display_name?.slice(0, 1) || "U"}
                         </div>
                         <div>
                           <strong>{u.display_name || u.username}</strong>
                           <small>{u.email || u.username}</small>
+                          <small>{u.directory_linked ? t("Microsoft sign-in linked") : t("Local account")}</small>
+                          {!u.has_signed_in && <small>{t('Not signed in yet')}</small>}
+                          {u.job_title && <small>{u.job_title}</small>}
                         </div>
                       </div>
                     </td>
-                    <td>{u.employee_id || "—"}</td>
-                    <td>{u.department || "—"}</td>
-                    <td>
+                    <td data-label={t("Employee ID")}>{u.employee_id || "—"}</td>
+                    <td data-label={t("Department")}>{u.department || "—"}</td>
+                    <td data-label={t("Employment type")}>
                       <Badge
                         tone={u.employment === "employee" ? "blue" : "purple"}
                       >
@@ -1130,28 +1186,22 @@ export function People() {
                           : t("Contractors")}
                       </Badge>
                     </td>
-                    <td>
-                      {
-                        {
-                          admin: t("Administrator"),
-                          instructor: t("Instructor"),
-                          learner: t("Learner"),
-                        }[u.role]
-                      }
+                    <td data-label={t("Role")}>
+                      {roleLabel(u.role)}
                     </td>
-                    <td>
+                    <td data-label={t("Status")}>
                       <Badge tone={u.is_active ? "teal" : "neutral"}>
-                        {u.is_active ? t("Enable") : t("Disable")}
+                        {u.is_active ? t("Active") : u.directory_disabled ? t("Disabled by directory sync") : t("Disabled")}
                       </Badge>
                     </td>
-                    <td>
+                    <td className="people-row-actions">
                       <button
                         className="text-btn"
                         onClick={() => setEditingPerson(u)}
                       >
                         {t("Edit person")}
                       </button>
-                      <button className="text-btn" onClick={() => toggle(u)}>
+                      <button className="text-btn" disabled={u.id === currentUser.id} onClick={() => { setError(""); setConfirming(u); }}>
                         {u.is_active ? t("Disable") : t("Enable")}
                       </button>
                     </td>
@@ -1160,7 +1210,17 @@ export function People() {
             </tbody>
           </table>
         </div>
+        {!matching.length && <Empty title={t("No people match these filters.")} />}
       </div>
+      <PeoplePagination page={page} total={data.total} loading={loading} onPage={setPage} />
+      {confirming && <Modal className="management-dialog" title={confirming.is_active ? t("Disable account") : t("Enable account")} onClose={() => { if (!busy) setConfirming(null); }}>
+        <div className="modal-form">
+          <p><strong>{confirming.display_name || confirming.email || confirming.username}</strong></p>
+          <p>{confirming.is_active ? t("This person will lose access to training. Their courses, attempts and results will be retained.") : t("This person will be able to sign in and access training with their existing role.")}</p>
+          <ErrorBox message={error} />
+          <div className="modal-footer"><button className="btn" disabled={busy} onClick={() => setConfirming(null)}>{t("Cancel")}</button><button className="btn primary" disabled={busy} onClick={() => toggle(confirming)}>{confirming.is_active ? t("Disable account") : t("Enable account")}</button></div>
+        </div>
+      </Modal>}
       {editingPerson && (
         <PersonEditor
           user={editingPerson}
@@ -1173,6 +1233,7 @@ export function People() {
       )}
       {open && (
         <Modal
+          className="management-dialog"
           title={t("Add training participant")}
           onClose={() => setOpen(false)}
         >
@@ -1208,9 +1269,7 @@ export function People() {
               <label>
                 {t("System role") + " "}
                 <select name="role">
-                  <option value="learner">{t("Learner")}</option>
-                  <option value="instructor">{t("Instructor")}</option>
-                  <option value="admin">{t("Administrator")}</option>
+                  {rolesFor().map(key => <option key={key} value={key}>{roleLabel(key)}</option>)}
                 </select>
               </label>
               <label className="span-2">
@@ -1225,7 +1284,7 @@ export function People() {
             </div>
             <p className="notice">
               {t(
-                "Accounts without passwords can sign in with an email code if an email is configured. Entra account linking is available in Django administration.",
+                "Sync Microsoft users from Entra before assigning training. This form creates local accounts for password or email-code access.",
               ) + " "}
             </p>
             <ErrorBox message={error} />
@@ -1240,101 +1299,43 @@ export function People() {
     </>
   );
 }
-export function Settings({ entra }: { entra: boolean }) {
+export function Settings({ user, go }: { user: User; go: (path: string) => void }) {
   useLocale();
-  const [rows, setRows] = useState<
-      {
-        id: number;
-        actor__display_name: string;
-        action: string;
-        target: string;
-        created_at: string;
-      }[]
-    >([]),
-    [error, setError] = useState("");
+  const [rows, setRows] = useState<ActivityEntry[]>([]);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [maintenance, setMaintenance] = useState(false);
   useEffect(() => {
-    api<typeof rows>("audit/")
-      .then(setRows)
-      .catch((e) => setError(e.message));
+    let alive = true;
+    api<ActivityEntry[]>("audit/")
+      .then(value => { if (alive) setRows(value); })
+      .catch(e => { if (alive) setError(e.message); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
   }, []);
-  return (
-    <>
-      <div className="page-heading">
-        <div>
-          <div className="eyebrow">{t("WORKSPACE SETTINGS")}</div>
-          <h1>{t("Settings & audit")}</h1>
-          <p>{t("Review authentication settings and system activity.")}</p>
-        </div>
-        <a className="btn" href="/admin/" target="_blank" rel="noreferrer">
-          {t("Advanced administration") + " "}
-          <ExternalLink size={16} />
-        </a>
+  const matching = rows.filter(row => [activityLabel(row.action), row.actor_label, row.target_label, row.action].join(" ").toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
+  return <div className="management-settings">
+    <div className="page-heading">
+      <div>
+        <h1>{t("Settings")}</h1>
+
       </div>
-      <div className="settings-grid">
-        {[
-          [
-            ShieldCheck,
-            "Microsoft Entra ID",
-            entra
-              ? t("Enterprise SSO configured")
-              : t("Awaiting Tenant ID, Client ID and server-side secret"),
-          ],
-          [
-            Mail,
-            t("Email verification code"),
-            t(
-              "One-time sign-in codes for accounts created by an administrator",
-            ),
-          ],
-          [
-            KeyRound,
-            t("Username / employee ID"),
-            t("Sign in with a username, email or employee ID and password"),
-          ],
-        ].map(([Icon, title, body]) => {
-          const C = Icon as typeof ShieldCheck;
-          return (
-            <section className="panel setting-card" key={String(title)}>
-              <C size={26} />
-              <h2>{String(title)}</h2>
-              <p>{String(body)}</p>
-            </section>
-          );
-        })}
-      </div>
-      <Readiness />
-      <div className="toolbar">
-        <h2>{t("Recent activity")}</h2>
-        <Badge tone="neutral">{t("Latest 200 entries")}</Badge>
+      <button className="btn" onClick={() => go("/manage")}>{t("Management center")}</button>
+    </div>
+    {user.access.system_admin && <OrganizationSettings />}
+    <section className="panel management-history" aria-labelledby="activity-heading" aria-busy={loading}>
+      <div className="management-section-heading"><div><h2 id="activity-heading">{t("Activity history")}</h2><p>{t("Latest 200 entries")}</p></div>
+        <div className="search-field"><Search size={16} /><input aria-label={t("Search activity")} placeholder={t("Search people, actions or training")} value={search} onChange={event => setSearch(event.target.value)} /></div>
       </div>
       <ErrorBox message={error} />
-      <div className="panel table-panel">
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>{t("Actor")}</th>
-                <th>{t("Action")}</th>
-                <th>{t("Target ID")}</th>
-                <th>{t("Time")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>{r.actor__display_name || t("Guest / system")}</td>
-                  <td>
-                    <code>{r.action}</code>
-                  </td>
-                  <td className="muted truncate">{r.target}</td>
-                  <td>{date(r.created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {!rows.length && <Empty title={t("No activity yet")} />}
-      </div>
-    </>
-  );
+      {loading ? <Spinner /> : matching.length ? <Activity rows={matching} go={go} /> : <Empty title={search ? t("No activity matches this search.") : t("No activity yet")} />}
+    </section>
+    <details className="panel management-maintenance" onToggle={event => setMaintenance(event.currentTarget.open)}>
+      <summary>{t("Advanced maintenance")}</summary>
+      <p>{t("Technical configuration checks and direct data tools for system operators. Manage everyday training through the management center.")}</p>
+      {user.access.system_admin && user.is_staff && <a className="btn small" href={appPath("/admin/data/")} target="_blank" rel="noreferrer">{t("Open data maintenance")}<ExternalLink size={16} /></a>}
+      {maintenance && <Readiness />}
+    </details>
+  </div>;
 }

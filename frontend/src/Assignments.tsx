@@ -1,3 +1,7 @@
+import { formatDateTime } from "./datetime";
+import { GroupPicker } from "./Groups";
+import { PeoplePicker } from "./PeopleDirectory";
+import { appPath } from "./paths";
 import ExamBudget from "./ExamBudget";
 import { useExamPreflight } from "./useExamPreflight";
 import { useRetryAvailability } from "./RetryAvailability";
@@ -13,7 +17,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { api } from "./api";
-import { t, useLocale } from "./i18n";
+import { countLabel, getLocale, t, useLocale } from "./i18n";
 import { Badge, Empty, ErrorBox, Modal } from "./ui";
 import type { Attempt, Course, Exam, User } from "./types";
 
@@ -32,14 +36,20 @@ type Assignment = {
   status: string;
   overdue: boolean;
   progress: number;
+  progress_known?: boolean;
   score: number | null;
   completed_at: string | null;
 };
+type AssignmentReceipt = { emails_queued: number; people_without_email: number };
 const statusLabel = (status: string) =>
   ({
     not_started: t("Not started"),
     in_progress: t("In progress"),
     pending_review: t("Pending review"),
+    awaiting_approval: t("Awaiting approval"),
+    enrollment_rejected: t("Enrollment rejected"),
+    enrollment_removed: t("Enrollment removed"),
+    registration_cancelled: t('Registration cancelled'),
     completed: t("Completed"),
     cancelled: t("Cancelled"),
   })[status] || status;
@@ -58,11 +68,17 @@ export default function Assignments({
   onSaved: () => void;
 }) {
   useLocale();
-  const manage = user.role !== "learner";
-  const [report, setReport] = useState(false),
+  const manage = user.access.assign;
+  const params = new URLSearchParams(window.location.search);
+  const linkedCourse = params.get("action") === "assign" && manage
+    ? courses.find(course => course.id === Number(params.get("course")) && course.can_manage && course.published)
+    : undefined;
+  const [assigned, setAssigned] = useState(false);
+  const [receipt, setReceipt] = useState<AssignmentReceipt | null>(null);
+  const [report, setReport] = useState(manage && new URLSearchParams(window.location.search).get("report") === "1"),
     [rows, setRows] = useState<Assignment[]>([]);
   const [error, setError] = useState(""),
-    [open, setOpen] = useState(false),
+    [open, setOpen] = useState(!!linkedCourse),
     [version, setVersion] = useState(0);
   const [search, setSearch] = useState(""),
     [filter, setFilter] = useState("all"),
@@ -135,21 +151,20 @@ export default function Assignments({
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">{t("YOUR NEXT STEP")}</div>
+
           <h1>{t("Assigned training")}</h1>
-          <p>
-            {t(
-              "Keep required learning and assessments on track, with clear deadlines and completion records.",
-            )}
-          </p>
+
         </div>
         {manage && (
-          <button className="btn primary" onClick={() => setOpen(true)}>
+          <button className="btn primary" onClick={() => { setAssigned(false); setOpen(true); }}>
             <Plus size={17} />
             {t("Assign training")}
           </button>
         )}
       </div>
+      {assigned && <p className="notice" role="status">{t("Training assigned. Track completion below.")}</p>}
+      {assigned && receipt && <p className="notice" role="status">{t("{queued} emails queued; {missing} newly assigned people have no email address.", { queued: receipt.emails_queued, missing: receipt.people_without_email })}</p>}
+      {params.get("action") === "assign" && !linkedCourse && <ErrorBox message={t("This course is unavailable for assignment. Choose a published course you manage.")} />}
       <div className="assignment-metrics">
         {[
           {
@@ -207,7 +222,7 @@ export default function Assignments({
           )}
         </div>
         {report && (
-          <a className="btn" href="/api/assignments/export/">
+          <a className="btn" href={appPath("/api/assignments/export/")}>
             <Download size={16} />
             {t("Export CSV")}
           </a>
@@ -234,6 +249,9 @@ export default function Assignments({
             "not_started",
             "in_progress",
             "pending_review",
+            "awaiting_approval",
+            "enrollment_rejected",
+            "enrollment_removed",
             "completed",
             ...(report ? ["cancelled"] : []),
           ].map((value) => (
@@ -281,7 +299,7 @@ export default function Assignments({
                   </td>
                   <td>
                     {row.due_at
-                      ? new Date(row.due_at).toLocaleString()
+                      ? formatDateTime(row.due_at, getLocale())
                       : t("No deadline")}
                     {row.overdue && (
                       <div>
@@ -304,7 +322,7 @@ export default function Assignments({
                   </td>
                   <td>
                     {row.kind === "course"
-                      ? `${row.progress}%`
+                      ? row.progress_known === false ? t("In progress") : `${row.progress}%`
                       : row.score === null
                         ? "—"
                         : `${row.score}%`}
@@ -332,7 +350,7 @@ export default function Assignments({
                         className="text-btn"
                         onClick={() =>
                           row.kind === "course"
-                            ? go(`/courses?course=${row.target_id}`)
+                            ? go(`/courses?course=${row.target_id}&from=assignments`)
                             : setStarting(row)
                         }
                       >
@@ -353,13 +371,7 @@ export default function Assignments({
         {!visible.length && (
           <Empty
             title={t("No assignments to show")}
-            description={
-              report
-                ? t(
-                    "Assign published courses or exams to start tracking required training.",
-                  )
-                : t("Your assigned training will appear here.")
-            }
+
           />
         )}
       </div>
@@ -370,10 +382,13 @@ export default function Assignments({
       </p>
       {open && (
         <AssignmentEditor
+          initialCourse={linkedCourse}
           courses={courses}
           exams={exams}
           onClose={() => setOpen(false)}
-          onSaved={() => {
+          onSaved={(result) => {
+            setReceipt(result);
+            setAssigned(true);
             setVersion((v) => v + 1);
             onSaved();
             setReport(true);
@@ -387,7 +402,7 @@ export default function Assignments({
             {startingExam && (
               <>
                 <p>
-                  {startingExam.duration_minutes} {t("min")} ·{" "}
+                  {countLabel(startingExam.duration_minutes, "{count} minute", "{count} minutes")} ·{" "}
                   {t("Passing score")}: {startingExam.pass_score}
                 </p>
                 <ExamBudget exam={startingExam} />
@@ -469,33 +484,49 @@ export default function Assignments({
 }
 
 function AssignmentEditor({
+  initialCourse,
   courses,
   exams,
   onClose,
   onSaved,
 }: {
+  initialCourse?: Course;
   courses: Course[];
   exams: Exam[];
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (result: AssignmentReceipt) => void;
 }) {
   useLocale();
+  const [notify, setNotify] = useState(true);
   const [kind, setKind] = useState("course"),
-    [target, setTarget] = useState(""),
+    [target, setTarget] = useState(initialCourse ? String(initialCourse.id) : ""),
     [audience, setAudience] = useState("people");
   const [people, setPeople] = useState<number[]>([]),
     [departments, setDepartments] = useState<string[]>([]),
     [due, setDue] = useState(""),
     [notes, setNotes] = useState("");
   const [error, setError] = useState(""),
-    [busy, setBusy] = useState(false),
-    [search, setSearch] = useState("");
+    [busy, setBusy] = useState(false);
+  const [groups, setGroups] = useState<number[]>([]);
+  const [groupPreview, setGroupPreview] = useState<{ key: string; people: number; within_limit: boolean } | null>(null);
+  const groupKey = groups.join(',');
+  useEffect(() => {
+    let active = true; setGroupPreview(null);
+    if (audience !== 'groups' || !groups.length) return;
+    const timer = setTimeout(() => {
+      api<{ people: number; within_limit: boolean }>('assignments/group-preview/', 'POST', { groups })
+        .then(result => { if (active) setGroupPreview({ ...result, key: groupKey }); })
+        .catch(e => { if (active) setError(e.message); });
+    }, 200);
+    return () => { active = false; clearTimeout(timer); };
+  }, [audience, groupKey]);
+  const validGroups = groupPreview?.key === groupKey && groupPreview?.within_limit;
   const [options, setOptions] = useState<{
     departments: string[];
     people: Pick<User, "id" | "username" | "display_name" | "department">[];
   }>({ departments: [], people: [] });
   useEffect(() => {
-    api<typeof options>("exams/audience-options/")
+    api<typeof options>("exams/audience-options/?page_size=1")
       .then(setOptions)
       .catch((e) => setError(e.message));
   }, []);
@@ -504,19 +535,22 @@ function AssignmentEditor({
   );
   async function save(event: React.FormEvent) {
     event.preventDefault();
+    if (audience === 'groups' && !validGroups) return;
     setBusy(true);
     setError("");
     try {
-      await api("assignments/", "POST", {
+      const result = await api<AssignmentReceipt>("assignments/", "POST", {
         kind,
         target_id: Number(target),
         audience,
         people,
+        groups,
         departments,
         due_at: due ? new Date(due).toISOString() : null,
         notes,
+        notify,
       });
-      onSaved();
+      onSaved(result);
       onClose();
     } catch (e) {
       setError((e as Error).message);
@@ -557,72 +591,34 @@ function AssignmentEditor({
               ))}
             </select>
           </label>
-          <label>
-            {t("Assign to")}
-            <select
-              value={audience}
-              onChange={(e) => setAudience(e.target.value)}
-            >
-              {[
-                ["people", "Selected people"],
-                ["departments", "Selected departments"],
-                ["employees", "Employees"],
-                ["contractors", "Contractors"],
-                ["all", "Everyone with an account"],
-              ].map(([value, label]) => (
-                <option key={value} value={value}>
-                  {t(label)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {t("Due date (optional)")}
-            <input
-              type="datetime-local"
-              value={due}
-              onChange={(e) => setDue(e.target.value)}
-            />
-          </label>
         </div>
-        {audience === "people" && (
-          <>
-            <input
-              aria-label={t("Search people")}
-              placeholder={t("Search people")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <fieldset className="audience-options">
-              <legend>
-                {t("Selected people")} ({people.length})
-              </legend>
-              {options.people
-                .filter((p) =>
-                  (p.display_name + p.username + p.department)
-                    .toLowerCase()
-                    .includes(search.toLowerCase()),
-                )
-                .map((p) => (
-                  <label className="checkbox" key={p.id}>
-                    <input
-                      type="checkbox"
-                      checked={people.includes(p.id)}
-                      onChange={(e) =>
-                        setPeople(
-                          e.target.checked
-                            ? [...people, p.id]
-                            : people.filter((id) => id !== p.id),
-                        )
-                      }
-                    />
-                    {p.display_name || p.username} ·{" "}
-                    {p.department || p.username}
-                  </label>
-                ))}
-            </fieldset>
-          </>
-        )}
+        <label>
+          {t("Assign to")}
+          <select
+            value={audience}
+            onChange={(e) => setAudience(e.target.value)}
+          >
+            {[
+              ["people", "Selected people"],
+              ["groups", "Groups"],
+              ["departments", "Selected departments"],
+              ["employees", "Employees"],
+              ["contractors", "Contractors"],
+              ["all", "Everyone with an account"],
+            ].map(([value, label]) => (
+              <option key={value} value={value}>
+                {t(label)}
+              </option>
+            ))}
+          </select>
+        </label>
+        {audience === "people" && <PeoplePicker selected={people} onChange={setPeople} />}
+
+        {audience === 'groups' && <><GroupPicker selected={groups} onChange={setGroups} disabled={busy} />
+          <p role="status">{groupPreview?.key === groupKey ? t('{count} active people will receive this training.', { count: groupPreview.people }) : groups.length ? t('Loading…') : t('Select at least one group.')}</p>
+          <p className="muted">{t('People in more than one selected group are counted once. Membership is checked again when saving.')}</p>
+          {groupPreview?.key === groupKey && !groupPreview.within_limit && <p className="notice">{t('Assign between 1 and 500 active participants at a time.')}</p>}
+        </>}
         {audience === "departments" && (
           <fieldset className="audience-options">
             <legend>{t("Selected departments")}</legend>
@@ -644,26 +640,30 @@ function AssignmentEditor({
             ))}
           </fieldset>
         )}
-        <label>
-          {t("Instructions for participants")}
-          <textarea
-            maxLength={1000}
-            rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
+        <label className="checkbox-label">
+          <input type="checkbox" checked={notify} onChange={e => setNotify(e.target.checked)} />
+          {t("Email the people I assign")}
         </label>
-        <p className="notice">
-          {t(
-            "Assignments grant exam access. Assigning the same training again updates its deadline and notes; it does not reset progress or attempt limits. Maximum 500 active participants per batch.",
-          )}
-        </p>
+        <details className="course-options">
+          <summary>{t("Assignment options")}</summary>
+          <div className="form-grid">
+            <label className="span-2">
+              {t("Due date (optional)")}
+              <input type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} />
+            </label>
+            <label className="span-2">
+              {t("Instructions for participants")}
+              <textarea maxLength={1000} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </label>
+            <p className="muted span-2">{t("Existing progress is kept. Up to 500 people per assignment.")}</p>
+          </div>
+        </details>
         <ErrorBox message={error} />
         <div className="modal-footer">
           <button type="button" className="btn" onClick={onClose}>
             {t("Cancel")}
           </button>
-          <button className="btn primary" disabled={busy}>
+          <button className="btn primary" disabled={busy || audience === "groups" && !validGroups}>
             {busy ? t("Saving…") : t("Assign training")}
           </button>
         </div>

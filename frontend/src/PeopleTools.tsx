@@ -1,3 +1,4 @@
+import { roleInfo, roleLabel, rolesFor } from "./access";
 import { useState } from "react";
 import { Upload, CheckCircle2 } from "lucide-react";
 import { api } from "./api";
@@ -47,7 +48,7 @@ export function PeopleImport({
     }
   }
   return (
-    <Modal title={t("Import participants")} onClose={onClose} wide>
+    <Modal className="management-dialog" title={t("Import participants")} onClose={onClose} wide>
       <div className="modal-form">
         <p>
           {t(
@@ -171,7 +172,8 @@ export function PersonEditor({
 }) {
   useLocale();
   const [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [role, setRole] = useState<User["role"]>(user.role);
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget));
@@ -188,7 +190,7 @@ export function PersonEditor({
     }
   }
   return (
-    <Modal title={t("Edit person")} onClose={onClose}>
+    <Modal className="management-dialog" title={t("Edit person")} onClose={onClose}>
       <form className="modal-form" onSubmit={save}>
         <p className="notice">
           {user.username} · {user.email || user.employee_id || "—"}
@@ -198,6 +200,7 @@ export function PersonEditor({
             "Sign-in identifiers stay fixed to preserve assessment ownership.",
           )}
         </p>
+        {user.entra_subject && <p className="notice">{t("Microsoft sign-in linked. Role changes keep the existing company sign-in and learning history.")}</p>}
         <div className="form-grid">
           <label>
             {t("Display name")}
@@ -225,12 +228,11 @@ export function PersonEditor({
           </label>
           <label>
             {t("System role")}
-            <select name="role" defaultValue={user.role}>
-              <option value="learner">{t("Learner")}</option>
-              <option value="instructor">{t("Instructor")}</option>
-              <option value="admin">{t("Administrator")}</option>
+            <select name="role" value={role} onChange={event => setRole(event.target.value as User["role"])} aria-describedby="person-role-help">
+              {rolesFor(user.role).map(key => <option key={key} value={key}>{roleLabel(key)}</option>)}
             </select>
           </label>
+          <p className="span-2 role-help" id="person-role-help">{t(roleInfo[role].help)}</p>
           <label className="span-2">
             {t("New password (leave blank to keep current)")}
             <input

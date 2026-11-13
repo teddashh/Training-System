@@ -26,12 +26,12 @@ const demo: LocaleTable = {
     chatReplay: 'Replay',
 
     // Quiz
-    quizPrompt: 'What does Scormly hand you when the course is done?',
+    quizPrompt: 'What does Training Content Studio hand you when the course is done?',
     quizO1: 'A SCORM / cmi5 package',
     quizO2: 'A printed PDF',
     quizO3: 'A link to our servers',
     quizCorrect: 'Correct — one click, ready for any LMS.',
-    quizWrong: 'Not quite. Scormly always exports a standards package.',
+    quizWrong: 'Not quite. Training Content Studio always exports a standards package.',
     quizPick: 'Pick an answer',
     quizAgain: 'Try again',
 
@@ -79,7 +79,7 @@ const demo: LocaleTable = {
     quizO2: 'Роздрукований PDF',
     quizO3: 'Посилання на наші сервери',
     quizCorrect: 'Правильно — один клік, і готово для будь-якої LMS.',
-    quizWrong: 'Не зовсім. Scormly завжди експортує стандартний пакет.',
+    quizWrong: 'Не зовсім. Training Content Studio завжди експортує стандартний пакет.',
     quizPick: 'Оберіть відповідь',
     quizAgain: 'Спробувати ще раз',
 

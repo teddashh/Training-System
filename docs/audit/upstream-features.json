@@ -174,16 +174,31 @@
       "id": "Y07",
       "repository": "yaksh",
       "feature": "Enrollment requests, approval, rejection and removal",
-      "status": "missing",
+      "status": "implemented",
       "source": [
         {
           "path": "yaksh/documentation/moderator_docs/creating_course.rst",
           "line": 83
         }
       ],
-      "implementation": [],
-      "verification": [],
-      "assessment": "No enrollment approval state machine or manager review queue. Required assignments are a different workflow.",
+      "implementation": [
+        "backend/training/enrollments.py",
+        "backend/training/scorm.py",
+        "frontend/src/Enrollments.tsx",
+        "frontend/src/Courses.tsx"
+      ],
+      "verification": [
+        "backend/training/test_enrollments.py::test_request_approval_content_and_completion_flow",
+        "backend/training/test_enrollments.py::test_rejection_reapplication_removal_restore_and_history",
+        "backend/training/test_enrollments.py::test_stale_reviews_and_lost_responses_do_not_repeat_decisions",
+        "backend/training/test_enrollments.py::test_scope_csrf_validation_and_private_participant_data",
+        "backend/training/test_enrollments.py::test_scorm_gate_revokes_tickets_cookies_and_writes_without_losing_state",
+        "backend/training/test_enrollments.py::test_duplicate_requests_and_reviews_commit_once",
+        "backend/training/test_enrollments.py::test_conflicting_review_has_one_winner",
+        "backend/training/test_enrollments.py::test_removal_racing_completion_preserves_serial_order",
+        "frontend/e2e/enrollments.ts::enrollmentWorkflow"
+      ],
+      "assessment": "Courses opt into reviewed admission; existing enrollments remain approved. Learners request access, see organizer responses and reapply after rejection. Scoped organizers search/filter/page requests and approve, reject, remove or restore access with required rejection/removal reasons, revision conflicts and idempotent latest-decision recovery. API course blocks, text completion, SCORM launches/commits, signed tickets and participant-bound content cookies enforce current access. Removal preserves progress, completion, assignments and bookmarks; pending requests are not counted as learning activity. Required course assignments do not bypass approval and separate course-linked exams retain their own policies. Audit events capture before/after state atomically. English, Traditional Chinese, Spanish and mobile flows have browser coverage. This implements the admission state machine; integrated bulk account creation/enrollment CSV and enrollment windows remain separate work.",
       "priority": 1,
       "routes": [
         "yaksh:enroll_request",
@@ -1393,7 +1408,7 @@
       "verification": [
         "backend/training/tests.py::test_parallel_starts_consume_only_one_slot"
       ],
-      "assessment": "This is an upstream capacity claim, not evidence for our deployment. Only bounded concurrency races have been tested; Peach1 workload testing remains required.",
+      "assessment": "This is an upstream capacity claim, not evidence for our deployment. Only bounded concurrency races have been tested; Production-scale load testing remains required.",
       "priority": 2,
       "routes": []
     },
@@ -2733,7 +2748,7 @@
         "vendor/scormly/src/export/exportScorm.ts"
       ],
       "verification": [
-        "frontend/e2e/training.spec.ts::Scormly publishes a real package and editable backup to the LMS"
+        "frontend/e2e/training.spec.ts::Training Content Studio publishes a real package and editable backup to the LMS"
       ],
       "assessment": "Built package and editable backup publish to the LMS in the end-to-end suite.",
       "priority": 2,
@@ -2756,9 +2771,9 @@
       ],
       "verification": [
         "vendor/scormly/tests/scormManifest.test.ts",
-        "frontend/e2e/training.spec.ts::Scormly publishes a real package and editable backup to the LMS"
+        "frontend/e2e/training.spec.ts::Training Content Studio publishes a real package and editable backup to the LMS"
       ],
-      "assessment": "Company Publish to LMS now selects SCORM 1.2 or 2004 instead of forcing 1.2. Both generated formats publish with an editable backup and pass real isolated-player bookmark save/resume tests. Complete SCORM conformance remains separate.",
+      "assessment": "Company Publish to course now selects SCORM 1.2 or 2004 instead of forcing 1.2. Both generated formats publish with an editable backup and pass real isolated-player bookmark save/resume tests. Complete SCORM conformance remains separate.",
       "priority": 2,
       "routes": []
     },
@@ -4500,12 +4515,12 @@
     {
       "path": "AGENTS.md",
       "source_sha256": "b4331e5d26f7cce60c244a30a31f9593d46fc8819a608b4857469a1ec91c4548",
-      "local_sha256": "efa14e38d6b394e2d549748f90bb25c62d07e11cb0136b525b19e3a6efde1c65"
+      "local_sha256": "807f9f2e5a6826b1addef37f69635fb77a3e84003e3a853d8a84f53e37d64c93"
     },
     {
       "path": "CLAUDE.md",
       "source_sha256": "26a20b44143d8d63b7f692bb4a1947786c94bbf3c995c57cf3afa7ec1fc09893",
-      "local_sha256": "21d4ef07f87e2182dc9d1ec8843537acd5219b4761adc003445f623bbebd3fb4"
+      "local_sha256": "27aae958a18be8c8a5743657dc333936d6013c7e7dd6280c0208d936ab6a650b"
     },
     {
       "path": "LICENSE",
@@ -4540,7 +4555,7 @@
     {
       "path": "index.html",
       "source_sha256": "90945d099b049acc0176e64cc6a622669f3de960eafb718faf820782b8326635",
-      "local_sha256": "90945d099b049acc0176e64cc6a622669f3de960eafb718faf820782b8326635"
+      "local_sha256": "41ecd50b2d9210d17e7152d003392b16309c1186408c1dce6fe7965a3d4b60fb"
     },
     {
       "path": "package-lock.json",
@@ -4560,7 +4575,7 @@
     {
       "path": "public/favicon.svg",
       "source_sha256": "76d486ff49104d3fa6942092445549b6186d2511d9cd080486f50d425cf3f460",
-      "local_sha256": "76d486ff49104d3fa6942092445549b6186d2511d9cd080486f50d425cf3f460"
+      "local_sha256": "4840591e571f86c70f480b38de26d52d8e8f696d2a6b63f5b41c2b3449c439e3"
     },
     {
       "path": "public/llms.txt",
@@ -4600,7 +4615,7 @@
     {
       "path": "public/scorm-player/player.js",
       "source_sha256": "59f8e3ec1a7e332920221be83cc3a6c05c51b916375a2d88fa411b5488337b09",
-      "local_sha256": "dd064e5dd46f46f05abf392b390e85c283ddb2bad98fe78696c8d48d9777a462"
+      "local_sha256": "9d25fc634f3236a881a6fd68de736a8d0d480318414df98f06d1cadeed0425a7"
     },
     {
       "path": "public/scorm-player/schemas/scorm12/adlcp_rootv1p2.xsd",
@@ -4790,7 +4805,7 @@
     {
       "path": "src/App.tsx",
       "source_sha256": "611871973ca1ca1b3d9071590414673b530efbe78728ad64ccd6130c92c3d531",
-      "local_sha256": "611871973ca1ca1b3d9071590414673b530efbe78728ad64ccd6130c92c3d531"
+      "local_sha256": "2860d4795aed46866f0bbf76c851a44da91f6d9d385f4f37d450d5fee105127d"
     },
     {
       "path": "src/blocks/BlockIcon.tsx",
@@ -5025,7 +5040,7 @@
     {
       "path": "src/components/Builder.tsx",
       "source_sha256": "69844c0151aee4db28d46a23c705695b9b0cb2b3b8e3432129b6e93787a724bc",
-      "local_sha256": "69844c0151aee4db28d46a23c705695b9b0cb2b3b8e3432129b6e93787a724bc"
+      "local_sha256": "a5ed36671a40238eaae6dac2a24616fb7ff2ad59a614ea4229d3585d26c565a2"
     },
     {
       "path": "src/components/editor/AddBlockMenu.tsx",
@@ -5060,7 +5075,7 @@
     {
       "path": "src/components/editor/ExportMenu.tsx",
       "source_sha256": "c126076fada4ecab8bbb7e4d21fdc3718304be6277cbe9db622df6bb017d2820",
-      "local_sha256": "c126076fada4ecab8bbb7e4d21fdc3718304be6277cbe9db622df6bb017d2820"
+      "local_sha256": "f0d029ea90d72a1e334fcd2f4b31d0ee3a9fa2ff1135a7c589aa5fa022fe0a0d"
     },
     {
       "path": "src/components/editor/IntroEditor.tsx",
@@ -5070,12 +5085,12 @@
     {
       "path": "src/components/editor/LanguagePicker.tsx",
       "source_sha256": "aad881e70039be848f4e5f75fa77fbeb1b4bc97d7e82b918f38bf54177c2aa22",
-      "local_sha256": "09e477704ddc808d3b5ceb16ba93f83d9da1d5020ff5abcd8f6e123e873fae19"
+      "local_sha256": "30da5618255e7688ea4fee49cd07bbc08ae5b8402f7798473021ab73bf793ef6"
     },
     {
       "path": "src/components/editor/ProjectMenu.tsx",
       "source_sha256": "f5f31182148f4119963aee1419477ba1345440b0d90bd65a15603783fb8471c1",
-      "local_sha256": "f5f31182148f4119963aee1419477ba1345440b0d90bd65a15603783fb8471c1"
+      "local_sha256": "c8b59d3a774b1b4277d09828bcbd632b9f79123a76585d9143b853d5a55b6cc1"
     },
     {
       "path": "src/components/editor/ProjectSettings.tsx",
@@ -5135,7 +5150,7 @@
     {
       "path": "src/components/help/HelpLayer.tsx",
       "source_sha256": "1d581bb79775922cb077ab5b2f1a9d89c0abc04f1e030b60824f6cc651d7017f",
-      "local_sha256": "1d581bb79775922cb077ab5b2f1a9d89c0abc04f1e030b60824f6cc651d7017f"
+      "local_sha256": "66faaf8dc148268fd799a34ea998d8d48279250607e9a61568009f54714a3b14"
     },
     {
       "path": "src/components/help/HelpMenu.tsx",
@@ -5145,7 +5160,7 @@
     {
       "path": "src/components/help/Tour.tsx",
       "source_sha256": "3f125042868d1712d0063822b70909a07785fcc43838700ac6bbcf01c2e38a0e",
-      "local_sha256": "3f125042868d1712d0063822b70909a07785fcc43838700ac6bbcf01c2e38a0e"
+      "local_sha256": "08da7e6b623899aabc4d924aa9412defcadd7e2f00c6323fb48c7f7376c792d1"
     },
     {
       "path": "src/components/help/WhatsNewDialog.tsx",
@@ -5195,17 +5210,17 @@
     {
       "path": "src/components/layout/Header.tsx",
       "source_sha256": "652b2c71d2182783bc88835b0bc14989f0abed91cae7682132cd3ec70ac6d7d1",
-      "local_sha256": "9d9ea06bd0eae50bf1ade928e0685e86609b8d8085cd35a501c56749a5b45518"
+      "local_sha256": "73d25e820a3cd8d775c705ed89322883e72beb2ba71605ae29bea5d55b16d471"
     },
     {
       "path": "src/components/layout/Logo.tsx",
       "source_sha256": "91f577102cfabf524d8107c6c6ec5cb9e36077d50fafbe51317b5e13d9416d97",
-      "local_sha256": "91f577102cfabf524d8107c6c6ec5cb9e36077d50fafbe51317b5e13d9416d97"
+      "local_sha256": "c00d5aaf8e2150439e1c74832252a5d00466cf0c81813c327bb2a9489fa29586"
     },
     {
       "path": "src/components/layout/Sidebar.tsx",
       "source_sha256": "bf5bcebe7420880abd6baf3e42a8824895e11ca72a6eda3c3bea9d3ad8ae814d",
-      "local_sha256": "bf5bcebe7420880abd6baf3e42a8824895e11ca72a6eda3c3bea9d3ad8ae814d"
+      "local_sha256": "1dc4086980fb95222b66a102ecc0f38189a57953e59bcf6058009e56b81a8df2"
     },
     {
       "path": "src/components/layout/Workspace.tsx",
@@ -5220,7 +5235,7 @@
     {
       "path": "src/components/welcome/WelcomeScreen.tsx",
       "source_sha256": "5f2ede4e6b8e55e6e86c18dde0dc4b95fe7fbc0329068d2d8599250067e8eb6c",
-      "local_sha256": "23b867a3a5f3aad18510c51d6689e1943d9ede6174e2b38fc4a2ba7adec88ac0"
+      "local_sha256": "4d5cb9799644467c3c6e8cf0c013fff43d959e81d5cec6ee1999e0ed1155630e"
     },
     {
       "path": "src/export/cmi5Manifest.ts",
@@ -5245,7 +5260,7 @@
     {
       "path": "src/export/packageCommon.ts",
       "source_sha256": "f0d3aa6463a0286cac11b7fdd8ffed8df2c22f2486a023ee36de08d71be299e8",
-      "local_sha256": "f0d3aa6463a0286cac11b7fdd8ffed8df2c22f2486a023ee36de08d71be299e8"
+      "local_sha256": "d7aab662e27ae426cd875292575d5bbdca79773249bb8009b8a88a65df4d6b5e"
     },
     {
       "path": "src/export/runExport.ts",
@@ -5315,7 +5330,7 @@
     {
       "path": "src/i18n/I18nProvider.tsx",
       "source_sha256": "10df687369fa6d85f1399e72775e7ea725c0e9015eadd0f5caae3e80877a69c8",
-      "local_sha256": "53bf03db07106ebd57c7028c46012f9d2852ccea3f9724b6a637b6d08cc1073a"
+      "local_sha256": "d09cb66ce557c04940630fb4505195c52f9fcdc95db3ff7a3c24e03a4ba565cb"
     },
     {
       "path": "src/i18n/dictionary.ts",
@@ -5335,22 +5350,22 @@
     {
       "path": "src/i18n/locales/blocks.ts",
       "source_sha256": "a478cc89f6d6409b0a60a150243f105f94a1ed6a266e451be9f876547ee47cf5",
-      "local_sha256": "a478cc89f6d6409b0a60a150243f105f94a1ed6a266e451be9f876547ee47cf5"
+      "local_sha256": "12ba6134f49fb957fd938073d9ee2a5bb6fc008f50e2aea8ea19ce817b0ec12f"
     },
     {
       "path": "src/i18n/locales/common.ts",
       "source_sha256": "3d76dc9cb6dd0015bb8cfdf3cd7341d225335405f20837b7f302cbd3366d3862",
-      "local_sha256": "7443d9c1033ddf9b8437e1f06358646d5322ef3d510fdd0fec5dff78206b42cd"
+      "local_sha256": "73e6aef4982d012a12f3550cb85697a7b7a51d8c3b47272c8bf67f8374aecfcc"
     },
     {
       "path": "src/i18n/locales/content.ts",
       "source_sha256": "c0bc4dc1dfd86a0dd036001297c9fb7d001c7a5df8ad5f8175971c11545d2d93",
-      "local_sha256": "c0bc4dc1dfd86a0dd036001297c9fb7d001c7a5df8ad5f8175971c11545d2d93"
+      "local_sha256": "24fabafc8485af5569faedd792cdd464561ffba765830fd64c048edbeb9cb7ed"
     },
     {
       "path": "src/i18n/locales/demo.ts",
       "source_sha256": "f7bb00351309e72d151e027f654459cbe57d42d0b643e95126fa7493a214cfc0",
-      "local_sha256": "f7bb00351309e72d151e027f654459cbe57d42d0b643e95126fa7493a214cfc0"
+      "local_sha256": "79c13211c3d25654e28bb6ff21b40e8e762e4757bd7eac232b6349093d54bef7"
     },
     {
       "path": "src/i18n/locales/design.ts",
@@ -5365,7 +5380,7 @@
     {
       "path": "src/i18n/locales/help.ts",
       "source_sha256": "1f393273a11b4a6591cca45215459bb29cdf2b377ccdc3c1b8e58a5da1fe0021",
-      "local_sha256": "1f393273a11b4a6591cca45215459bb29cdf2b377ccdc3c1b8e58a5da1fe0021"
+      "local_sha256": "d3434dcff794acb1357fab871255046585c4fe8989aca3d4cc07d8ef6ef026bc"
     },
     {
       "path": "src/i18n/locales/hotspotTimeline.ts",
@@ -5380,7 +5395,7 @@
     {
       "path": "src/i18n/locales/landing.ts",
       "source_sha256": "5593407d259818a62d4d0a502e180067c2e870e4ac7e091c9c862047cad352d2",
-      "local_sha256": "5593407d259818a62d4d0a502e180067c2e870e4ac7e091c9c862047cad352d2"
+      "local_sha256": "5223d66d0c65a753d0fa98fc685f37958663844507cdc791536a3a508d6992d1"
     },
     {
       "path": "src/i18n/locales/media.ts",
@@ -5415,7 +5430,7 @@
     {
       "path": "src/i18n/locales/settings.ts",
       "source_sha256": "af72acb968cb0423b41c58d1dc860198aaa8b432d44be4bbd474b5f2af3b1b16",
-      "local_sha256": "9201657f9ad4545aad7a4d5155c0ff1ef9ad68654b085829d87d86e3c79bc360"
+      "local_sha256": "114e6abe195a07121dcfb02ed6ce8917ea2861881445fa262f4d6b28414cb178"
     },
     {
       "path": "src/i18n/locales/text.ts",
@@ -5425,12 +5440,12 @@
     {
       "path": "src/i18n/locales/themes.ts",
       "source_sha256": "838e9cb3cce1d732604621906e596c203c0e5f1d3e1b7d18a362270d40f388e2",
-      "local_sha256": "838e9cb3cce1d732604621906e596c203c0e5f1d3e1b7d18a362270d40f388e2"
+      "local_sha256": "e323a5d5a7317a5c0ab2c70f69e10bdd940324740bdeeb08c15660201bbf6410"
     },
     {
       "path": "src/i18n/locales/welcome.ts",
       "source_sha256": "9dca4d7a6a8a94fbeadcd4b3224afd5ba3c53cd23a8c6b7775ac45244f6c27f4",
-      "local_sha256": "6281f3da75ce4d6e7bbdf2481adce005f10cbaba982325b671daa4c8ee269b24"
+      "local_sha256": "6dafcef6e9d7bdb49677a596407956dec507e810b3470b35b02829b59dffc321"
     },
     {
       "path": "src/i18n/types.ts",
@@ -5440,12 +5455,12 @@
     {
       "path": "src/index.css",
       "source_sha256": "ddc0a62964ab55b9517ef970c981d17966ccd0fba61118f607c578942da3b2d2",
-      "local_sha256": "ddc0a62964ab55b9517ef970c981d17966ccd0fba61118f607c578942da3b2d2"
+      "local_sha256": "d00b9fdf8e4d6ae36130d8deea06d3e1113fbcc45365ffde8cdf32ab6281336e"
     },
     {
       "path": "src/lib/agentGuide.ts",
       "source_sha256": "823db62b2e753e34acdeac74be30b4e687f5ef74e49a2ee046157745100a43a2",
-      "local_sha256": "bab11bc4af3b148c5064a6ed5784a9a7913d7998ca354d8ec989ef4b5541a854"
+      "local_sha256": "a93c528b0f2993d5cca482f6ab286f4cff2f281c9a724334e0d42e9d0eb90fd0"
     },
     {
       "path": "src/lib/assets.ts",
@@ -5510,7 +5525,7 @@
     {
       "path": "src/lib/projectService.ts",
       "source_sha256": "c5a28ba44cbb390e391eff4641bde27411622ca7285765da5bb3b1566d0434f0",
-      "local_sha256": "c5a28ba44cbb390e391eff4641bde27411622ca7285765da5bb3b1566d0434f0"
+      "local_sha256": "1b404401d696a1a5e16d9ca11a29a4366d749834b165fddbac3db3be490634b8"
     },
     {
       "path": "src/lib/recentProjects.ts",
@@ -5520,7 +5535,7 @@
     {
       "path": "src/lib/repairCourse.ts",
       "source_sha256": "98d56845fbe3e0aedb4ec7a30816229be45b029b01b7cb133d7721b1288d558e",
-      "local_sha256": "98d56845fbe3e0aedb4ec7a30816229be45b029b01b7cb133d7721b1288d558e"
+      "local_sha256": "1c8a60162463f26d9346a340498a9635867e2aba681aea52bef9c4efaee07270"
     },
     {
       "path": "src/lib/sampleArt.ts",
@@ -5775,12 +5790,12 @@
     {
       "path": "src/theme/themes.ts",
       "source_sha256": "bc0b54202068e63452e105fd0500859aea53343d87625a2107dd74e7fb94cdff",
-      "local_sha256": "bc0b54202068e63452e105fd0500859aea53343d87625a2107dd74e7fb94cdff"
+      "local_sha256": "9af09d5a060d23ff3be570708cdc6c29fcee5af1345032635d9c6c550e626339"
     },
     {
       "path": "src/types/course.ts",
       "source_sha256": "d591bc0e08bc6299af91c5bb66eb8c0bdd425949b001e86db507bdfb9da56c04",
-      "local_sha256": "358b1cfb4792554d7aa33d936c0593147be16be5a9402d7341e029c16c1007eb"
+      "local_sha256": "36b02334b746889de05f8e938bbe1887bbfb9b2fe4ccb272b1d6d5332ae0d94b"
     },
     {
       "path": "src/vite-env.d.ts",
@@ -5875,17 +5890,17 @@
     {
       "path": "tsconfig.json",
       "source_sha256": "02efd5b5984d1cfb17a48ed7c38347dadee4d97e6e85c829fe982d57e827d512",
-      "local_sha256": "b7efeefcbf3d034b689df3a5a8ffdef950e7ad8e6ec15977de2dc1c35ebed9ad"
+      "local_sha256": "26d3b95606266a7a9f52fe60d50a1c79b58f049e9c9623e218fd071d854a14d6"
     },
     {
       "path": "vite.config.ts",
       "source_sha256": "fe1597bd710a8047906d8a1c193f4f9813fd4d9ad43bef640775c69383149834",
-      "local_sha256": "fe1597bd710a8047906d8a1c193f4f9813fd4d9ad43bef640775c69383149834"
+      "local_sha256": "2c170ee8aac2eb544d2874b4d0fef0b48b0864a6bf2eefd07b480cfcd4073fcb"
     },
     {
       "path": "vitest.config.ts",
       "source_sha256": "4e632cbc37c6b5d4b5b2bf4fd3fe74c0698f300feed4fdee25d222edaaf7b0f2",
-      "local_sha256": "4e632cbc37c6b5d4b5b2bf4fd3fe74c0698f300feed4fdee25d222edaaf7b0f2"
+      "local_sha256": "244c679167810d3edceb1eb4aea3545584a2938d91e90c7d40cf7d39c24f2d2b"
     }
   ],
   "remediations": [
@@ -5902,16 +5917,17 @@
     "The active exam player now uses monotonic elapsed time for deadlines and save-retry delays, anchored to server timestamps. Changing the device wall clock cannot prematurely submit an exam or reset its duration; server-side expiry remains authoritative.",
     "Instructor exam previews now provide a complete saved question-paper view, timed learner simulation and untimed draft testing. Trials use a separate private model, shared production question/grading rules, resumable autosaves, independent test grading and bounded retention. Tests verify that successful trials cannot change existing participant evidence or assignment completion.",
     "Y43 now includes read-only active-answer inspection and explicit, audited reopening of the latest submission, with immutable prior evidence, unchanged attempt budgets, stale-write protection and retry recovery. Account/guest access, PostgreSQL reopening/start/review races and the three-language browser workflow are covered. This completes the monitoring/time-grant feature group; other assessment and course gaps remain.",
-    "Y45 now provides native marks CSV template, validation, review, atomic application and durable receipts for account/guest exams. All seven question types support imported points/comments, with fresh grading revisions, scoped access, unchanged quotas and PostgreSQL concurrency coverage. The original Yaksh wide CSV schema requires conversion to the new exact-attempt template."
+    "Y45 now provides native marks CSV template, validation, review, atomic application and durable receipts for account/guest exams. All seven question types support imported points/comments, with fresh grading revisions, scoped access, unchanged quotas and PostgreSQL concurrency coverage. The original Yaksh wide CSV schema requires conversion to the new exact-attempt template.",
+    "Y07 now provides opt-in course enrollment requests and scoped review queues, rejection/reapplication, removal/restoration, audit history and stale-decision protection. Course lessons and isolated SCORM content enforce current admission while preserving prior learning evidence. PostgreSQL concurrency, multilingual forms, mobile layout and lost-review-response recovery have acceptance coverage."
   ],
   "validation": [
     {
       "check": "Django suite on PostgreSQL 17",
-      "result": "190 passed on PostgreSQL 17. Marks-import tests cover all seven question types, feedback-only edits, bounds, scope/CSRF, immutable receipts, unchanged answers/quotas, report/completion updates, stale spreadsheets/review forms, transaction rollback, retention and concurrent duplicate apply/review/reopening/expiry races. Existing monitoring, preview, identity, SCORM and reporting regressions remain green."
+      "result": "202 tests passed on PostgreSQL 17, including 12 admission tests covering content privacy, request/review transitions, preserved completion/bookmarks, scoped access/CSRF, policy changes, required assignments, pagination, localization, audit rollback, lost responses and concurrent request/review/removal/completion. Existing assessment, grading, monitoring, identity, reporting and SCORM regressions remain green."
     },
     {
       "check": "Playwright application workflows",
-      "result": "All 20 browser workflows passed together against the real API and isolated content server, with file-mail configured. Marks-import coverage downloads the template, rejects an invalid batch, previews account/guest point overrides and multiline feedback, preserves form state in three languages, checks mobile before/after results, recovers a lost committed response after reload, rejects a stale review and a stale multi-attempt preview, and preserves the original receipt after fresh grading. Existing monitoring/reopening, course, SCORM, identity, exam and reporting workflows remain green."
+      "result": "All 20 browser workflows passed together against the real PostgreSQL-backed API and isolated content server with file-mail configured. Course admission coverage creates an approval-required lesson, checks hidden content, rejects and reapplies, recovers a committed review after response loss, preserves form edits in three languages, checks mobile overflow, completes learning and removes/restores access without losing completion evidence. Existing marks-import and private-preview checks also pass after fixing late review GET responses that could overwrite newly typed grades in development StrictMode."
     },
     {
       "check": "Scormly unit tests",
@@ -5923,7 +5939,7 @@
     },
     {
       "check": "Django configuration and migration checks",
-      "result": "Passed. Migration 0014 adds a zero-default grading revision and a protected marks-import preview/receipt table. Existing grades and submissions are not rewritten. Backup tooling: 3 tests passed."
+      "result": "Passed. Migration 0015 adds an opt-in course approval policy and enrollment review fields with compatible defaults; existing enrollment rows become approved at revision zero. Check and makemigrations --check pass."
     },
     {
       "check": "Audit evidence and pinned upstream checkouts",
@@ -5955,7 +5971,7 @@
     },
     {
       "check": "Full feature-parity gate",
-      "result": "Expected failure: 116 feature groups still require implementation, acceptance or an explicit scope decision."
+      "result": "Expected failure: 115 feature groups still require implementation, acceptance or an explicit scope decision."
     },
     {
       "check": "Compose data-preserving upgrade through 0013",
@@ -5964,6 +5980,14 @@
     {
       "check": "Compose data-preserving upgrade through 0014",
       "result": "Verified database/media backup before upgrade. Hashes of every existing field in all 16 tracked data groups matched before/after, including 118 historical attempts, 111 attempt budgets and existing extension/reopening history. All 118 attempts received a zero grading revision and the marks-import table started empty. Migration 0014 is applied; all five services are running, API/database health checks pass, the application session returns 200 and unauthenticated isolated-content launch returns 403. Both focused browser workflows passed against the built web/API containers: marks preview/application and receipt recovery, and monitoring/reopening with preserved prior submissions."
+    },
+    {
+      "check": "Isolated PostgreSQL migration from 0014 to 0015",
+      "result": "Rehearsed on a fresh PostgreSQL 17 database with prior-model fixtures. All prior fields across 22 model tables matched before/after; two existing enrollments retained progress/completion and became approved with revision zero. Existing course content, assignment and SCORM bookmark were preserved. This rehearsal did not upgrade the running Compose deployment."
+    },
+    {
+      "check": "Local development upgrade through 0015",
+      "result": "Backed up the development SQLite database before migration and restarted matching API/content services. Hashes of all prior fields in 25 existing tables matched before/after, including 168 enrollment records. Existing enrollments remain approved at revision zero; API session and isolated-content authentication checks return 200 and 403 respectively. Running Compose containers were not upgraded."
     }
   ]
 }

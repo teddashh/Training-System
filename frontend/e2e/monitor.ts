@@ -1,3 +1,4 @@
+import {examAction} from "./navigation";
 import { expect, test, type Browser, type Page } from "@playwright/test";
 
 async function post<T>(page: Page, path: string, data: unknown): Promise<T> {
@@ -82,9 +83,7 @@ export async function monitorWorkflow(page: Page, browser: Browser) {
 
     await page.goto("/exams");
     const openMonitor = async () => {
-      await page
-        .getByRole("button", { name: `Monitor ${title}`, exact: true })
-        .click();
+      await examAction(page, title, "Live exam monitor");
       await expect(
         page.getByRole("dialog", { name: "Live exam monitor", exact: true }),
       ).toBeVisible();

@@ -1,5 +1,7 @@
 """Scoped assessment reporting, with shared filters for pages and exports."""
 
+from .access import sees_results
+
 import csv
 import hashlib
 import io
@@ -20,7 +22,8 @@ from .i18n import translate
 from .models import Attempt, Exam
 from .question_rules import text_matching_modes
 from .services import finalize_if_expired, question_points
-from .views import manage_exam, scoped_attempts
+from .views import scoped_attempts
+from .access import require_results
 
 
 class ReportFilters(serializers.Serializer):
@@ -30,6 +33,7 @@ class ReportFilters(serializers.Serializer):
     )
     outcome = serializers.ChoiceField(choices=["", "passed", "not_passed"], default="")
     search = serializers.CharField(max_length=200, allow_blank=True, default="")
+    group = serializers.IntegerField(min_value=1, required=False)
     department = serializers.CharField(max_length=100, allow_blank=True, default="")
     days = serializers.ChoiceField(
         choices=["all", "7", "30", "90", "365"], default="all"
@@ -58,6 +62,8 @@ def filtered_attempts(request, exam=None):
         )
     if values["department"]:
         qs = qs.filter(identity__user__department=values["department"])
+    if values.get("group"):
+        qs = qs.filter(identity__user__training_group_memberships__group_id=values["group"])
     # Finalize before applying status/outcome/date filters: a just-expired attempt
     # must appear in the same filtered page and CSV without waiting for cron.
     for pk in (
@@ -99,11 +105,12 @@ def summary(qs):
     return data
 
 
-def result_row(attempt):
+def result_row(attempt, user):
     return {
         "id": str(attempt.pk),
         "exam": attempt.exam.title,
         "exam_id": attempt.exam_id,
+        "can_view_results": sees_results(user, attempt.exam),
         "person": attempt.identity.label,
         "department": attempt.identity.user.department
         if attempt.identity.user
@@ -121,7 +128,7 @@ def results(request):
     qs, values = filtered_attempts(request)
     if "page" not in request.query_params:
         # Preserve the v1.0 array contract for existing API consumers.
-        return Response([result_row(a) for a in qs[:1000]])
+        return Response([result_row(a, request.user) for a in qs[:1000]])
     stats = summary(qs)
     pages = max(1, (stats["total"] + values["page_size"] - 1) // values["page_size"])
     page = min(values["page"], pages)
@@ -129,7 +136,7 @@ def results(request):
     return Response(
         {
             "results": [
-                result_row(a) for a in qs[offset : offset + values["page_size"]]
+                result_row(a, request.user) for a in qs[offset : offset + values["page_size"]]
             ],
             "count": stats["total"],
             "page": page,
@@ -197,6 +204,8 @@ def export_results(request):
 def question_variant(question):
     """Normalize shuffled choices without mixing distinct saved question versions."""
     shape = {key: question[key] for key in ("id", "description", "type", "points")}
+    if question.get("figure"):
+        shape["figure"] = question["figure"]
     if question["type"] in ("single", "multiple"):
         shape["options"] = sorted(
             (text, index in question["solution"])
@@ -237,6 +246,7 @@ def question_analysis(qs):
                     "variant": key,
                     "question_id": question["id"],
                     "description": question["description"],
+                    "figure": question.get("figure"),
                     "type": question["type"],
                     "points": question["points"],
                     "responses": 0,
@@ -277,7 +287,7 @@ def question_analysis(qs):
 @api_view(["GET"])
 def exam_insights(request, pk):
     exam = get_object_or_404(Exam, pk=pk)
-    manage_exam(request.user, exam)
+    require_results(request.user, exam)
     qs, _ = filtered_attempts(request, exam)
     questions = question_analysis(qs)
     if request.query_params.get("export") == "csv":

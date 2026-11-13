@@ -14,25 +14,53 @@ services:
       retries: 15
     restart: unless-stopped
   api:
-    build: .
+    build:
+      context: .
+      args:
+        BRAND: ${BRAND:-default}
     environment: &backend-env
+      BRAND: ${BRAND:-default}
+      INTERFACE_LANGUAGES: ${INTERFACE_LANGUAGES:-}
       DEBUG: ${DEBUG:-false}
       DEMO_MODE: ${DEMO_MODE:-false}
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       DATABASE_URL: postgres://training:${POSTGRES_PASSWORD}@db:5432/training
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,api,content}
       APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
+      APP_BASE_PATH: ${APP_BASE_PATH:-}
       SCORM_ORIGIN: ${SCORM_ORIGIN:-http://localhost:8081}
+      SCORM_TRUSTED_SAME_ORIGIN: ${SCORM_TRUSTED_SAME_ORIGIN:-false}
+      SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_WORKSPACE_DOMAINS: ${GOOGLE_WORKSPACE_DOMAINS:-}
       ENTRA_TENANT_ID: ${ENTRA_TENANT_ID:-}
       ENTRA_CLIENT_ID: ${ENTRA_CLIENT_ID:-}
       ENTRA_CLIENT_SECRET: ${ENTRA_CLIENT_SECRET:-}
       AUTH_NETWORK_LIMIT: ${AUTH_NETWORK_LIMIT:-300}
-      EMAIL_HOST: ${EMAIL_HOST:-localhost}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-}
       EMAIL_PORT: ${EMAIL_PORT:-587}
       EMAIL_USE_TLS: ${EMAIL_USE_TLS:-true}
       EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
       EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
       DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-training@example.com}
+      GRAPH_MAIL_TENANT_ID: ${GRAPH_MAIL_TENANT_ID:-}
+      GRAPH_MAIL_CLIENT_ID: ${GRAPH_MAIL_CLIENT_ID:-}
+      GRAPH_MAIL_CLIENT_SECRET: ${GRAPH_MAIL_CLIENT_SECRET:-}
+      GRAPH_MAIL_SENDER: ${GRAPH_MAIL_SENDER:-}
+      GRAPH_DIRECTORY_TENANT_ID: ${GRAPH_DIRECTORY_TENANT_ID:-}
+      GRAPH_DIRECTORY_CLIENT_ID: ${GRAPH_DIRECTORY_CLIENT_ID:-}
+      GRAPH_DIRECTORY_CLIENT_SECRET: ${GRAPH_DIRECTORY_CLIENT_SECRET:-}
+      DIRECTORY_REQUIRE_LICENSE: ${DIRECTORY_REQUIRE_LICENSE:-true}
+      DIRECTORY_EMAIL_DOMAINS: ${DIRECTORY_EMAIL_DOMAINS:-}
+      DIRECTORY_SYNC_INTERVAL_HOURS: ${DIRECTORY_SYNC_INTERVAL_HOURS:-0}
+      EMAIL_CODE_FOR_ENTRA_USERS: ${EMAIL_CODE_FOR_ENTRA_USERS:-false}
+      EMAIL_CODE_DOMAINS: ${EMAIL_CODE_DOMAINS:-}
+      EMAIL_NOTIFICATIONS_ENABLED: ${EMAIL_NOTIFICATIONS_ENABLED:-true}
+      EMAIL_QUEUE_BATCH: ${EMAIL_QUEUE_BATCH:-20}
+      EMAIL_DAILY_LIMIT: ${EMAIL_DAILY_LIMIT:-5000}
+      NOTIFICATION_TIME_ZONE: ${NOTIFICATION_TIME_ZONE:-America/New_York}
     command: [sh, -c, "python manage.py migrate --noinput && exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"]
     volumes:
       - media:/app/media
@@ -46,7 +74,10 @@ services:
       retries: 15
     restart: unless-stopped
   content:
-    build: .
+    build:
+      context: .
+      args:
+        BRAND: ${BRAND:-default}
     environment: *backend-env
     command: [gunicorn, config.content_wsgi:application, --bind, "0.0.0.0:8001", --workers, "2", --timeout, "120"]
     volumes:
@@ -56,7 +87,10 @@ services:
         condition: service_healthy
     restart: unless-stopped
   scheduler:
-    build: .
+    build:
+      context: .
+      args:
+        BRAND: ${BRAND:-default}
     environment: *backend-env
     command: [python, manage.py, run_scheduler]
     depends_on:
@@ -67,6 +101,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
+      args:
+        BRAND: ${BRAND:-default}
+        APP_BASE_PATH: ${APP_BASE_PATH:-}
     ports:
       - "127.0.0.1:8080:80"
       - "127.0.0.1:8081:81"

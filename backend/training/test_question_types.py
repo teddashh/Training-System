@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from django.core.management import call_command, CommandError
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -47,7 +47,7 @@ def ordering(**changes):
     }
 
 
-class QuestionRuleTests(SimpleTestCase):
+class QuestionRuleTests(TestCase):
     def test_numeric_boundaries_multiple_rules_and_scientific_notation(self):
         for answer in ("0.2", "0.4", "2e-1", "  +.30  ", "9.98", "10.02"):
             with self.subTest(answer=answer):

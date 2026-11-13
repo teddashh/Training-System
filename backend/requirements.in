@@ -6,3 +6,10 @@ dj-database-url>=3,<4
 gunicorn>=23,<24
 defusedxml>=0.7,<1
 whitenoise>=6.9,<7
+pypdf>=7,<8
+pillow
+openpyxl>=3.1,<4
+reportlab>=5,<6
+cryptography==50.0.2
+PyJWT==2.15.1
+requests==2.34.2

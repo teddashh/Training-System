@@ -1,3 +1,4 @@
+import { brand, setOrganization } from '../brand'
 import {
   createContext,
   useCallback,
@@ -7,7 +8,8 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { DEFAULT_LANGUAGE, type Language } from './types'
+import { DEFAULT_LANGUAGE, LANGUAGES, type Language } from './types'
+import { companyApi } from '../lib/platformApi'
 import { DICTIONARY, type Namespace } from './dictionary'
 
 const STORAGE_KEY = 'training-language'
@@ -24,7 +26,7 @@ function interpolate(
   str: string,
   vars?: Record<string, string | number>,
 ): string {
-  if (!vars) return str
+  vars = { organization: brand.organization, ...vars }
   return str.replace(/\{(\w+)\}/g, (match, key) =>
     Object.prototype.hasOwnProperty.call(vars, key) ? String(vars[key]) : match,
   )
@@ -43,6 +45,7 @@ export function translate(
 interface I18nContextValue {
   lang: Language
   setLang: (lang: Language) => void
+  languages: Language[]
 }
 
 const I18nContext = createContext<I18nContextValue | null>(null)
@@ -58,34 +61,60 @@ function detectInitial(): Language {
   return DEFAULT_LANGUAGE
 }
 
+export function resolveLanguages(value: unknown): Language[] {
+  const list = Array.isArray(value) ? value.filter((id): id is Language => LANGUAGES.some(l => l.id === id)) : LANGUAGES.map(l => l.id)
+  return list.length ? [...new Set(list)] : ['en']
+}
+
+export function resolveLanguage(current: Language, languages: Language[]): Language {
+  return languages.includes(current) ? current : languages[0]
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Language>(detectInitial)
+  const [languages, setLanguages] = useState<Language[]>(LANGUAGES.map(l => l.id))
+  const [ready, setReady] = useState(false)
 
-  const setLang = useCallback((next: Language) => {
-    setLangState(next)
+  const persist = useCallback((next: Language) => {
     currentLanguage = next
     try { localStorage.setItem(STORAGE_KEY, next) } catch { /* Use the in-memory choice. */ }
+    document.documentElement.lang = next
+    document.cookie = `django_language=${next === 'zh-TW' ? 'zh-hant' : next}; Path=/; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`
+    setLangState(next)
   }, [])
 
+  const setLang = useCallback((next: Language) => {
+    persist(resolveLanguage(next, languages))
+  }, [languages, persist])
+
   useEffect(() => {
-    currentLanguage = lang
-    document.documentElement.lang = lang
-    document.cookie = `django_language=${lang === 'zh-TW' ? 'zh-hant' : lang}; Path=/; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`
-  }, [lang])
+    let alive = true
+    fetch(companyApi + 'auth/session/', { credentials: 'same-origin' })
+      .then(response => {
+        if (!response.ok) throw new Error('Session unavailable')
+        return response.json()
+      })
+      .then(session => { if (alive) setOrganization(session.organization); return resolveLanguages(session.languages) })
+      .catch(() => LANGUAGES.map(l => l.id))
+      .then(allowed => {
+        if (!alive) return
+        setLanguages(allowed)
+        persist(resolveLanguage(detectInitial(), allowed))
+        setReady(true)
+      })
+    return () => { alive = false }
+  }, [persist])
 
   useEffect(() => {
     const sync = (event: StorageEvent) => {
-      if (event.key === STORAGE_KEY && ['en', 'zh-TW', 'es'].includes(event.newValue || '')) {
-        currentLanguage = event.newValue as Language
-        setLangState(currentLanguage)
-      }
+      if (event.key === STORAGE_KEY) setLang(event.newValue as Language)
     }
     window.addEventListener('storage', sync)
     return () => window.removeEventListener('storage', sync)
-  }, [])
+  }, [setLang])
 
-  const value = useMemo(() => ({ lang, setLang }), [lang, setLang])
-  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
+  const value = useMemo(() => ({ lang, setLang, languages }), [lang, setLang, languages])
+  return <I18nContext.Provider value={value}>{ready ? children : null}</I18nContext.Provider>
 }
 
 export function useLang(): I18nContextValue {

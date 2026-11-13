@@ -20,7 +20,7 @@ export default function TextAnswerFields({
     >
       <p className="field-hint">
         {t(
-          "Any accepted answer earns full credit. Set its matching rule and describe the required format in the question.",
+          "State the required answer format in the question.",
         )}
       </p>
       {solution.map((value, index) => (
@@ -43,7 +43,7 @@ export default function TextAnswerFields({
             />
           </label>
           <label>
-            {t("Matching rule for answer {number}", { number: index + 1 })}
+            {t("Matching rule {number}", { number: index + 1 })}
             <select
               value={modes[index]}
               onChange={(event) =>
@@ -96,7 +96,7 @@ export default function TextAnswerFields({
       </button>
       <p className="field-hint">
         {t(
-          "Spacing rules preserve spaces and blank lines. Line-ending formats and a single final line break are equivalent.",
+          "Spacing rules ignore line-ending style and one final line break.",
         )}
       </p>
     </section>

@@ -45,6 +45,23 @@ class InvitationWorkflowTests(TestCase):
     def bulk(self, payload):
         return self.client.post("/api/invitations/bulk/", payload, format="json")
 
+    @override_settings(APP_ORIGIN="https://learn.example.test", APP_BASE_PATH="/training")
+    def test_subpath_is_retained_in_single_batch_and_replayed_guest_links(self):
+        one = self.client.post("/api/invitations/issue/", {
+            "exam": self.exam.pk, "key": "single@example.com",
+            "require_email_verification": False,
+        }, format="json")
+        self.assertEqual(one.status_code, 201, one.content)
+        self.assertTrue(one.json()["url"].startswith("https://learn.example.test/training/invite#"))
+        payload = self.payload(apply=True, require_email_verification=False)
+        first = self.bulk(payload)
+        replay = self.bulk(payload)
+        self.assertEqual(first.status_code, 201, first.content)
+        self.assertEqual(replay.status_code, 200, replay.content)
+        self.assertEqual(first.json()["invitations"], replay.json()["invitations"])
+        for invitation in first.json()["invitations"]:
+            self.assertTrue(invitation["url"].startswith("https://learn.example.test/training/invite#"))
+
     def test_preview_validates_without_persisting_accounts_identities_or_links(self):
         before = Identity.objects.count()
         result = self.bulk(self.payload()).json()

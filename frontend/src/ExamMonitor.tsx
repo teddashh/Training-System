@@ -441,9 +441,7 @@ export default function ExamMonitor({
             {!data.count && (
               <Empty
                 title={t("No matching attempts")}
-                description={t(
-                  "Participants appear here after starting an exam.",
-                )}
+
               />
             )}
             <div className="monitor-attempts">

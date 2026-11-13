@@ -1,3 +1,22 @@
+import { readFileSync } from 'node:fs';
+const brand = JSON.parse(readFileSync(new URL(`../../shared/brand/${process.env.BRAND || 'default'}/brand.json`, import.meta.url), 'utf8'));
+// The exported player paints the Start button in the pack's dark accent.
+const darkAccent = (() => {
+  const tokens = readFileSync(new URL(`../../shared/brand/${process.env.BRAND || 'default'}/tokens.css`, import.meta.url), 'utf8');
+  const hex = /--brand-burgundy:\s*#([0-9a-f]{6})/i.exec(tokens)![1];
+  return `rgb(${[0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")})`;
+})();
+import { navigateArea, moreOptions } from "./navigation";
+import { courseAssessmentsWorkflow } from "./course-assessments";
+import { uploadGuestFigure, expectFigureLoaded } from "./figures";
+import { emailWorkflow, notificationCourseLinkWorkflow, notificationExamLinkWorkflow } from "./notifications";
+import { libraryWorkflow } from "./library";
+import { roundsSessionsWorkflow } from "./rounds-sessions";
+import { simpleTrainingWorkflow } from "./simple-training";
+import { learningViewport } from "./learning";
+import { contentWorkflow } from "./content";
+import { managementWorkflow, peopleManagementWorkflow } from "./administration";
+import { enrollmentWorkflow } from "./enrollments";
 import { previewWorkflow } from "./preview";
 import { monitorWorkflow } from "./monitor";
 import { marksImportWorkflow } from "./marks";
@@ -7,6 +26,7 @@ import {
   type Page,
   type Request,
   type Response,
+  type Route,
 } from "@playwright/test";
 
 async function downloadText(download: import("@playwright/test").Download) {
@@ -68,7 +88,7 @@ async function login(page: Page) {
   }
   await page
     .getByLabel("Email, username or employee ID")
-    .fill("admin@evitina.example");
+    .fill("admin@example.com");
   await page
     .getByLabel("Password", { exact: true })
     .fill(process.env.DEMO_PASSWORD || "Demo-Training-2026!");
@@ -82,7 +102,7 @@ async function login(page: Page) {
     if (!(await waitForThrottle([await response], retry))) break;
   }
   await expect(
-    page.getByRole("heading", { name: "Learning & development overview" }),
+    page.locator("header.topbar"),
   ).toBeVisible();
 }
 async function post<T>(page: Page, path: string, data: unknown): Promise<T> {
@@ -246,34 +266,30 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
     ],
   });
   await post(page, `exams/${exam.id}/budget/`, {
-    key: "admin@evitina.example",
+    key: "admin@example.com",
     limit: 1,
   });
-  await page.goto("/exams");
+  await page.goto("/my-exams");
   const card = page
     .locator("article")
     .filter({ has: page.getByRole("heading", { name: title, exact: true }) });
-  await expect(card).toContainText("Your limit 1 attempts");
-  await card
-    .getByRole("button", { name: "Start / resume", exact: true })
-    .click();
+  await expect(card).toContainText("1 attempt remaining");
+  await card.getByRole("link", {name: "Start", exact: true}).click();
   const dialog = page.getByRole("dialog", {
     name: "Ready to start?",
     exact: true,
   });
-  await expect(dialog).toContainText("1 new attempts remaining");
+  await expect(dialog).toContainText("1 new attempt remaining");
   await dialog
     .getByRole("button", { name: "Start / resume attempt", exact: true })
     .click();
   await expect(page).toHaveURL(/\/attempt\//);
   const attemptUrl = page.url();
-  await page.goto("/exams");
-  await card
-    .getByRole("button", { name: "Start / resume", exact: true })
-    .click();
+  await page.goto("/my-exams");
+  await card.getByRole("link", {name: "Resume", exact: true}).click();
   await expect(dialog).toContainText("0 new attempts remaining");
   await expect(dialog).toContainText(
-    "Resuming it does not use another attempt.",
+    "Resuming uses no extra attempt.",
   );
   await dialog
     .getByRole("button", { name: "Start / resume attempt", exact: true })
@@ -292,15 +308,13 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
       exact: true,
     }),
   ).toBeVisible();
-  await page.goto("/exams");
-  await expect(
-    card.getByRole("button", { name: "Start / resume", exact: true }),
-  ).toBeDisabled();
-  await expect(card).toContainText("Used 1 attempts");
+  await page.goto("/my-exams");
+  await expect(card.getByRole("link", {name: "View results", exact: true})).toBeVisible();
+  await expect(card).toContainText("0 attempts remaining");
 
   // Extra attempts do not bypass the interval, and editor changes persist.
   await post(page, `exams/${exam.id}/budget/`, {
-    key: "admin@evitina.example",
+    key: "admin@example.com",
     limit: 3,
   });
   await page.goto("/exams");
@@ -309,17 +323,15 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
     .click();
   const editor = page.getByRole("dialog");
   await editor
-    .getByLabel("Minimum time between attempt starts (minutes)")
+    .getByLabel("Retry wait (minutes)")
     .fill("90");
   await editor.locator(".language-picker select").selectOption("es");
   await expect(
-    editor.getByLabel("Tiempo mínimo entre inicios de intentos (minutos)"),
+    editor.getByLabel("Espera entre intentos (minutos)"),
   ).toHaveValue("90");
   await editor.locator(".language-picker select").selectOption("en");
   await editor.getByRole("button", { name: "Save exam", exact: true }).click();
-  await card
-    .getByRole("button", { name: "Start / resume", exact: true })
-    .click();
+  await page.goto(`/exams?exam=${exam.id}&action=start`);
   const startButton = dialog.getByRole("button", {
     name: "Start / resume attempt",
     exact: true,
@@ -343,22 +355,18 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
 
   // Exercise the client countdown without delaying the suite for 90 minutes.
   // The server retains the real policy and must reject the premature request.
-  await page.route(
-    `**/api/exams/${exam.id}/`,
-    async (route) => {
-      const response = await route.fetch();
-      const data = await response.json();
-      data.next_attempt_at = new Date(
-        Date.parse(data.server_time) + 1500,
-      ).toISOString();
-      await route.fulfill({ response, json: data });
-    },
-    { times: 1 },
-  );
+  const countdownHandler = async (route: Route) => {
+    const response = await route.fetch();
+    const data = await response.json();
+    data.next_attempt_at = new Date(Date.parse(data.server_time) + 1500).toISOString();
+    await route.fulfill({response, json: data});
+  };
+  await page.route(`**/api/exams/${exam.id}/`, countdownHandler);
   await dialog
     .getByRole("button", { name: "Refresh availability", exact: true })
     .click();
   await expect(startButton).toBeEnabled({ timeout: 7000 });
+  await page.unroute(`**/api/exams/${exam.id}/`, countdownHandler);
   await startButton.click();
   await expect(dialog.getByRole("alert")).toContainText("waiting period");
   await expect(startButton).toBeDisabled();
@@ -399,7 +407,7 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
 
   const invitation = await post<{ url: string }>(page, "invitations/issue/", {
     exam: exam.id,
-    key: "admin@evitina.example",
+    key: "admin@example.com",
     max_attempts: 2,
     days: 1,
     require_email_verification: false,
@@ -431,7 +439,7 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
       .getByRole("button", { name: "Edit " + title, exact: true })
       .click();
     await editor
-      .getByLabel("Minimum time between attempt starts (minutes)")
+      .getByLabel("Retry wait (minutes)")
       .fill("0");
     await editor
       .getByRole("button", { name: "Save exam", exact: true })
@@ -457,26 +465,29 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
 });
 
 test("dashboard, responsive navigation, library and persisted course editor", async ({
-  page,
+  page, browser,
 }) => {
+  test.setTimeout(180000);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await login(page);
-  await expect(
-    page.getByText("Training participants", { exact: true }),
-  ).toBeVisible();
-  await page
-    .getByRole("link", { name: "Learning courses", exact: true })
-    .click();
+  await expect(page.locator('.stat-card, .chart-area')).toHaveCount(0);
+  await navigateArea(page, 'Reports', 'Overview');
+  await expect(page.getByRole('heading', {name: 'Training overview', exact: true})).toBeVisible();
+  await expect(page.getByText('Training participants', {exact: true})).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'Score distribution', exact: true})).toBeVisible();
+  await expect(page.getByLabel('Reporting period')).toBeVisible();
+  await navigateArea(page, 'My training', 'Catalog');
   await page
     .getByRole("button", { name: "Create course", exact: true })
     .click();
   const title = "Browser test course " + Date.now();
   await page.getByLabel("Course title", { exact: true }).fill(title);
+  await page.getByRole("radio", { name: "Text lesson", exact: true }).check();
   await page
     .getByLabel("Block 2 content")
     .fill("A lesson paragraph used to verify saving and reloading.");
-  await page.getByLabel("Publish this course so learners can start").check();
+  await page.getByLabel("Visible to learners").check();
   await page.getByRole("button", { name: "Save course", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: title, exact: true }),
@@ -507,17 +518,21 @@ test("dashboard, responsive navigation, library and persisted course editor", as
   await page
     .getByRole("button", { name: "Open navigation", exact: true })
     .click();
-  await page
-    .getByRole("link", { name: "Overview Dashboard", exact: true })
-    .click();
+  await navigateArea(page, 'Home');
   await expect(
-    page.getByRole("heading", { name: "Learning & development overview" }),
+    page.locator("header.topbar"),
   ).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBeTruthy();
+  await enrollmentWorkflow(page, browser);
+  await managementWorkflow(page, browser);
+  await contentWorkflow(page, browser);
+  await libraryWorkflow(page);
+  await roundsSessionsWorkflow(page, browser);
+  await simpleTrainingWorkflow(page, browser);
   expect(errors).toEqual([]);
 });
 
@@ -526,6 +541,7 @@ test("guest invitation allows a bounded standalone exam and rejects a second att
   browser,
 }) => {
   await login(page);
+  const figure = await uploadGuestFigure(page);
   const exam = await post<{ id: number }>(page, "exams/", {
     title: "Guest attempt test " + Date.now(),
     description: "A standalone exam",
@@ -536,6 +552,8 @@ test("guest invitation allows a bounded standalone exam and rejects a second att
     questions: [
       {
         description: "Choose the safe action",
+        figure,
+        figure_alt: "Two synthetic network nodes",
         type: "single",
         options: ["Report to IT", "Share passwords publicly"],
         solution: [0],
@@ -552,6 +570,10 @@ test("guest invitation allows a bounded standalone exam and rejects a second att
   const context = await browser.newContext();
   const guest = await context.newPage();
   await guest.goto(invitation.url);
+  await expect(guest.getByText("1 attempt", { exact: true })).toBeVisible();
+  await guest.locator(".language-picker select").selectOption("es");
+  await expect(guest.getByText("1 intento", { exact: true })).toBeVisible();
+  await guest.locator(".language-picker select").selectOption("en");
   await expect(
     guest.getByRole("heading", { name: "Welcome to your assessment" }),
   ).toBeVisible();
@@ -561,6 +583,7 @@ test("guest invitation allows a bounded standalone exam and rejects a second att
   await expect(
     guest.getByRole("heading", { name: "Choose the safe action" }),
   ).toBeVisible();
+  await expectFigureLoaded(guest, "Two synthetic network nodes");
   await guest.getByLabel("AReport to IT").check();
   await guest
     .getByRole("button", { name: "Finish and submit", exact: true })
@@ -572,6 +595,10 @@ test("guest invitation allows a bounded standalone exam and rejects a second att
     guest.getByRole("heading", { name: "Congratulations, you passed" }),
   ).toBeVisible();
   await guest.getByRole("button", { name: "Back to invitation" }).click();
+  await expect(guest.getByText("0 attempts", { exact: true })).toBeVisible();
+  await guest.locator(".language-picker select").selectOption("es");
+  await expect(guest.getByText("0 intentos", { exact: true })).toBeVisible();
+  await guest.locator(".language-picker select").selectOption("en");
   await guest
     .getByRole("button", { name: "Start / resume exam", exact: true })
     .click();
@@ -598,7 +625,7 @@ test("SCORM upload, isolated execution, commit and resume persist end to end", a
   );
   zip.file(
     "index.html",
-    `<!doctype html><html><body><h1>SCORM test lesson</h1><p id="resume"></p><button id="finish">Complete lesson</button><button id="bookmark">Buffer bookmark</button><script>const api=parent.API;api.LMSInitialize('');document.getElementById('resume').textContent=api.LMSGetValue('cmi.suspend_data');document.getElementById('finish').onclick=()=>{api.LMSSetValue('cmi.suspend_data','bookmark-saved');api.LMSSetValue('cmi.core.lesson_status','completed');api.LMSCommit('')};document.getElementById('bookmark').onclick=()=>api.LMSSetValue('cmi.suspend_data','buffered-until-close');</script></body></html>`,
+    `<!doctype html><html><body><h1>SCORM test lesson</h1><p id="resume"></p><button id="finish">Complete lesson</button><button id="bookmark">Buffer bookmark</button><script>const api=parent.API;api.LMSInitialize('');if(api.LMSSetValue(undefined,'0')!=='false'||api.LMSGetValue(undefined)!=='')throw Error('Invalid SCORM keys must not crash the course');document.getElementById('resume').textContent=api.LMSGetValue('cmi.suspend_data');document.getElementById('finish').onclick=()=>{api.LMSSetValue('cmi.suspend_data','bookmark-saved');api.LMSSetValue('cmi.core.lesson_status','completed');api.LMSCommit('')};document.getElementById('bookmark').onclick=()=>api.LMSSetValue('cmi.suspend_data','buffered-until-close');</script></body></html>`,
   );
   const bytes = await zip.generateAsync({ type: "nodebuffer" });
   const csrf = (await page.context().cookies()).find(
@@ -630,6 +657,7 @@ test("SCORM upload, isolated execution, commit and resume persist end to end", a
     page.getByText("Course completed and progress saved", { exact: true }),
   ).toBeVisible();
   await sco.getByRole("button", { name: "Buffer bookmark" }).click();
+  await learningViewport(page);
   let rejectSave = true;
   await page.route("**/api/scorm/*/commit/", async (route) => {
     if (rejectSave) {
@@ -661,21 +689,22 @@ test("SCORM upload, isolated execution, commit and resume persist end to end", a
 });
 
 for (const version of ["1.2", "2004"] as const) {
-  test(`Scormly publishes a real package and editable backup to the LMS (${version})`, async ({
+  test(`Training Content Studio publishes a real package and editable backup to the LMS (${version})`, async ({
     page,
   }) => {
     await login(page);
-    const title = `Scormly ${version} publish test ${Date.now()}`;
+    const title = `Training Content Studio ${version} publish test ${Date.now()}`;
     const course = await post<{ id: number }>(page, "courses/", {
       title,
       published: true,
       blocks: [],
     });
     await page.goto("/studio/#/app");
-    await page.getByRole("button", { name: /Explore the demo course/ }).click();
-    // Complete first-use onboarding before opening publication controls.
-    // The source offers this tour 700 ms after opening the first project.
-    await page.getByRole("button", { name: "Skip tour", exact: true }).click();
+    await page.getByRole("button", { name: /Try sample content/ }).click();
+    // Company branding must reach the real exported player, not just its editor.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.getByTitle("Project theme", { exact: true }).click();
+    await page.getByRole("button", { name: `${brand.organization} ${brand.organization} brand colors with Fluent-style controls` }).click();
     // Catalog visibility does not imply publication rights. Exercise the picker
     // with a visible course the current author cannot manage.
     await page.route("**/api/courses/", async (route) => {
@@ -691,29 +720,30 @@ for (const version of ["1.2", "2004"] as const) {
     });
     await expect(
       page
-        .getByRole("button", { name: "Publish to LMS", exact: true })
+        .getByRole("button", { name: "Publish to course", exact: true })
         .filter({ visible: true }),
     ).toBeVisible();
     await page
-      .getByRole("button", { name: "Publish to LMS", exact: true })
+      .getByRole("button", { name: "Publish to course", exact: true })
       .filter({ visible: true })
       .click();
-    await expect(page.getByLabel("Select a company course")).toBeVisible();
+    await expect(page.getByLabel("Course", { exact: true })).toBeVisible();
     await page
-      .getByLabel("Select a company course")
+      .getByLabel("Course", { exact: true })
       .selectOption(String(course.id));
     await expect(
-      page.getByLabel("Select a company course").locator('option[value="-1"]'),
+      page.getByLabel("Course", { exact: true }).locator('option[value="-1"]'),
     ).toHaveCount(0);
     await page.unroute("**/api/courses/");
-    await page.getByLabel("LMS package format").selectOption(version);
+    await page.getByText("Advanced options", { exact: true }).click();
+    await page.getByLabel("Package format").selectOption(version);
     const published = page.waitForResponse(
       (response) =>
         response.url().endsWith(`/api/courses/${course.id}/upload/`) &&
         response.request().method() === "POST",
     );
     await page
-      .getByRole("button", { name: "Publish to LMS", exact: true })
+      .getByRole("button", { name: "Publish to course", exact: true })
       .filter({ visible: true })
       .last()
       .click();
@@ -722,7 +752,7 @@ for (const version of ["1.2", "2004"] as const) {
     const packageInfo = await upload.json();
     expect(packageInfo.version).toBe(version);
     await expect(
-      page.getByRole("status").filter({ hasText: "Published. The package" }),
+      page.getByRole("status").filter({ hasText: "Published to" }),
     ).toBeVisible({ timeout: 20000 });
     const response = await page.request.get(
       `/api/courses/${course.id}/source/`,
@@ -743,6 +773,10 @@ for (const version of ["1.2", "2004"] as const) {
     await expect(
       sco.getByRole("button", { name: /^Start course/ }),
     ).toBeVisible();
+    await expect(sco.getByRole("button", { name: /^Start course/ })).toHaveCSS(
+      "color", darkAccent,
+    );
+    await expect(sco.locator("html")).toHaveAttribute("data-theme", "company");
     const bookmark =
       version === "2004" ? "cmi.location" : "cmi.core.lesson_location";
     const saved = page.waitForResponse(
@@ -782,6 +816,11 @@ for (const version of ["1.2", "2004"] as const) {
       .getByRole("button", { name: "Save and close", exact: true })
       .click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.goto(`/studio/?course=${course.id}#/app`);
+    await page.getByRole("button", { name: "Publish to course", exact: true }).filter({ visible: true }).click();
+    await expect(page.getByLabel("Course", { exact: true })).toHaveValue(String(course.id));
+    await page.getByText("Advanced options", { exact: true }).click();
+    await expect(page.getByLabel("Package format")).toHaveValue(version);
   });
 }
 
@@ -870,11 +909,11 @@ test("imported and pasted rich text cannot execute in the signed-in authoring or
 
 test("three languages default to English and preserve form state and preferences", async ({
   page,
+  browser,
 }) => {
   await login(page);
-  await page
-    .getByRole("link", { name: "Learning courses", exact: true })
-    .click();
+  await notificationExamLinkWorkflow(page, browser);
+  await navigateArea(page, 'My training', 'Catalog');
   await page
     .getByRole("button", { name: "Create course", exact: true })
     .click();
@@ -889,7 +928,7 @@ test("three languages default to English and preserve form state and preferences
     modal.getByLabel("Título del curso", { exact: true }),
   ).toHaveValue("Authored content stays unchanged / 教材 / contenido");
   await expect(
-    modal.getByRole("button", { name: "Guardar curso", exact: true }),
+    modal.getByRole("button", { name: "Crear y editar", exact: true }),
   ).toBeVisible();
   await modal
     .getByRole("combobox", { name: "Idioma de la interfaz" })
@@ -901,7 +940,7 @@ test("three languages default to English and preserve form state and preferences
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-TW");
   await expect(
-    page.getByRole("heading", { name: "學習課程", exact: true }),
+    page.getByRole("heading", { name: "課程", exact: true }),
   ).toBeVisible();
   for (const language of ["es", "en", "zh-TW"]) {
     await page
@@ -918,12 +957,12 @@ test("three languages default to English and preserve form state and preferences
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/studio/#/app");
   await expect(
-    page.getByRole("button", { name: /探索示範課程/ }),
+    page.getByRole("button", { name: /試用範例教材/ }),
   ).toBeVisible();
-  await page.getByRole("button", { name: /探索示範課程/ }).click();
+  await page.getByRole("button", { name: /試用範例教材/ }).click();
   await expect(
     page
-      .getByRole("button", { name: "發布至 LMS", exact: true })
+      .getByRole("button", { name: "發布至課程", exact: true })
       .filter({ visible: true }),
   ).toBeVisible();
   await page
@@ -933,13 +972,13 @@ test("three languages default to English and preserve form state and preferences
   await page.getByRole("button", { name: "Español", exact: true }).click();
   await expect(
     page
-      .getByRole("button", { name: "Publicar en LMS", exact: true })
+      .getByRole("button", { name: "Publicar en el curso", exact: true })
       .filter({ visible: true }),
   ).toBeVisible();
-  await page.goto("/");
+  await page.goto("/reports");
   await expect(
     page.getByRole("heading", {
-      name: "Resumen de formación y desarrollo",
+      name: "Resumen de formación",
       exact: true,
     }),
   ).toBeVisible();
@@ -1020,7 +1059,7 @@ test("exam policies preserve audience, enforce sequential guest access and relea
     ],
   });
   const audience = await (
-    await page.request.get("/api/exams/audience-options/")
+    await page.request.get("/api/exams/audience-options/?search=demo.learner1")
   ).json();
   const person = audience.people.find(
     (p: { username: string }) => p.username === "demo.learner1",
@@ -1030,21 +1069,23 @@ test("exam policies preserve audience, enforce sequential guest access and relea
     .getByRole("button", { name: "Edit " + title, exact: true })
     .click();
   const modal = page.getByRole("dialog");
+  await moreOptions(page);
   await modal
-    .getByLabel("Who can take this exam?", { exact: true })
+    .getByLabel("Audience", { exact: true })
     .selectOption("people");
+  await modal.getByRole("textbox", { name: "Search people", exact: true }).fill(person.username);
   const label =
     person.display_name + (person.department ? " · " + person.department : "");
   await modal.getByRole("checkbox", { name: label, exact: true }).check();
   await modal
     .getByRole("checkbox", {
-      name: "Allow participants to skip questions",
+      name: "Allow skipping",
       exact: true,
     })
     .uncheck();
   await modal
     .getByRole("checkbox", {
-      name: "Allow participants to review responses and feedback",
+      name: "Allow response review",
       exact: true,
     })
     .uncheck();
@@ -1054,14 +1095,14 @@ test("exam policies preserve audience, enforce sequential guest access and relea
   ).toBeChecked();
   await expect(
     modal.getByRole("checkbox", {
-      name: "Permitir que los participantes omitan preguntas",
+      name: "Permitir saltos",
       exact: true,
     }),
   ).not.toBeChecked();
   await modal.locator(".language-picker select").selectOption("zh-TW");
   await expect(
     modal.getByRole("checkbox", {
-      name: "允許應試者檢視作答與回饋",
+      name: "允許回顧答案",
       exact: true,
     }),
   ).not.toBeChecked();
@@ -1073,7 +1114,7 @@ test("exam policies preserve audience, enforce sequential guest access and relea
     .getByRole("button", { name: "Edit " + title, exact: true })
     .click();
   await expect(
-    modal.getByLabel("Who can take this exam?", { exact: true }),
+    modal.getByLabel("Audience", { exact: true }),
   ).toHaveValue("people");
   await expect(
     modal.getByRole("checkbox", { name: label, exact: true }),
@@ -1086,7 +1127,7 @@ test("exam policies preserve audience, enforce sequential guest access and relea
   expect(stored.allow_response_review).toBe(false);
   await expect(
     modal.getByRole("checkbox", {
-      name: "Allow participants to skip questions",
+      name: "Allow skipping",
       exact: true,
     }),
   ).not.toBeChecked();
@@ -1102,7 +1143,7 @@ test("exam policies preserve audience, enforce sequential guest access and relea
     const guest = await context.newPage();
     await guest.goto(invitation.url);
     await expect(
-      guest.getByText("This exam requires answers in order.", { exact: false }),
+      guest.getByText("Save each answer to unlock the next question.", { exact: false }),
     ).toBeVisible();
     await guest
       .getByRole("button", { name: "Start / resume exam", exact: true })
@@ -1190,7 +1231,7 @@ test("exam policies preserve audience, enforce sequential guest access and relea
       .click();
     await modal
       .getByRole("checkbox", {
-        name: "Allow participants to skip questions",
+        name: "Allow skipping",
         exact: true,
       })
       .check();
@@ -1255,13 +1296,13 @@ test("exam policies preserve audience, enforce sequential guest access and relea
     expect(hidden.manual_grades).toEqual({});
     await guest.locator(".language-picker select").selectOption("es");
     await expect(
-      guest.getByText("La revisión de respuestas está desactivada.", {
+      guest.getByText("Puede ver su nota, pero no sus respuestas.", {
         exact: false,
       }),
     ).toBeVisible();
     await guest.locator(".language-picker select").selectOption("zh-TW");
     await expect(
-      guest.getByText("目前未開放檢視作答。", { exact: false }),
+      guest.getByText("可查看分數，無法回顧答案。", { exact: false }),
     ).toBeVisible();
     await guest.locator(".language-picker select").selectOption("en");
     const review = await (
@@ -1295,7 +1336,7 @@ test("exam policies preserve audience, enforce sequential guest access and relea
       .click();
     await modal
       .getByRole("checkbox", {
-        name: "Allow participants to review responses and feedback",
+        name: "Allow response review",
         exact: true,
       })
       .check();
@@ -1425,9 +1466,11 @@ test("guest email verification unlocks the invitation without consuming an attem
 });
 
 test("assign required training, complete from worklist, and export evidence", async ({
-  page,
+  page, browser,
 }) => {
+  test.setTimeout(180000);
   await login(page);
+  await emailWorkflow(page);
   const title = "Required learning " + Date.now();
   const course = await post<{ id: number }>(page, "courses/", {
     title,
@@ -1439,10 +1482,13 @@ test("assign required training, complete from worklist, and export evidence", as
     .getByRole("button", { name: "Assign training", exact: true })
     .click();
   const dialog = page.getByRole("dialog", { name: "Assign training" });
+  await expect(dialog.getByLabel("Email the people I assign")).toBeChecked();
+  await dialog.getByLabel("Email the people I assign").uncheck();
   await dialog
     .getByLabel("Training", { exact: true })
     .selectOption(String(course.id));
   await dialog.getByLabel("Alex Morgan", { exact: false }).check();
+  await dialog.getByText("Assignment options", { exact: true }).click();
   await dialog.getByLabel("Due date (optional)").fill("2020-01-01T09:00");
   await dialog
     .getByLabel("Instructions for participants")
@@ -1455,13 +1501,23 @@ test("assign required training, complete from worklist, and export evidence", as
   await page.getByRole("button", { name: "My worklist", exact: true }).click();
   await row.getByRole("button", { name: "Open course" }).click();
   await expect(page.getByRole("dialog", { name: title })).toBeVisible();
-  await page
-    .getByRole("button", { name: "Mark as completed", exact: true })
-    .click();
+  // A slow completion must keep the lesson open until its progress is saved.
+  let releaseCompletion!: () => void;
+  const completionGate = new Promise<void>((resolve) => { releaseCompletion = resolve; });
+  await page.route(`**/api/courses/${course.id}/complete/`, async (route) => {
+    await completionGate;
+    await route.continue();
+  });
+  try {
+    await page.getByRole("button", { name: "Mark as completed", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Close", exact: true })).toBeDisabled();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog", { name: title })).toBeVisible();
+  } finally { releaseCompletion(); }
+  await learningViewport(page);
+  await expect(page.getByRole("button", { name: "Learning completed", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Close", exact: true }).click();
-  await page
-    .getByRole("link", { name: "Assigned training", exact: true })
-    .click();
+  await expect(page).toHaveURL(/\/assignments$/);
   await expect(row).toContainText("Completed");
   await expect(row).not.toContainText("Overdue");
   await page.getByRole("button", { name: "Completion report" }).click();
@@ -1474,6 +1530,7 @@ test("assign required training, complete from worklist, and export evidence", as
     .getByRole("button", { name: "Cancel assignment", exact: true })
     .click();
   await expect(row).toContainText("Cancelled");
+  await courseAssessmentsWorkflow(page, browser);
 });
 
 test("question bank, randomized exams and private instructor previews work end to end", async ({
@@ -1482,7 +1539,7 @@ test("question bank, randomized exams and private instructor previews work end t
   test.setTimeout(120000);
   await login(page);
   const question = "Reusable security question " + Date.now();
-  await page.getByRole("link", { name: "Question bank", exact: true }).click();
+  await navigateArea(page, 'Exams', 'Question bank');
   await page
     .getByRole("button", { name: "Create question", exact: true })
     .click();
@@ -1496,10 +1553,8 @@ test("question bank, randomized exams and private instructor previews work end t
   await expect(
     page.getByRole("cell", { name: question, exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("link", { name: "Exams & assessments", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Create exam", exact: true }).click();
+  await navigateArea(page, 'Exams');
+  await page.getByRole("button", { name: "New exam", exact: true }).click();
   const title = "Randomized bank exam " + Date.now();
   await page.getByLabel("Exam title", { exact: true }).fill(title);
   await page.getByRole("button", { name: "Add from question bank" }).click();
@@ -1521,9 +1576,10 @@ test("question bank, randomized exams and private instructor previews work end t
   await expect(page.getByRole("dialog")).toHaveCount(2);
   await page.getByRole("checkbox", { name: new RegExp(question) }).check();
   await page.getByRole("button", { name: /Add selected questions/ }).click();
+  await moreOptions(page);
   await page.getByLabel("Shuffle question order").check();
   await page.getByLabel("Shuffle answer options").check();
-  await page.getByLabel("Questions per attempt (blank uses all)").fill("1");
+  await page.getByLabel("Questions per attempt").fill("1");
   await page.getByLabel("Publish exam", { exact: true }).check();
   await page.getByRole("button", { name: "Save exam", exact: true }).click();
   await expect(
@@ -1579,25 +1635,25 @@ test("numeric, ordering and text rules round-trip through authoring, resume, gra
     .selectOption("numeric");
   await modal.getByLabel("Accepted number 1", { exact: true }).fill("12.5");
   await modal
-    .getByLabel("Tolerance for answer 1", { exact: true })
+    .getByLabel("Tolerance 1", { exact: true })
     .fill("0.05");
   await modal
     .getByRole("button", { name: "Add accepted answer", exact: true })
     .click();
   await modal.getByLabel("Accepted number 2", { exact: true }).fill("-12.5");
   await modal
-    .getByLabel("Tolerance for answer 2", { exact: true })
+    .getByLabel("Tolerance 2", { exact: true })
     .fill("0.01");
   await modal.locator(".language-picker select").selectOption("es");
   await expect(
     modal.getByLabel("Número aceptado 2", { exact: true }),
   ).toHaveValue("-12.5");
   await expect(
-    modal.getByLabel("Tolerancia de la respuesta 2", { exact: true }),
+    modal.getByLabel("Tolerancia 2", { exact: true }),
   ).toHaveValue("0.01");
   await modal.locator(".language-picker select").selectOption("zh-TW");
   await expect(
-    modal.getByLabel("答案 1 的容許誤差", { exact: true }),
+    modal.getByLabel("容許誤差 1", { exact: true }),
   ).toHaveValue("0.05");
   await modal.locator(".language-picker select").selectOption("en");
   await modal
@@ -1606,7 +1662,7 @@ test("numeric, ordering and text rules round-trip through authoring, resume, gra
   const bankRow = page.getByRole("row").filter({ hasText: bankTitle });
   await bankRow.getByRole("button", { name: "Edit", exact: true }).click();
   await expect(
-    modal.getByLabel("Tolerance for answer 2", { exact: true }),
+    modal.getByLabel("Tolerance 2", { exact: true }),
   ).toHaveValue("0.01");
   await modal.getByRole("button", { name: "Cancel", exact: true }).click();
 
@@ -1621,7 +1677,7 @@ test("numeric, ordering and text rules round-trip through authoring, resume, gra
     .getByRole("textbox", { name: "Accepted text 1", exact: true })
     .fill("Release  Ready\nChecked");
   await modal
-    .getByRole("combobox", { name: "Matching rule for answer 1", exact: true })
+    .getByRole("combobox", { name: "Matching rule 1", exact: true })
     .selectOption("exact");
   await modal
     .getByRole("button", { name: "Add accepted answer", exact: true })
@@ -1630,7 +1686,7 @@ test("numeric, ordering and text rules round-trip through authoring, resume, gra
     .getByRole("textbox", { name: "Accepted text 2", exact: true })
     .fill("Approved");
   await modal
-    .getByRole("combobox", { name: "Matching rule for answer 2", exact: true })
+    .getByRole("combobox", { name: "Matching rule 2", exact: true })
     .selectOption("lower");
   // Removing an alternative must remove its matching rule at the same index.
   await modal
@@ -1642,7 +1698,7 @@ test("numeric, ordering and text rules round-trip through authoring, resume, gra
   await modal.locator(".language-picker select").selectOption("es");
   await expect(
     modal.getByRole("combobox", {
-      name: "Regla de comparación de la respuesta 2",
+      name: "Coincidencia 2",
       exact: true,
     }),
   ).toHaveValue("lower");
@@ -1651,7 +1707,7 @@ test("numeric, ordering and text rules round-trip through authoring, resume, gra
   ).toHaveValue("Release  Ready\nChecked");
   await modal.locator(".language-picker select").selectOption("zh-TW");
   await expect(
-    modal.getByRole("combobox", { name: "答案 1 的比對規則", exact: true }),
+    modal.getByRole("combobox", { name: "比對規則 1", exact: true }),
   ).toHaveValue("exact");
   await modal.locator(".language-picker select").selectOption("en");
   await page.setViewportSize({ width: 390, height: 844 });
@@ -1678,14 +1734,14 @@ test("numeric, ordering and text rules round-trip through authoring, resume, gra
   ).toHaveValue("Release  Ready\nChecked");
   await expect(
     modal.getByRole("combobox", {
-      name: "Matching rule for answer 2",
+      name: "Matching rule 2",
       exact: true,
     }),
   ).toHaveValue("lower");
   await modal.getByRole("button", { name: "Cancel", exact: true }).click();
 
   await page.goto("/exams");
-  await page.getByRole("button", { name: "Create exam", exact: true }).click();
+  await page.getByRole("button", { name: "New exam", exact: true }).click();
   await modal.getByLabel("Exam title", { exact: true }).fill(examTitle);
   await modal.getByLabel("Question 1 type").selectOption("integer");
   await modal
@@ -1710,7 +1766,7 @@ test("numeric, ordering and text rules round-trip through authoring, resume, gra
     .getByLabel("Question 3 content")
     .fill("Arrange the safety procedure");
   await modal
-    .getByLabel("Items in the correct order (one per line)")
+    .getByLabel("Correct order")
     .fill("Isolate\nVerify\nMaintain");
   await modal.getByRole("button", { name: "Add from question bank" }).click();
   await picker.getByLabel("Search question bank").fill(textTitle);
@@ -1728,7 +1784,7 @@ test("numeric, ordering and text rules round-trip through authoring, resume, gra
     .getByRole("textbox", { name: "Accepted text 1", exact: true })
     .fill("CaseID");
   await strict
-    .getByRole("combobox", { name: "Matching rule for answer 1", exact: true })
+    .getByRole("combobox", { name: "Matching rule 1", exact: true })
     .selectOption("exact");
   await modal.getByLabel("Publish exam", { exact: true }).check();
   await modal.getByRole("button", { name: "Save exam", exact: true }).click();
@@ -1913,7 +1969,7 @@ test("CSV preview imports learners, profile edits persist, and new pages transla
   await login(page);
   const username = "csvuser" + Date.now();
   await page
-    .getByRole("link", { name: "People & permissions", exact: true })
+    .getByRole("link", { name: "People", exact: true })
     .click();
   await page.getByRole("button", { name: "Import participants" }).click();
   await page
@@ -1944,9 +2000,7 @@ test("CSV preview imports learners, profile edits persist, and new pages transla
   await page.getByRole("button", { name: "Save person" }).click();
   await expect(row).toContainText("Updated Participant");
   await expect(row).toContainText("Quality");
-  await page
-    .getByRole("link", { name: "Assigned training", exact: true })
-    .click();
+  await navigateArea(page, 'Training', 'Assignments');
   await page.locator(".language-picker select").first().selectOption("es");
   await expect(
     page.getByRole("heading", { name: "Formación asignada", exact: true }),
@@ -1956,15 +2010,15 @@ test("CSV preview imports learners, profile edits persist, and new pages transla
     page.getByRole("heading", { name: "指派訓練", exact: true }),
   ).toBeVisible();
   await page.locator(".language-picker select").first().selectOption("en");
-  await page
-    .getByRole("link", { name: "Settings & audit", exact: true })
-    .click();
+  await navigateArea(page, 'Settings', 'Settings');
+  await page.getByText("Advanced maintenance", { exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Deployment readiness" }),
   ).toBeVisible();
   await expect(
-    page.getByText("Connect on Peach1", { exact: true }),
+    page.getByText("Verification needed", { exact: true }),
   ).toBeVisible();
+  await peopleManagementWorkflow(page);
 });
 
 test("slow autosaves preserve newer edits and submission waits before showing instructor feedback", async ({
@@ -2177,9 +2231,7 @@ test("invitation batches validate aliases, translate, and recover committed link
       },
     ],
   });
-  await page
-    .getByRole("link", { name: "Guest exam invitations", exact: true })
-    .click();
+  await navigateArea(page, 'Exams', 'Guest invitations');
   await page
     .getByRole("button", { name: "Create invitation batch", exact: true })
     .click();
@@ -2193,7 +2245,7 @@ test("invitation batches validate aliases, translate, and recover committed link
   ).toBeChecked();
   await modal
     .getByLabel("Recipient CSV")
-    .fill("key\nadmin@evitina.example\nE0001\n");
+    .fill("key\nadmin@example.com\nE0001\n");
   await modal
     .getByRole("button", { name: "Validate recipients", exact: true })
     .click();
@@ -2338,8 +2390,10 @@ test("invitation batches validate aliases, translate, and recover committed link
 
 test("invitation history pages and filters a cohort and confirms revocation", async ({
   page,
+  browser,
 }) => {
   await login(page);
+  await notificationCourseLinkWorkflow(page, browser);
   const title = "Cohort history " + Date.now();
   const exam = await post<{ id: number }>(page, "exams/", {
     title,
@@ -2369,9 +2423,7 @@ test("invitation history pages and filters a cohort and confirms revocation", as
     max_attempts: 1,
     days: 7,
   });
-  await page
-    .getByRole("link", { name: "Guest exam invitations", exact: true })
-    .click();
+  await navigateArea(page, 'Exams', 'Guest invitations');
   await page.getByLabel("Search invitations").fill(title);
   await expect(
     page.getByText("28 matching invitations", { exact: true }),

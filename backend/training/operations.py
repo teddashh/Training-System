@@ -28,7 +28,7 @@ from .models import (
 )
 from .serializers import BankQuestionSerializer, UserSerializer
 from .services import audit, identity_for_user
-from .views import AdminOnly, manager
+from .access import AdminOnly, has_exams, can_assign, scope_q
 
 
 class QuestionBank(viewsets.ModelViewSet):
@@ -36,15 +36,13 @@ class QuestionBank(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "head", "options"]
 
     def get_queryset(self):
-        if not manager(self.request.user):
+        if not has_exams(self.request.user):
             raise PermissionDenied()
-        qs = BankQuestion.objects.order_by("-updated_at", "-id")
-        if self.request.user.role != "admin":
-            qs = qs.filter(owner=self.request.user)
-        return qs
+        qs = BankQuestion.objects.select_related("figure").defer("figure__data").order_by("-updated_at", "-id")
+        return qs.filter(scope_q(self.request.user, 'exams'))
 
     def perform_create(self, serializer):
-        if not manager(self.request.user):
+        if not has_exams(self.request.user):
             raise PermissionDenied()
         question = serializer.save(owner=self.request.user)
         audit(self.request.user, "question_bank.created", question.pk)
@@ -60,11 +58,10 @@ def assignment_scope(user, report=False):
     )
     if not report:
         return qs.filter(user=user, cancelled_at=None)
-    if not manager(user):
+    if not can_assign(user):
         raise PermissionDenied()
-    if user.role != "admin":
-        qs = qs.filter(Q(course__owner=user) | Q(exam__owner=user))
-    return qs
+    return qs.filter(scope_q(user, 'courses', 'course__') | (
+        scope_q(user, 'exams', 'exam__') & scope_q(user, 'results', 'exam__')))
 
 
 def assignment_rows(queryset):
@@ -89,12 +86,22 @@ def assignment_rows(queryset):
     rows = []
     for item in assignments:
         target = item.course or item.exam
+        progress_known = True
         progress, completed_at, score, status = 0, None, None, "not_started"
         if item.course_id:
             enrollment = enrollments.get((item.user_id, item.course_id))
             if enrollment:
+                progress_known = enrollment.progress_known
                 progress, completed_at = enrollment.progress, enrollment.completed_at
-                status = "completed" if progress == 100 else "in_progress"
+                status = (
+                    "completed" if progress == 100 else {
+                        "approved": "in_progress",
+                        "pending": "awaiting_approval",
+                        "rejected": "enrollment_rejected",
+                        "removed": "enrollment_removed",
+                        "cancelled": "registration_cancelled",
+                    }[enrollment.status]
+                )
         else:
             history = attempts.get((item.user_id, item.exam_id), [])
             passed = [a for a in history if a.status == "graded" and a.passed]
@@ -134,13 +141,14 @@ def assignment_rows(queryset):
                 "kind": "course" if item.course_id else "exam",
                 "target_id": target.pk,
                 "title": target.title,
-                "available": target.published,
+                "available": (target.published and (not item.course_id or not target.release_at or target.release_at <= now)),
                 "due_at": item.due_at,
                 "assigned_at": item.assigned_at,
                 "notes": item.notes,
                 "status": status,
                 "overdue": overdue,
                 "progress": progress,
+                "progress_known": progress_known,
                 "score": score,
                 "completed_at": completed_at,
             }
@@ -149,14 +157,16 @@ def assignment_rows(queryset):
 
 
 class AssignmentInput(serializers.Serializer):
+    notify = serializers.BooleanField(default=True)
     kind = serializers.ChoiceField(choices=["course", "exam"])
     target_id = serializers.IntegerField(min_value=1)
     audience = serializers.ChoiceField(
-        choices=["people", "departments", "employees", "contractors", "all"]
+        choices=["people", "groups", "departments", "employees", "contractors", "all"]
     )
     people = serializers.ListField(
         child=serializers.IntegerField(min_value=1), required=False, max_length=500
     )
+    groups = serializers.ListField(child=serializers.IntegerField(min_value=1), required=False, max_length=1000)
     departments = serializers.ListField(
         child=serializers.CharField(max_length=100), required=False, max_length=100
     )
@@ -173,7 +183,7 @@ class Assignments(viewsets.ViewSet):
 
     @transaction.atomic
     def create(self, request):
-        if not manager(request.user):
+        if not can_assign(request.user):
             raise PermissionDenied()
         serializer = AssignmentInput(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -182,7 +192,7 @@ class Assignments(viewsets.ViewSet):
         target = get_object_or_404(
             model.objects.select_for_update(), pk=data["target_id"]
         )
-        if request.user.role != "admin" and target.owner_id != request.user.id:
+        if not can_assign(request.user, target):
             raise PermissionDenied()
         if not target.published:
             raise ValidationError(
@@ -195,6 +205,11 @@ class Assignments(viewsets.ViewSet):
             people = people.filter(pk__in=ids)
             if not ids or people.count() != len(ids):
                 raise ValidationError(translate("Select active participants."))
+        elif audience == "groups":
+            from .groups import lock_groups, active_group_people
+            ids = data.get('groups', [])
+            lock_groups(ids)
+            people = active_group_people(ids).select_for_update()
         elif audience == "departments":
             people = people.filter(department__in=data.get("departments", []))
         elif audience in ("employees", "contractors"):
@@ -206,8 +221,15 @@ class Assignments(viewsets.ViewSet):
             raise ValidationError(
                 translate("Assign between 1 and 500 active participants at a time.")
             )
+        # The target lock serializes assignment/cancellation events. One bulk read,
+        # not another query for every person, captures the prior activation state.
+        cancelled = dict(LearningAssignment.objects.filter(
+            user__in=recipients, **{data["kind"]: target}, cancelled_at__isnull=False,
+        ).values_list("user_id", "cancelled_at"))
+        queued, no_email = 0, 0
+        from .notifications import enqueue
         for user in recipients:
-            assignment, _ = LearningAssignment.objects.update_or_create(
+            assignment, created = LearningAssignment.objects.update_or_create(
                 user=user,
                 **{data["kind"]: target},
                 defaults={
@@ -223,14 +245,45 @@ class Assignments(viewsets.ViewSet):
                 assignment.pk,
                 {"user": user.pk, "due_at": str(assignment.due_at or "")},
             )
-        return Response({"assigned": len(recipients)}, status=201)
+            if created or user.pk in cancelled:
+                activation = cancelled[user.pk].isoformat() if user.pk in cancelled else "created"
+                no_email += not bool(user.email.strip())
+                if data["notify"]:
+                    queued += enqueue(
+                        kind="assignment", user=user, target=target, actor=request.user,
+                        event="New training assigned", due_at=assignment.due_at,
+                        note=assignment.notes, dedupe_key=f"assignment:{assignment.pk}:{activation}",
+                        context={"assignment_id": assignment.pk, data["kind"] + "_id": target.pk},
+                    )
+        return Response({"assigned": len(recipients), "emails_queued": queued,
+                         "people_without_email": no_email}, status=201)
+
+    @action(detail=False, methods=['post'], url_path='group-preview')
+    @transaction.atomic
+    def group_preview(self, request):
+        if not can_assign(request.user):
+            raise PermissionDenied()
+        from .groups import lock_groups, active_group_people
+        class PreviewInput(serializers.Serializer):
+            groups = serializers.ListField(child=serializers.IntegerField(min_value=1), min_length=1, max_length=1000)
+        serializer = PreviewInput(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        ids = serializer.validated_data['groups']
+        lock_groups(ids)
+        count = active_group_people(ids).count()
+        return Response({'people': count, 'within_limit': 1 <= count <= 500})
 
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def cancel(self, request, pk=None):
         item = get_object_or_404(assignment_scope(request.user, report=True), pk=pk)
-        item.cancelled_at = timezone.now()
-        item.save(update_fields=["cancelled_at"])
-        audit(request.user, "assignment.cancelled", item.pk)
+        target_model = Course if item.course_id else Exam
+        target_model.objects.select_for_update().get(pk=item.course_id or item.exam_id)
+        item = LearningAssignment.objects.select_for_update().get(pk=item.pk)
+        if not item.cancelled_at:
+            item.cancelled_at = timezone.now()
+            item.save(update_fields=["cancelled_at"])
+            audit(request.user, "assignment.cancelled", item.pk)
         return Response({"cancelled": True})
 
     @action(detail=False, methods=["get"])
@@ -248,6 +301,7 @@ class Assignments(viewsets.ViewSet):
             "status",
             "overdue",
             "progress",
+            "progress_known",
             "score",
             "assigned_at",
             "due_at",

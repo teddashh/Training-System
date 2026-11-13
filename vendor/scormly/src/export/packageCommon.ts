@@ -1,3 +1,4 @@
+import { companyThemeTokens, resolveThemeAlias } from '../brand'
 import type JSZip from 'jszip'
 import { isScoredBlock, type Course } from '../types/course'
 import { customThemeTokens, DEFAULT_CUSTOM_THEME } from '../theme/customTheme'
@@ -163,9 +164,10 @@ export async function addPlayer(
   return files
 }
 
-// A custom theme travels as its resolved palette, so the player applies the
+// Company and custom themes carry resolved palettes, so the player applies the
 // exact colors the editor shows without repeating the color math.
 export function withThemeTokens(course: Course): Course & { themeTokens?: ReturnType<typeof customThemeTokens> } {
+  if (resolveThemeAlias(course.theme) === 'company') return { ...course, theme: 'company', themeTokens: companyThemeTokens }
   if (course.theme !== 'custom') return course
   return { ...course, themeTokens: customThemeTokens(course.customTheme ?? DEFAULT_CUSTOM_THEME) }
 }

@@ -31,6 +31,7 @@ export function questionTypeDefaults(
     : [];
   return {
     type,
+    ...(type !== "essay" ? { grading_guide: "" } : {}),
     options,
     solution:
       type === "ordering"

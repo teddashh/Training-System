@@ -1,12 +1,11 @@
+import { brandAlias, brandHtml } from '../../shared/brand/build'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { seoPrerender } from './scripts/seoPrerender.ts'
-
-// Served from the root of the custom domain (scormly.app, via public/CNAME), so
-// the base path is '/' everywhere. (It was '/Scormly/' when the site lived at
-// <user>.github.io/Scormly/.)
+// The company build supplies /training/studio/ (or /studio/ in root tests).
+// This authenticated authoring workspace has no public marketing prerender.
 export default defineConfig({
   base: '/',
-  plugins: [react(), tailwindcss(), seoPrerender()],
+  resolve: { alias: brandAlias },
+  plugins: [brandHtml, react(), tailwindcss()],
 })

@@ -30,12 +30,10 @@ interface Rect {
 
 function findTarget(name: string | null): HTMLElement | null {
   if (!name) return null
-  const el = document.querySelector<HTMLElement>(`[data-tour="${name}"]`)
-  if (!el) return null
-  const r = el.getBoundingClientRect()
-  const visible =
-    r.width > 0 && r.height > 0 && r.right > 0 && r.left < window.innerWidth
-  return visible ? el : null
+  return Array.from(document.querySelectorAll<HTMLElement>(`[data-tour="${name}"]`)).find(el => {
+    const r = el.getBoundingClientRect()
+    return r.width > 0 && r.height > 0 && r.right > 0 && r.left < window.innerWidth
+  }) ?? null
 }
 
 function spotlightRect(el: HTMLElement): Rect {

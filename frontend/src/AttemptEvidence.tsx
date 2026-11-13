@@ -1,3 +1,4 @@
+import { QuestionContent } from "./QuestionFigure";
 import { useEffect, useState } from "react";
 import { api } from "./api";
 import { t, useLocale } from "./i18n";
@@ -141,7 +142,7 @@ export default function AttemptEvidence({
                 <Badge tone="neutral">
                   {t("Question")} {index + 1} · {q.points} {t("points")}
                 </Badge>
-                <h3>{q.description}</h3>
+                <QuestionContent question={q} />
                 <p className="review-answer">
                   {answerText(q, data.answers[String(q.id)]) ||
                     t("(Unanswered)")}

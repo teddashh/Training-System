@@ -6,9 +6,9 @@ The [upstream feature audit](UPSTREAM-AUDIT.md) records the pinned source, activ
 
 Source commit: `336fc050cce6eab6d45475297d19f3b659491d48`.
 
-The repository retains Yaksh Git history and its original tree in `legacy/yaksh/`. The new enterprise model builds on question, quiz, question-paper, answer-paper and grading concepts, with optional course association and stable identities, attempt budgets and invitations. The archived Django 3.1 application and code-server are not started by the supported deployment; compatibility with all legacy APIs is not claimed.
+The repository retains Yaksh's source tree in `legacy/yaksh/`. The current model builds on question, quiz, question-paper, answer-paper and grading concepts, with optional course association and stable identities, attempt budgets and invitations. The archived Django 3.1 application and code-server are not started by the supported deployment; compatibility with all legacy APIs is not claimed.
 
-Example `questions.json` for migration:
+Create a local `questions.json` from reviewed source data. For a synthetic example, save the following array outside the repository and pass its path to the command:
 
 ```json
 [
@@ -26,8 +26,8 @@ Example `questions.json` for migration:
 ```
 
 ```bash
-DEBUG=true .venv/bin/python backend/manage.py import_yaksh questions.json \
-  --owner demo.admin --title 'Legacy question-bank review'
+DEBUG=true .venv/bin/python backend/manage.py import_yaksh /tmp/questions.json \
+  --owner training-admin --title 'Legacy question-bank review'
 ```
 
 Yaksh's native YAML export can be converted to a JSON array with `list(yaml.safe_load_all(...))` in a controlled environment with PyYAML. Do not use unsafe YAML loading or execute legacy HookTestCase code. The adapter accepts `mcq`, `mcc`, `string`, `integer`, `float` and `arrange` with whole-number points, strips HTML display tags and validates all questions before creating the entire draft atomically. Unsupported types and fractional points fail the import. Attachments, users, courses and historical results require a separate mapped migration. Do not attach a legacy database directly to the new app.
@@ -71,16 +71,22 @@ The new integration adds ZIP path and expansion limits, signed launch tickets, p
 
 Source commit: `53c35d2753e89db5f58f07de4d6164be14359fce`.
 
-All 288 tracked upstream files are retained in `vendor/scormly/`, built under `/studio/`, with company integration changes recorded in the audit. `buildScormZip` and `PublishLms` send the selected SCORM 1.2 or 2004 package and editable project ZIP to a manageable course using the signed-in session and CSRF protection. Backups are restricted to the owning instructor/administrator, and older package files are retained. Source retention does not certify every block, storage backend or export workflow inside the company LMS.
+All 288 tracked upstream files are retained in `vendor/scormly/`, built under `/studio/`, with integration changes recorded in the audit. `buildScormZip` and `PublishLms` send the selected SCORM 1.2 or 2004 package and editable project ZIP to a manageable course using the signed-in session and CSRF protection. Backups are restricted to the owning instructor/administrator, and older package files are retained. Source retention does not certify every block, storage backend or export workflow inside this LMS.
 
-To restore editing, download the source project from the course card and open it in Scormly with **Open a project (.zip)**. This is not simultaneous collaborative editing or continuous server synchronization. Projects can still live in a local folder, browser storage or the tab; **Publish to LMS** explicitly uploads content and the editable backup to the company server.
+From **Training → Trainings**, choose **Edit content** to reopen a matching browser draft or the course's editable backup in **Training Content Studio**. The publish dialog keeps that course selected and preserves its package format. **Publish to course** uploads the package and editable backup; course visibility is a separate setting. Authors can also create a draft course from the publish dialog. Changing local projects clears the previous course association. **Download backup** / **Open backup** remain available for moving work between devices. This is not simultaneous collaborative editing or continuous server synchronization.
 
-The platform and studio use the same English, Traditional Chinese and Spanish catalog. Existing upstream Ukrainian dictionaries are retained in source, while the company language picker exposes the three requested languages. Exported player text now includes Traditional Chinese, and automatic player language selection can use the LMS preference. Author-written content is preserved.
+The platform and studio use the same English, Traditional Chinese and Spanish catalog. Existing upstream Ukrainian dictionaries are retained in source, while the language picker exposes the configured subset of English, Traditional Chinese and Spanish. Exported player text now includes Traditional Chinese, and automatic player language selection can use the LMS preference. Author-written content is preserved.
 
-Scormly builds, upstream unit tests, locale coverage and browser checks for publication, isolated playback/save/resume in both SCORM versions, rich-text sanitation and language continuity run in CI. Imported/pasted HTML is sanitized before insertion into the authenticated editor; published packages run on the isolated origin. A separate audit check ensures feature evidence and retained-source inventories stay current; it is not a completeness certification.
+Scormly builds, upstream unit tests, locale coverage and browser checks for publication, isolated playback/save/resume in both SCORM versions, rich-text sanitation and language continuity run in CI. Imported/pasted HTML is sanitized before insertion into the authenticated editor; published packages use the isolated origin by default. See [trusted-content mode](../SECURITY.md#protect-content-and-identities) before changing that boundary. A separate audit check ensures feature evidence and retained-source inventories stay current; it is not a completeness certification.
 
 ## Visual references
 
-[School-Management-Dashboard](https://github.com/MariemMagdi/School-Management-Dashboard/tree/d249f7d7d3bfac7a652d3f54f5ed19d7b9bfe248) informed the card, chart and table information structure. Its README claims MIT, but the referenced license file is absent at this revision; its code and images were not copied. The audit reviews its database, role pages, calendars, forms and actions, including incomplete writes and static charts. Company equivalents for supervisors, cohorts, attendance, schedules and announcements remain implementation work.
+[School-Management-Dashboard](https://github.com/MariemMagdi/School-Management-Dashboard/tree/d249f7d7d3bfac7a652d3f54f5ed19d7b9bfe248) informed the card, chart and table information structure. Its README claims MIT, but the referenced license file is absent at this revision; its code and images were not copied. The audit reviews its database, role pages, calendars, forms and actions, including incomplete writes and static charts. Current sessions, attendance and groups are implemented separately. The audit identifies remaining gaps for each upstream workflow.
 
-[Evitina](https://www.evitina.tw/) informed dark surfaces, teal accents and geometric visual motifs. The enterprise interface is an original implementation combining these cues with Azure blue. Its CSS/template and logo assets were not copied.
+The application uses shared brand packs and runtime organization identity. See [DESIGN.md](../DESIGN.md) for tokens, logo files and build settings.
+
+After upload, **Make available to learners** explicitly releases a draft course
+without leaving Studio. Existing enrollment approval rules remain in force.
+**Assign training** opens the assignment form with that course selected; the
+author still chooses recipients and submits. Content remains saved if the
+visibility update fails, and the retry does not upload another package.

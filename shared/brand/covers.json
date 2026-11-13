@@ -1,0 +1,1327 @@
+[
+  {
+    "id": "scene-plant-skyline",
+    "title": "Plant skyline",
+    "category": "Plant operations",
+    "keywords": [
+      "petrochemical",
+      "plant",
+      "石化",
+      "廠區",
+      "petroquímica",
+      "planta"
+    ]
+  },
+  {
+    "id": "scene-plant-tank-farm",
+    "title": "Tank farm",
+    "category": "Plant operations",
+    "keywords": [
+      "tank",
+      "storage",
+      "儲槽",
+      "儲存",
+      "tanque",
+      "almacenamiento"
+    ]
+  },
+  {
+    "id": "scene-plant-pipe-rack",
+    "title": "Pipe rack",
+    "category": "Plant operations",
+    "keywords": [
+      "pipe",
+      "piping",
+      "管線",
+      "管架",
+      "tubería"
+    ]
+  },
+  {
+    "id": "scene-plant-process-unit",
+    "title": "Process unit",
+    "category": "Plant operations",
+    "keywords": [
+      "distillation",
+      "process",
+      "蒸餾",
+      "製程",
+      "destilación",
+      "proceso"
+    ]
+  },
+  {
+    "id": "scene-plant-cooling-towers",
+    "title": "Cooling towers",
+    "category": "Plant operations",
+    "keywords": [
+      "cooling",
+      "冷卻",
+      "enfriamiento"
+    ]
+  },
+  {
+    "id": "scene-plant-control-room",
+    "title": "Control room",
+    "category": "Plant operations",
+    "keywords": [
+      "control room",
+      "operator",
+      "控制室",
+      "操作員",
+      "sala de control",
+      "operador"
+    ]
+  },
+  {
+    "id": "scene-site-gatehouse",
+    "title": "Site entrance",
+    "category": "Site logistics",
+    "keywords": [
+      "gate",
+      "entrance",
+      "門禁",
+      "入口",
+      "entrada",
+      "portería"
+    ]
+  },
+  {
+    "id": "scene-site-warehouse",
+    "title": "Warehouse aisle",
+    "category": "Site logistics",
+    "keywords": [
+      "warehouse",
+      "倉儲",
+      "倉庫",
+      "almacén"
+    ]
+  },
+  {
+    "id": "scene-site-loading-dock",
+    "title": "Loading dock",
+    "category": "Site logistics",
+    "keywords": [
+      "loading",
+      "freight",
+      "裝卸",
+      "貨運",
+      "muelle de carga",
+      "flete"
+    ]
+  },
+  {
+    "id": "scene-site-rail-yard",
+    "title": "Rail yard",
+    "category": "Site logistics",
+    "keywords": [
+      "rail",
+      "hopper",
+      "鐵路",
+      "鐵道",
+      "ferrocarril",
+      "tolva"
+    ]
+  },
+  {
+    "id": "scene-site-marine-terminal",
+    "title": "Marine terminal",
+    "category": "Site logistics",
+    "keywords": [
+      "marine",
+      "ship",
+      "港口",
+      "船舶",
+      "marítima",
+      "buque"
+    ]
+  },
+  {
+    "id": "scene-site-workshop",
+    "title": "Maintenance workshop",
+    "category": "Site logistics",
+    "keywords": [
+      "maintenance",
+      "workshop",
+      "維修",
+      "保養",
+      "mantenimiento",
+      "taller"
+    ]
+  },
+  {
+    "id": "scene-safety-ppe",
+    "title": "Protective equipment",
+    "category": "Workplace safety",
+    "keywords": [
+      "ppe",
+      "protective",
+      "防護",
+      "護具",
+      "protección"
+    ]
+  },
+  {
+    "id": "scene-safety-work-at-height",
+    "title": "Work at height",
+    "category": "Workplace safety",
+    "keywords": [
+      "height",
+      "scaffold",
+      "高處",
+      "鷹架",
+      "altura",
+      "andamio"
+    ]
+  },
+  {
+    "id": "scene-safety-lockout",
+    "title": "Energy isolation",
+    "category": "Workplace safety",
+    "keywords": [
+      "lockout",
+      "isolation",
+      "上鎖",
+      "隔離",
+      "bloqueo",
+      "aislamiento"
+    ]
+  },
+  {
+    "id": "scene-safety-confined-space",
+    "title": "Confined space",
+    "category": "Workplace safety",
+    "keywords": [
+      "confined",
+      "局限",
+      "侷限",
+      "confinado"
+    ]
+  },
+  {
+    "id": "scene-safety-forklift",
+    "title": "Forklift crossing",
+    "category": "Workplace safety",
+    "keywords": [
+      "forklift",
+      "pallet",
+      "堆高機",
+      "棧板",
+      "montacargas",
+      "palé"
+    ]
+  },
+  {
+    "id": "scene-safety-electrical",
+    "title": "Electrical room",
+    "category": "Workplace safety",
+    "keywords": [
+      "electrical",
+      "switchgear",
+      "電氣",
+      "配電",
+      "eléctrica",
+      "eléctrico"
+    ]
+  },
+  {
+    "id": "scene-emergency-fire-truck",
+    "title": "Fire engine",
+    "category": "Emergency response",
+    "keywords": [
+      "fire truck",
+      "fire engine",
+      "消防車",
+      "bomberos"
+    ]
+  },
+  {
+    "id": "scene-emergency-fire-equipment",
+    "title": "Fire equipment",
+    "category": "Emergency response",
+    "keywords": [
+      "fire",
+      "extinguisher",
+      "消防",
+      "滅火",
+      "incendio",
+      "extintor"
+    ]
+  },
+  {
+    "id": "scene-emergency-muster-point",
+    "title": "Assembly point",
+    "category": "Emergency response",
+    "keywords": [
+      "muster",
+      "evacuation",
+      "集合",
+      "疏散",
+      "evacuación"
+    ]
+  },
+  {
+    "id": "scene-emergency-safety-shower",
+    "title": "Safety shower",
+    "category": "Emergency response",
+    "keywords": [
+      "shower",
+      "eyewash",
+      "沖淋",
+      "洗眼",
+      "ducha",
+      "lavaojos"
+    ]
+  },
+  {
+    "id": "scene-emergency-first-aid",
+    "title": "First aid",
+    "category": "Emergency response",
+    "keywords": [
+      "first aid",
+      "defibrillator",
+      "急救",
+      "去顫",
+      "auxilios",
+      "desfibrilador"
+    ]
+  },
+  {
+    "id": "scene-emergency-spill-response",
+    "title": "Spill response",
+    "category": "Emergency response",
+    "keywords": [
+      "spill",
+      "containment",
+      "洩漏",
+      "圍堵",
+      "derrame",
+      "contención"
+    ]
+  },
+  {
+    "id": "scene-health-handwashing",
+    "title": "Hand washing",
+    "category": "Health and hygiene",
+    "keywords": [
+      "handwash",
+      "hygiene",
+      "洗手",
+      "衛生",
+      "manos",
+      "higiene"
+    ]
+  },
+  {
+    "id": "scene-health-break-room",
+    "title": "Break room",
+    "category": "Health and hygiene",
+    "keywords": [
+      "break",
+      "canteen",
+      "休息",
+      "餐廳",
+      "descanso",
+      "comedor"
+    ]
+  },
+  {
+    "id": "scene-health-locker-room",
+    "title": "Locker room",
+    "category": "Health and hygiene",
+    "keywords": [
+      "locker",
+      "clothes",
+      "更衣",
+      "工作服",
+      "vestuario",
+      "ropa"
+    ]
+  },
+  {
+    "id": "scene-health-health-check",
+    "title": "Health check",
+    "category": "Health and hygiene",
+    "keywords": [
+      "health",
+      "medical",
+      "健檢",
+      "健康",
+      "salud",
+      "médica"
+    ]
+  },
+  {
+    "id": "scene-health-ergonomics",
+    "title": "Ergonomic workstation",
+    "category": "Health and hygiene",
+    "keywords": [
+      "ergonomic",
+      "人體工學",
+      "ergonomía",
+      "ergonómico"
+    ]
+  },
+  {
+    "id": "scene-health-heat-and-hearing",
+    "title": "Heat and hearing",
+    "category": "Health and hygiene",
+    "keywords": [
+      "heat",
+      "hearing",
+      "respirator",
+      "防暑",
+      "聽力",
+      "呼吸",
+      "calor",
+      "audición",
+      "respirador"
+    ]
+  },
+  {
+    "id": "scene-environment-wetland",
+    "title": "Coastal wetland",
+    "category": "Environmental care",
+    "keywords": [
+      "wetland",
+      "biodiversity",
+      "濕地",
+      "生態",
+      "humedal",
+      "biodiversidad"
+    ]
+  },
+  {
+    "id": "scene-environment-water-treatment",
+    "title": "Water treatment",
+    "category": "Environmental care",
+    "keywords": [
+      "water treatment",
+      "wastewater",
+      "水處理",
+      "廢水",
+      "agua",
+      "residual"
+    ]
+  },
+  {
+    "id": "scene-environment-air-monitoring",
+    "title": "Air monitoring",
+    "category": "Environmental care",
+    "keywords": [
+      "air",
+      "emission",
+      "空氣",
+      "排放",
+      "aire",
+      "emisión"
+    ]
+  },
+  {
+    "id": "scene-environment-solar",
+    "title": "Solar field",
+    "category": "Environmental care",
+    "keywords": [
+      "solar",
+      "energy",
+      "太陽能",
+      "能源",
+      "energía"
+    ]
+  },
+  {
+    "id": "scene-environment-recycling",
+    "title": "Recycling yard",
+    "category": "Environmental care",
+    "keywords": [
+      "recycling",
+      "waste",
+      "回收",
+      "廢棄",
+      "reciclaje",
+      "residuos"
+    ]
+  },
+  {
+    "id": "scene-environment-green-belt",
+    "title": "Green belt",
+    "category": "Environmental care",
+    "keywords": [
+      "tree",
+      "planting",
+      "植樹",
+      "綠帶",
+      "árbol",
+      "reforestación"
+    ]
+  },
+  {
+    "id": "scene-lab-bench",
+    "title": "Laboratory bench",
+    "category": "Laboratory quality",
+    "keywords": [
+      "laboratory",
+      "chemical",
+      "實驗",
+      "化學",
+      "laboratorio",
+      "química"
+    ]
+  },
+  {
+    "id": "scene-lab-microscope",
+    "title": "Sample microscopy",
+    "category": "Laboratory quality",
+    "keywords": [
+      "microscope",
+      "sample",
+      "顯微鏡",
+      "樣本",
+      "microscopio",
+      "muestra"
+    ]
+  },
+  {
+    "id": "scene-lab-inspection",
+    "title": "Quality inspection",
+    "category": "Laboratory quality",
+    "keywords": [
+      "inspection",
+      "pellet",
+      "檢驗",
+      "粒料",
+      "inspección",
+      "gránulo"
+    ]
+  },
+  {
+    "id": "scene-lab-testing-machine",
+    "title": "Tensile testing",
+    "category": "Laboratory quality",
+    "keywords": [
+      "tensile",
+      "testing",
+      "拉伸",
+      "測試",
+      "tracción",
+      "ensayo"
+    ]
+  },
+  {
+    "id": "scene-lab-documents",
+    "title": "Quality records",
+    "category": "Laboratory quality",
+    "keywords": [
+      "document",
+      "record",
+      "文件",
+      "紀錄",
+      "documento",
+      "registro"
+    ]
+  },
+  {
+    "id": "scene-lab-control-chart",
+    "title": "Quality review",
+    "category": "Laboratory quality",
+    "keywords": [
+      "quality",
+      "chart",
+      "品質",
+      "管制圖",
+      "calidad",
+      "gráfico"
+    ]
+  },
+  {
+    "id": "scene-office-open-office",
+    "title": "Open office",
+    "category": "Office spaces",
+    "keywords": [
+      "office",
+      "辦公",
+      "oficina"
+    ]
+  },
+  {
+    "id": "scene-office-meeting-room",
+    "title": "Meeting room",
+    "category": "Office spaces",
+    "keywords": [
+      "meeting",
+      "會議",
+      "reunión",
+      "reuniones"
+    ]
+  },
+  {
+    "id": "scene-office-reception",
+    "title": "Reception lobby",
+    "category": "Office spaces",
+    "keywords": [
+      "reception",
+      "visitor",
+      "接待",
+      "訪客",
+      "recepción",
+      "visitante"
+    ]
+  },
+  {
+    "id": "scene-office-desk-window",
+    "title": "Window desk",
+    "category": "Office spaces",
+    "keywords": [
+      "desk",
+      "工作桌",
+      "escritorio"
+    ]
+  },
+  {
+    "id": "scene-office-archive",
+    "title": "Records room",
+    "category": "Office spaces",
+    "keywords": [
+      "archive",
+      "filing",
+      "檔案",
+      "歸檔",
+      "archivo"
+    ]
+  },
+  {
+    "id": "scene-office-video-call",
+    "title": "Video call",
+    "category": "Office spaces",
+    "keywords": [
+      "video",
+      "teams",
+      "視訊",
+      "videollamada"
+    ]
+  },
+  {
+    "id": "scene-people-interview",
+    "title": "Job interview",
+    "category": "People and HR",
+    "keywords": [
+      "interview",
+      "面試",
+      "entrevista"
+    ]
+  },
+  {
+    "id": "scene-people-onboarding",
+    "title": "Welcome desk",
+    "category": "People and HR",
+    "keywords": [
+      "onboarding",
+      "new hire",
+      "新人",
+      "報到",
+      "incorporación",
+      "bienvenida"
+    ]
+  },
+  {
+    "id": "scene-people-team",
+    "title": "Site team",
+    "category": "People and HR",
+    "keywords": [
+      "team",
+      "crew",
+      "團隊",
+      "班組",
+      "equipo"
+    ]
+  },
+  {
+    "id": "scene-people-handshake",
+    "title": "Working together",
+    "category": "People and HR",
+    "keywords": [
+      "respect",
+      "cooperation",
+      "尊重",
+      "合作",
+      "respeto",
+      "colaboración"
+    ]
+  },
+  {
+    "id": "scene-people-career-path",
+    "title": "Career steps",
+    "category": "People and HR",
+    "keywords": [
+      "career",
+      "development",
+      "職涯",
+      "發展",
+      "carrera",
+      "desarrollo"
+    ]
+  },
+  {
+    "id": "scene-people-recognition",
+    "title": "Staff recognition",
+    "category": "People and HR",
+    "keywords": [
+      "recognition",
+      "award",
+      "表揚",
+      "獎勵",
+      "reconocimiento",
+      "premio"
+    ]
+  },
+  {
+    "id": "scene-tech-laptop-shield",
+    "title": "Secure laptop",
+    "category": "Technology security",
+    "keywords": [
+      "security",
+      "cyber",
+      "資安",
+      "資訊安全",
+      "ciberseguridad"
+    ]
+  },
+  {
+    "id": "scene-tech-server-room",
+    "title": "Server room",
+    "category": "Technology security",
+    "keywords": [
+      "server",
+      "network",
+      "伺服器",
+      "網路",
+      "servidor",
+      "redes"
+    ]
+  },
+  {
+    "id": "scene-tech-phishing",
+    "title": "Phishing awareness",
+    "category": "Technology security",
+    "keywords": [
+      "phishing",
+      "釣魚",
+      "suplantación"
+    ]
+  },
+  {
+    "id": "scene-tech-badge-access",
+    "title": "Badge access",
+    "category": "Technology security",
+    "keywords": [
+      "badge",
+      "access",
+      "識別證",
+      "存取",
+      "credencial",
+      "acceso"
+    ]
+  },
+  {
+    "id": "scene-tech-dashboard",
+    "title": "Operations dashboard",
+    "category": "Technology security",
+    "keywords": [
+      "dashboard",
+      "data",
+      "儀表板",
+      "數據",
+      "panel",
+      "datos"
+    ]
+  },
+  {
+    "id": "scene-tech-phone-approval",
+    "title": "Mobile approval",
+    "category": "Technology security",
+    "keywords": [
+      "approval",
+      "authentication",
+      "核准",
+      "驗證",
+      "aprobación",
+      "autenticación"
+    ]
+  },
+  {
+    "id": "scene-learning-classroom",
+    "title": "Training classroom",
+    "category": "Learning spaces",
+    "keywords": [
+      "classroom",
+      "training",
+      "教室",
+      "訓練",
+      "aula",
+      "formación"
+    ]
+  },
+  {
+    "id": "scene-learning-e-learning",
+    "title": "Online learning",
+    "category": "Learning spaces",
+    "keywords": [
+      "e-learning",
+      "online",
+      "線上",
+      "數位學習",
+      "en línea"
+    ]
+  },
+  {
+    "id": "scene-learning-hands-on",
+    "title": "Practical training",
+    "category": "Learning spaces",
+    "keywords": [
+      "hands-on",
+      "practical",
+      "實作",
+      "操作訓練",
+      "práctica"
+    ]
+  },
+  {
+    "id": "scene-learning-library",
+    "title": "Reading room",
+    "category": "Learning spaces",
+    "keywords": [
+      "library",
+      "reading",
+      "圖書",
+      "閱讀",
+      "biblioteca",
+      "lectura"
+    ]
+  },
+  {
+    "id": "scene-learning-assessment",
+    "title": "Learning assessment",
+    "category": "Learning spaces",
+    "keywords": [
+      "assessment",
+      "exam",
+      "評量",
+      "考試",
+      "evaluación",
+      "examen"
+    ]
+  },
+  {
+    "id": "scene-learning-mentoring",
+    "title": "Site mentoring",
+    "category": "Learning spaces",
+    "keywords": [
+      "mentor",
+      "coaching",
+      "指導",
+      "輔導",
+      "mentoría",
+      "tutoría"
+    ]
+  },
+  {
+    "id": "safety-essentials",
+    "title": "Orbit 01",
+    "category": "Patterns"
+  },
+  {
+    "id": "ladder-safety",
+    "title": "Orbit 02",
+    "category": "Patterns"
+  },
+  {
+    "id": "ergonomics",
+    "title": "Orbit 03",
+    "category": "Patterns"
+  },
+  {
+    "id": "heat-safety",
+    "title": "Orbit 04",
+    "category": "Patterns"
+  },
+  {
+    "id": "fall-prevention",
+    "title": "Orbit 05",
+    "category": "Patterns"
+  },
+  {
+    "id": "ppe",
+    "title": "Orbit 06",
+    "category": "Patterns"
+  },
+  {
+    "id": "fire-safety",
+    "title": "Orbit 07",
+    "category": "Patterns"
+  },
+  {
+    "id": "emergency-response",
+    "title": "Orbit 08",
+    "category": "Patterns"
+  },
+  {
+    "id": "electrical-safety",
+    "title": "Orbit 09",
+    "category": "Patterns"
+  },
+  {
+    "id": "first-aid",
+    "title": "Orbit 10",
+    "category": "Patterns"
+  },
+  {
+    "id": "plant-operations",
+    "title": "Layers 01",
+    "category": "Patterns"
+  },
+  {
+    "id": "process-safety",
+    "title": "Layers 02",
+    "category": "Patterns"
+  },
+  {
+    "id": "lockout-tagout",
+    "title": "Layers 03",
+    "category": "Patterns"
+  },
+  {
+    "id": "confined-spaces",
+    "title": "Layers 04",
+    "category": "Patterns"
+  },
+  {
+    "id": "machine-guarding",
+    "title": "Layers 05",
+    "category": "Patterns"
+  },
+  {
+    "id": "forklift-safety",
+    "title": "Layers 06",
+    "category": "Patterns"
+  },
+  {
+    "id": "chemical-handling",
+    "title": "Layers 07",
+    "category": "Patterns"
+  },
+  {
+    "id": "material-handling",
+    "title": "Layers 08",
+    "category": "Patterns"
+  },
+  {
+    "id": "preventive-maintenance",
+    "title": "Layers 09",
+    "category": "Patterns"
+  },
+  {
+    "id": "permit-to-work",
+    "title": "Layers 10",
+    "category": "Patterns"
+  },
+  {
+    "id": "security-awareness",
+    "title": "Ripples 01",
+    "category": "Patterns"
+  },
+  {
+    "id": "phishing",
+    "title": "Ripples 02",
+    "category": "Patterns"
+  },
+  {
+    "id": "passwords",
+    "title": "Ripples 03",
+    "category": "Patterns"
+  },
+  {
+    "id": "multi-factor-authentication",
+    "title": "Ripples 04",
+    "category": "Patterns"
+  },
+  {
+    "id": "ransomware",
+    "title": "Ripples 05",
+    "category": "Patterns"
+  },
+  {
+    "id": "data-protection",
+    "title": "Ripples 06",
+    "category": "Patterns"
+  },
+  {
+    "id": "safe-browsing",
+    "title": "Ripples 07",
+    "category": "Patterns"
+  },
+  {
+    "id": "device-security",
+    "title": "Ripples 08",
+    "category": "Patterns"
+  },
+  {
+    "id": "incident-reporting",
+    "title": "Ripples 09",
+    "category": "Patterns"
+  },
+  {
+    "id": "social-engineering",
+    "title": "Ripples 10",
+    "category": "Patterns"
+  },
+  {
+    "id": "microsoft-teams",
+    "title": "Grid 01",
+    "category": "Patterns"
+  },
+  {
+    "id": "outlook",
+    "title": "Grid 02",
+    "category": "Patterns"
+  },
+  {
+    "id": "sharepoint",
+    "title": "Grid 03",
+    "category": "Patterns"
+  },
+  {
+    "id": "onedrive",
+    "title": "Grid 04",
+    "category": "Patterns"
+  },
+  {
+    "id": "excel",
+    "title": "Grid 05",
+    "category": "Patterns"
+  },
+  {
+    "id": "powerpoint",
+    "title": "Grid 06",
+    "category": "Patterns"
+  },
+  {
+    "id": "word",
+    "title": "Grid 07",
+    "category": "Patterns"
+  },
+  {
+    "id": "onenote",
+    "title": "Grid 08",
+    "category": "Patterns"
+  },
+  {
+    "id": "power-automate",
+    "title": "Grid 09",
+    "category": "Patterns"
+  },
+  {
+    "id": "microsoft-forms",
+    "title": "Grid 10",
+    "category": "Patterns"
+  },
+  {
+    "id": "ai-literacy",
+    "title": "Ribbons 01",
+    "category": "Patterns"
+  },
+  {
+    "id": "responsible-ai",
+    "title": "Ribbons 02",
+    "category": "Patterns"
+  },
+  {
+    "id": "prompt-writing",
+    "title": "Ribbons 03",
+    "category": "Patterns"
+  },
+  {
+    "id": "data-analytics",
+    "title": "Ribbons 04",
+    "category": "Patterns"
+  },
+  {
+    "id": "application-security",
+    "title": "Ribbons 05",
+    "category": "Patterns"
+  },
+  {
+    "id": "cloud-computing",
+    "title": "Ribbons 06",
+    "category": "Patterns"
+  },
+  {
+    "id": "network-essentials",
+    "title": "Ribbons 07",
+    "category": "Patterns"
+  },
+  {
+    "id": "software-development",
+    "title": "Ribbons 08",
+    "category": "Patterns"
+  },
+  {
+    "id": "it-service-desk",
+    "title": "Ribbons 09",
+    "category": "Patterns"
+  },
+  {
+    "id": "digital-accessibility",
+    "title": "Ribbons 10",
+    "category": "Patterns"
+  },
+  {
+    "id": "green-software",
+    "title": "Horizon 01",
+    "category": "Patterns"
+  },
+  {
+    "id": "energy-efficiency",
+    "title": "Horizon 02",
+    "category": "Patterns"
+  },
+  {
+    "id": "waste-reduction",
+    "title": "Horizon 03",
+    "category": "Patterns"
+  },
+  {
+    "id": "water-conservation",
+    "title": "Horizon 04",
+    "category": "Patterns"
+  },
+  {
+    "id": "air-quality",
+    "title": "Horizon 05",
+    "category": "Patterns"
+  },
+  {
+    "id": "spill-prevention",
+    "title": "Horizon 06",
+    "category": "Patterns"
+  },
+  {
+    "id": "environmental-awareness",
+    "title": "Horizon 07",
+    "category": "Patterns"
+  },
+  {
+    "id": "carbon-awareness",
+    "title": "Horizon 08",
+    "category": "Patterns"
+  },
+  {
+    "id": "sustainable-purchasing",
+    "title": "Horizon 09",
+    "category": "Patterns"
+  },
+  {
+    "id": "recycling",
+    "title": "Horizon 10",
+    "category": "Patterns"
+  },
+  {
+    "id": "quality-fundamentals",
+    "title": "Facets 01",
+    "category": "Patterns"
+  },
+  {
+    "id": "document-control",
+    "title": "Facets 02",
+    "category": "Patterns"
+  },
+  {
+    "id": "root-cause-analysis",
+    "title": "Facets 03",
+    "category": "Patterns"
+  },
+  {
+    "id": "continuous-improvement",
+    "title": "Facets 04",
+    "category": "Patterns"
+  },
+  {
+    "id": "lean-manufacturing",
+    "title": "Facets 05",
+    "category": "Patterns"
+  },
+  {
+    "id": "standard-work",
+    "title": "Facets 06",
+    "category": "Patterns"
+  },
+  {
+    "id": "internal-audits",
+    "title": "Facets 07",
+    "category": "Patterns"
+  },
+  {
+    "id": "corrective-actions",
+    "title": "Facets 08",
+    "category": "Patterns"
+  },
+  {
+    "id": "change-management",
+    "title": "Facets 09",
+    "category": "Patterns"
+  },
+  {
+    "id": "risk-assessment",
+    "title": "Facets 10",
+    "category": "Patterns"
+  },
+  {
+    "id": "new-employee-orientation",
+    "title": "Petals 01",
+    "category": "Patterns"
+  },
+  {
+    "id": "company-values",
+    "title": "Petals 02",
+    "category": "Patterns"
+  },
+  {
+    "id": "respect-at-work",
+    "title": "Petals 03",
+    "category": "Patterns"
+  },
+  {
+    "id": "inclusive-workplace",
+    "title": "Petals 04",
+    "category": "Patterns"
+  },
+  {
+    "id": "effective-communication",
+    "title": "Petals 05",
+    "category": "Patterns"
+  },
+  {
+    "id": "team-collaboration",
+    "title": "Petals 06",
+    "category": "Patterns"
+  },
+  {
+    "id": "conflict-resolution",
+    "title": "Petals 07",
+    "category": "Patterns"
+  },
+  {
+    "id": "leadership",
+    "title": "Petals 08",
+    "category": "Patterns"
+  },
+  {
+    "id": "coaching",
+    "title": "Petals 09",
+    "category": "Patterns"
+  },
+  {
+    "id": "employee-wellbeing",
+    "title": "Petals 10",
+    "category": "Patterns"
+  },
+  {
+    "id": "ethics-and-conduct",
+    "title": "Contours 01",
+    "category": "Patterns"
+  },
+  {
+    "id": "anti-corruption",
+    "title": "Contours 02",
+    "category": "Patterns"
+  },
+  {
+    "id": "privacy-awareness",
+    "title": "Contours 03",
+    "category": "Patterns"
+  },
+  {
+    "id": "records-retention",
+    "title": "Contours 04",
+    "category": "Patterns"
+  },
+  {
+    "id": "business-continuity",
+    "title": "Contours 05",
+    "category": "Patterns"
+  },
+  {
+    "id": "financial-fundamentals",
+    "title": "Contours 06",
+    "category": "Patterns"
+  },
+  {
+    "id": "procurement",
+    "title": "Contours 07",
+    "category": "Patterns"
+  },
+  {
+    "id": "customer-service",
+    "title": "Contours 08",
+    "category": "Patterns"
+  },
+  {
+    "id": "project-management",
+    "title": "Contours 09",
+    "category": "Patterns"
+  },
+  {
+    "id": "time-management",
+    "title": "Contours 10",
+    "category": "Patterns"
+  },
+  {
+    "id": "problem-solving",
+    "title": "Mosaic 01",
+    "category": "Patterns"
+  },
+  {
+    "id": "decision-making",
+    "title": "Mosaic 02",
+    "category": "Patterns"
+  },
+  {
+    "id": "critical-thinking",
+    "title": "Mosaic 03",
+    "category": "Patterns"
+  },
+  {
+    "id": "meeting-skills",
+    "title": "Mosaic 04",
+    "category": "Patterns"
+  },
+  {
+    "id": "presentation-skills",
+    "title": "Mosaic 05",
+    "category": "Patterns"
+  },
+  {
+    "id": "writing-skills",
+    "title": "Mosaic 06",
+    "category": "Patterns"
+  },
+  {
+    "id": "learning-skills",
+    "title": "Mosaic 07",
+    "category": "Patterns"
+  },
+  {
+    "id": "innovation",
+    "title": "Mosaic 08",
+    "category": "Patterns"
+  },
+  {
+    "id": "personal-development",
+    "title": "Mosaic 09",
+    "category": "Patterns"
+  },
+  {
+    "id": "remote-working",
+    "title": "Mosaic 10",
+    "category": "Patterns"
+  }
+]

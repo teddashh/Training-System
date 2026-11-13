@@ -16,7 +16,7 @@ from .i18n import translate
 from .models import Attempt, AttemptReopening, Exam
 from .monitoring import ExtensionInput, MonitorFilters, page_data
 from .services import audit, check_invite, finalize_if_expired
-from .views import manage_exam
+from .access import require_results
 
 
 class ReopeningInput(ExtensionInput):
@@ -74,7 +74,7 @@ def inspect_attempt(request, pk):
             ),
             pk=pk,
         )
-        manage_exam(request.user, attempt.exam)
+        require_results(request.user, attempt.exam)
         finalize_if_expired(attempt)
         return Response({**evidence(attempt), "observed_at": timezone.now()})
 
@@ -83,7 +83,7 @@ def inspect_attempt(request, pk):
 @api_view(["GET"])
 def previous_submission(request, pk, record_id):
     attempt = get_object_or_404(Attempt.objects.select_related("exam"), pk=pk)
-    manage_exam(request.user, attempt.exam)
+    require_results(request.user, attempt.exam)
     record = get_object_or_404(AttemptReopening, pk=record_id, attempt=attempt)
     return Response(record.previous_submission)
 
@@ -96,7 +96,7 @@ def reopenings(request, pk):
     with transaction.atomic():
         exam_id = get_object_or_404(Attempt.objects.only("exam_id"), pk=pk).exam_id
         exam = get_object_or_404(Exam.objects.select_for_update(), pk=exam_id)
-        manage_exam(request.user, exam)
+        require_results(request.user, exam)
         attempt = get_object_or_404(
             Attempt.objects.select_for_update(of=("self",)).select_related(
                 "exam", "identity", "invitation"

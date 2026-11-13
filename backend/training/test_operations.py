@@ -355,6 +355,26 @@ class OperationsTests(TestCase):
         self.assertNotIn("tenant-id", str(response.data))
         self.assertFalse(response.data["ready"])
 
+    @override_settings(
+        EMAIL_BACKEND="training.mail.GraphEmailBackend",
+        GRAPH_MAIL_TENANT_ID="11111111-1111-1111-1111-111111111111",
+        GRAPH_MAIL_CLIENT_ID="22222222-2222-2222-2222-222222222222",
+        GRAPH_MAIL_CLIENT_SECRET="graph-secret-must-not-be-returned",
+        GRAPH_MAIL_SENDER="training@example.test",
+        DEFAULT_FROM_EMAIL="training@example.test",
+    )
+    def test_graph_mail_readiness_requires_matching_sender_and_hides_credentials(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.get("/api/readiness/")
+        email = next(c for c in response.data["checks"] if c["key"] == "email")
+        self.assertEqual(email["status"], "ready")
+        self.assertNotIn("graph-secret-must-not-be-returned", str(response.data))
+        self.assertNotIn("training@example.test", str(response.data))
+        with override_settings(DEFAULT_FROM_EMAIL="other@example.test"):
+            response = self.client.get("/api/readiness/")
+            email = next(c for c in response.data["checks"] if c["key"] == "email")
+            self.assertEqual(email["status"], "action_required")
+
     def test_people_import_rejects_malformed_headers_and_empty_input(self):
         self.client.force_authenticate(self.admin)
         for content in ['"username,broken', "username\n", "username,username\na,b"]:

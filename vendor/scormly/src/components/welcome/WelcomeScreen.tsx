@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Logo from '../layout/Logo'
+import { workspaceBase } from '../../lib/companyCourse'
 import LanguagePicker from '../editor/LanguagePicker'
 import { useT } from '../../i18n/I18nProvider'
 import { isFileSystemAccessSupported } from '../../lib/fileSystem'
@@ -33,6 +34,7 @@ interface WelcomeScreenProps {
 
 export default function WelcomeScreen({ onSkip, onSample }: WelcomeScreenProps) {
   const { t, lang } = useT('welcome')
+  const { t: tc } = useT('common')
   const supported = isFileSystemAccessSupported()
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -72,8 +74,9 @@ export default function WelcomeScreen({ onSkip, onSample }: WelcomeScreenProps) 
   }
 
   return (
-    <div className="flex h-full flex-col bg-gray-50">
-      <div className="flex items-center justify-between px-6 py-4">
+    <div className="studio-welcome flex h-full flex-col bg-gray-50">
+      <a href={workspaceBase + 'authoring'} className="studio-back px-6 py-3 text-sm text-brand">← {tc('backToCourses')}</a>
+      <div className="flex items-center justify-between px-6 py-2">
         <Logo />
         <LanguagePicker />
       </div>
@@ -82,17 +85,10 @@ export default function WelcomeScreen({ onSkip, onSample }: WelcomeScreenProps) 
         <div className="w-full max-w-3xl">
           <div className="mb-10 text-center">
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-              Scorm<span className="text-brand">ly</span>
+              {tc('studioTitle')}
             </h1>
             <p className="mt-2 text-gray-500">{t('tagline')}</p>
           </div>
-
-          {!supported && (
-            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-              <p className="font-semibold">{t('unsupportedTitle')}</p>
-              <p className="mt-1">{t('unsupportedText')}</p>
-            </div>
-          )}
 
           {error && (
             <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -115,7 +111,7 @@ export default function WelcomeScreen({ onSkip, onSample }: WelcomeScreenProps) 
                       onClick={() => run(() => openBrowserProject(p.id))}
                       className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 disabled:opacity-50"
                     >
-                      <span aria-hidden className="text-brand">🗂️</span>
+                      <span aria-hidden className="text-brand"><WelcomeIcon kind="browser" /></span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-gray-800">{p.title}</span>
                         <span className="block text-xs text-gray-400">
@@ -157,7 +153,7 @@ export default function WelcomeScreen({ onSkip, onSample }: WelcomeScreenProps) 
                       onClick={() => run(() => openRecentProject(r.handle))}
                       className="flex flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 disabled:opacity-50"
                     >
-                      <span aria-hidden className="text-brand">📁</span>
+                      <span aria-hidden className="text-brand"><WelcomeIcon kind="folder" /></span>
                       <span className="truncate text-sm font-medium text-gray-800">
                         {r.name}
                       </span>
@@ -180,34 +176,26 @@ export default function WelcomeScreen({ onSkip, onSample }: WelcomeScreenProps) 
             </div>
           )}
 
-          <div className="grid gap-5 sm:grid-cols-2">
-            <WelcomeCard
-              icon="✚"
-              title={t('createTitle')}
-              text={t('createText')}
-              cta={t('createCta')}
-              disabled={!supported || busy}
-              onClick={() => run(createNewProject)}
-            />
-            <WelcomeCard
-              icon="📂"
-              title={t('openTitle')}
-              text={t('openText')}
-              cta={t('openCta')}
-              disabled={!supported || busy}
-              onClick={() => run(openExistingProject)}
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <WelcomeCard icon={<WelcomeIcon kind="plus" />} title={t('browserTitle')} text={t(inBrowser ? 'browserText' : 'startText')} cta={t('browserTitle')} primary disabled={busy} onClick={() => inBrowser ? void run(createBrowserProject) : onSkip()} />
+            <WelcomeCard icon={<WelcomeIcon kind="archive" />} title={t('zipTitle')} text={t('zipText')} cta={t('zipTitle')} disabled={busy} onClick={() => zipInputRef.current?.click()} />
           </div>
+          <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
+            <details className="min-w-0 flex-1">
+              <summary className="cursor-pointer py-3 text-sm text-gray-600">{tc('advancedOptions')}</summary>
+          {!supported && (
+            <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              <p className="font-semibold">{t('unsupportedTitle')}</p>
+              <p className="mt-1">{t('unsupportedText')}</p>
+            </div>
+          )}
 
-          {/* No folder access needed: a .zip project, or a project that lives in
-              this tab and is saved by downloading a .zip. */}
-          <div className="mt-5 grid gap-5 sm:grid-cols-2">
-            <WelcomeRow icon="📦" title={t('zipTitle')} text={t('zipText')} disabled={busy} onClick={() => zipInputRef.current?.click()} />
-            {inBrowser ? (
-              <WelcomeRow icon="🗂️" title={t('browserTitle')} text={t('browserText')} disabled={busy} onClick={() => run(createBrowserProject)} />
-            ) : (
-              <WelcomeRow icon="📝" title={t('startTitle')} text={t('startText')} disabled={busy} onClick={onSkip} />
-            )}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button className="btn-secondary text-sm" disabled={!supported || busy} onClick={() => void run(createNewProject)}>{t('createTitle')}</button>
+                <button className="btn-secondary text-sm" disabled={!supported || busy} onClick={() => void run(openExistingProject)}>{t('openTitle')}</button>
+              </div>
+            </details>
+            <button className="py-3 text-sm text-brand underline" disabled={busy} onClick={onSample}>{t('sampleTitle')}</button>
           </div>
           <input
             ref={zipInputRef}
@@ -221,15 +209,6 @@ export default function WelcomeScreen({ onSkip, onSample }: WelcomeScreenProps) 
             }}
           />
 
-          <WelcomeRow
-            icon="🎓"
-            title={t('sampleTitle')}
-            text={t('sampleText')}
-            disabled={busy}
-            onClick={onSample}
-            className="mt-5"
-          />
-
           {busy && (
             <p role="status" className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-brand" />
@@ -238,7 +217,7 @@ export default function WelcomeScreen({ onSkip, onSample }: WelcomeScreenProps) 
           )}
 
           <p className="mt-8 text-center text-xs text-gray-400">
-            🔒 {t('privacyNote')}
+            {t(inBrowser ? 'privacyNote' : 'startText')}
           </p>
         </div>
       </div>
@@ -246,43 +225,9 @@ export default function WelcomeScreen({ onSkip, onSample }: WelcomeScreenProps) 
   )
 }
 
-// A full-width row button: icon, title and a line of text.
-function WelcomeRow({
-  icon,
-  title,
-  text,
-  disabled,
-  onClick,
-  className = '',
-}: {
-  icon: ReactNode
-  title: string
-  text: string
-  disabled?: boolean
-  onClick: () => void
-  className?: string
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`interactive-surface flex w-full items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm hover:border-brand/40 disabled:opacity-50 ${className}`}
-    >
-      <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand/10 text-2xl">
-        {icon}
-      </span>
-      <span className="flex-1">
-        <span className="block font-semibold text-gray-900">{title}</span>
-        <span className="mt-1 block text-sm text-gray-600">{text}</span>
-      </span>
-      <span aria-hidden className="text-brand">→</span>
-    </button>
-  )
-}
-
 interface WelcomeCardProps {
-  icon: string
+  primary?: boolean
+  icon: ReactNode
   title: string
   text: string
   cta: string
@@ -290,9 +235,9 @@ interface WelcomeCardProps {
   onClick: () => void
 }
 
-function WelcomeCard({ icon, title, text, cta, disabled, onClick }: WelcomeCardProps) {
+function WelcomeCard({ icon, title, text, cta, disabled, onClick, primary }: WelcomeCardProps) {
   return (
-    <div className="flex flex-col rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
+    <div className="studio-welcome-card flex flex-col rounded-2xl border border-gray-200 bg-white p-7 shadow-sm">
       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand/10 text-2xl text-brand">
         <span aria-hidden>{icon}</span>
       </div>
@@ -302,10 +247,22 @@ function WelcomeCard({ icon, title, text, cta, disabled, onClick }: WelcomeCardP
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className="btn-primary mt-5 text-sm disabled:opacity-40"
+        className={`${primary ? 'btn-primary' : 'btn-secondary'} mt-5 text-sm disabled:opacity-40`}
       >
         {cta}
       </button>
     </div>
   )
+}
+
+function WelcomeIcon({ kind }: { kind: 'plus' | 'folder' | 'archive' | 'browser' | 'edit' | 'learn' }) {
+  const paths = {
+    plus: 'M12 5v14M5 12h14',
+    folder: 'M3 7V5h6l2 2h10v13H3V7Zm0 3h18',
+    archive: 'M5 3h14v18H5V3Zm7 0v12m-2 1h4v3h-4v-3Z',
+    browser: 'M3 4h18v16H3V4Zm0 5h18M6 6.5h.01M9 6.5h.01',
+    edit: 'm4 16 12-12 4 4L8 20H4v-4Zm10-10 4 4',
+    learn: 'm2 8 10-5 10 5-10 5L2 8Zm4 3v6l6 3 6-3v-6m4-3v8',
+  }
+  return <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d={paths[kind]} /></svg>
 }

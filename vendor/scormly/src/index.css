@@ -1,13 +1,24 @@
 @import "tailwindcss";
+@import "@brand/tokens.css";
 @import "./styles/blocks.css";
 
-/* Default brand tokens (Rose theme). Overridden per-theme below.
+/* Default brand tokens: the brand pack's colours (the company theme). Overridden per-theme below.
  * Every theme keeps white text on --color-brand and --color-brand-dark text on
  * white at >= 4.5:1 (WCAG AA). */
 @theme {
-  --color-brand: #db2777;
-  --color-brand-light: #f9a8d4;
-  --color-brand-dark: #be185d;
+  --color-gray-50: var(--surface-muted);
+  --color-gray-100: var(--canvas);
+  --color-gray-200: var(--stroke-subtle);
+  --color-gray-300: var(--stroke);
+  --color-gray-400: var(--text-muted);
+  --color-gray-500: var(--text-muted);
+  --color-gray-600: var(--text-secondary);
+  --color-gray-700: var(--text-secondary);
+  --color-gray-800: var(--ink);
+  --color-gray-900: var(--ink);
+  --color-brand: var(--brand-pink);
+  --color-brand-light: var(--pink-soft);
+  --color-brand-dark: var(--brand-burgundy);
 }
 
 /*
@@ -563,3 +574,52 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .drawer-in { animation: none; }
 }
+
+/* Company chrome remains consistent while authors preview course-specific themes. */
+[data-theme="company"], .studio-chrome {
+  --color-brand: var(--brand-pink);
+  --color-brand-light: var(--pink-soft);
+  --color-brand-dark: var(--brand-burgundy);
+  --radius-btn: var(--radius-control);
+  --radius-interactive: var(--radius-panel);
+}
+body { font-family: var(--font-ui); background: var(--canvas); color: var(--ink); }
+.studio-brand { display: flex; flex-direction: column; align-items: center; color: var(--brand-blue); font-size: var(--font-caption); font-weight: 600; }
+.studio-brand img { display: block; width: 224px; height: auto; background: var(--surface); }
+.studio-brand.compact img { width: 260px; }
+.studio-chrome { background: var(--surface); border-color: var(--stroke-subtle); }
+header.studio-chrome { height: 88px; box-shadow: none; border-top: 3px solid var(--brand-blue); }
+@media (max-width: 1279px) {
+  .studio-brand.compact img { width: 180px; }
+  header.studio-chrome { height: auto; min-height: 112px; padding-top: 8px; padding-bottom: 8px; flex-wrap: wrap; }
+  header.studio-chrome button { min-height: 44px; }
+  header.studio-chrome button[aria-label] { min-width: 44px; }
+  .studio-mobile-project > div:first-child { min-width: 0; }
+  .studio-mobile-project > div:first-child > button { max-width: 100%; }
+}
+
+.studio-welcome .studio-welcome-card, .studio-welcome .studio-welcome-row { border-radius: var(--radius-panel); box-shadow: none; }
+.studio-welcome .studio-welcome-card > div, .studio-welcome .studio-welcome-row > span:first-child { background: transparent; color: var(--brand-blue); }
+.studio-welcome button { min-height: 44px; }
+.studio-welcome .btn-primary, .studio-welcome .btn-secondary { border-radius: var(--radius-control); align-self: flex-start; }
+.studio-welcome h1 { font-size: var(--font-title); }
+@media (max-width: 767px) {
+  .studio-welcome input, .studio-welcome select { font-size: 16px; }
+}
+
+.studio-back, .studio-context a { min-height: 44px; display: inline-flex; align-items: center; }
+.studio-publish-panel summary, .studio-welcome summary { min-height: 44px; }
+.studio-publish-panel { color: var(--ink); }
+@media (max-width: 767px) {
+  .studio-publish-panel select { font-size: 16px; min-height: 44px; }
+  .studio-publish-panel button, .studio-publish-panel a { min-height: 44px; }
+}
+
+.studio-mobile-project > div:last-child { flex-shrink: 0; }
+.studio-mobile-project > div:last-child > button { white-space: nowrap; }
+.studio-context a { flex-shrink: 0; }
+.studio-course-context { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.studio-welcome > div.flex.flex-1 { align-items: flex-start; padding-top: 24px; }
+
+.studio-brand img.uploaded-logo { max-height: 96px; object-fit: contain; }
+.studio-brand.compact img.uploaded-logo { max-height: 48px; }

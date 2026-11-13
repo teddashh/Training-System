@@ -170,7 +170,7 @@ function MenuItem({
       onClick={onClick}
       className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none"
     >
-      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-gray-400">
+      <span aria-hidden="true" className="flex h-4 w-4 shrink-0 items-center justify-center text-gray-400">
         {icon}
       </span>
       {children}

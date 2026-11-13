@@ -1,8 +1,6 @@
 import Builder from './components/Builder'
-import Landing from './components/landing/Landing'
-import { useRoute } from './hooks/useRoute'
 
+// The company deployment opens its authoring workspace, including at /studio/.
 export default function App() {
-  const { view } = useRoute()
-  return view === 'app' ? <Builder /> : <Landing />
+  return <Builder />
 }

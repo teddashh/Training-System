@@ -1,0 +1,29 @@
+:root, html[data-theme="light"] {
+  --primary: var(--brand-blue);
+  --secondary: var(--brand-blue);
+  --accent: var(--surface);
+  --header-color: var(--ink);
+  --header-bg: var(--surface);
+  --header-branding-color: var(--brand-blue);
+  --header-link-color: var(--brand-blue);
+  --breadcrumbs-bg: var(--brand-blue);
+  --link-fg: var(--brand-blue);
+  --link-hover-color: var(--brand-pink);
+  --link-selected-fg: var(--brand-burgundy);
+  --button-bg: var(--brand-pink);
+  --button-hover-bg: var(--brand-burgundy);
+  --default-button-bg: var(--brand-pink);
+  --default-button-hover-bg: var(--brand-burgundy);
+  --font-family-primary: var(--font-ui);
+  --body-bg: var(--canvas);
+  --body-fg: var(--ink);
+}
+#header { border-top: 3px solid var(--brand-blue); }
+#branding #site-name { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin: 0; font-size: 18px; }
+.brand-admin-logo { display: block; width: 260px; height: auto; background: white; }
+#header a:focus-visible, #header button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+#header a:link, #header a:visited { color: var(--brand-blue); }
+@media (max-width: 767px) {
+  #branding #site-name { justify-content: center; font-size: 16px; }
+  input, select, textarea { font-size: 16px; }
+}

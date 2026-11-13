@@ -19,7 +19,7 @@ export default function ExportMenu() {
   }
 
   return (
-    <div ref={rootRef} className="relative" data-tour="export">
+    <div ref={rootRef} className="relative">
       <button
         ref={triggerRef}
         type="button"
@@ -27,7 +27,7 @@ export default function ExportMenu() {
         aria-haspopup="menu"
         aria-expanded={open}
         disabled={exporting}
-        className="btn-primary flex items-center gap-1 text-sm disabled:opacity-50"
+        className="btn-secondary flex items-center gap-1 text-sm disabled:opacity-50"
       >
         {exporting ? t('exporting') : t('export')}
         <span aria-hidden>▾</span>

@@ -14,7 +14,7 @@ export default function StructuredQuestionFields({
     );
     return (
       <label>
-        {t("Items in the correct order (one per line)")}
+        {t("Correct order")}
         <textarea
           required
           rows={5}
@@ -26,7 +26,7 @@ export default function StructuredQuestionFields({
         />
         <span className="field-hint">
           {t(
-            "Use 2–20 distinct items. Participants receive a shuffled order that stays fixed when resumed.",
+            "Enter 2–20 items, one per line; learners see them shuffled.",
           )}
         </span>
       </label>
@@ -42,9 +42,9 @@ export default function StructuredQuestionFields({
     >
       <p className="field-hint">
         {question.type === "integer"
-          ? t("Enter whole numbers. Any listed answer earns full credit.")
+          ? t("Any listed integer earns full credit.")
           : t(
-              "Each accepted answer has an absolute tolerance (±). Boundary values are included; use 0 for an exact match.",
+              "Tolerance includes its limits; 0 requires an exact match.",
             )}
       </p>
       {solution.map((value, index) => (
@@ -67,7 +67,7 @@ export default function StructuredQuestionFields({
           </label>
           {question.type === "numeric" && (
             <label>
-              {t("Tolerance for answer {number}", { number: index + 1 })}
+              {t("Tolerance {number}", { number: index + 1 })}
               <input
                 required
                 type="text"
@@ -118,7 +118,7 @@ export default function StructuredQuestionFields({
       {question.type === "numeric" && (
         <p className="field-hint">
           {t(
-            "Use a decimal point (for example, 12.5). Scientific notation is supported.",
+            "Use decimals (12.5) or scientific notation.",
           )}
         </p>
       )}

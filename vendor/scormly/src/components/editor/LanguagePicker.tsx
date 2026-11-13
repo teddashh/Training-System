@@ -4,7 +4,7 @@ import { LANGUAGES } from '../../i18n/types'
 
 // Shares English, Traditional Chinese and Spanish with the company platform.
 export default function LanguagePicker() {
-  const { lang, setLang } = useLang()
+  const { lang, setLang, languages } = useLang()
   const { t } = useT('common')
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -18,6 +18,7 @@ export default function LanguagePicker() {
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [open])
 
+  if (languages.length < 2) return null
   return (
     <div ref={rootRef} className="relative">
       <button
@@ -32,7 +33,7 @@ export default function LanguagePicker() {
 
       {open && (
         <div className="absolute right-0 top-full z-30 mt-2 w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg">
-          {LANGUAGES.map((l) => (
+          {languages.map(id => LANGUAGES.find(l => l.id === id)!).map((l) => (
             <button
               key={l.id}
               type="button"

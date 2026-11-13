@@ -496,8 +496,8 @@
 
   function start(course) {
     state.course = course;
-    // A custom theme arrives as a resolved palette (see withThemeTokens).
-    var tk = course.theme === 'custom' && course.themeTokens;
+    // Company and custom themes carry their resolved palette (see withThemeTokens).
+    var tk = (course.theme === 'custom' || course.theme === 'company') && course.themeTokens;
     var accent = tk ? [tk.brand, tk.brandDark, tk.radiusBtn, tk.radiusInteractive]
       : THEME_ACCENT[course.theme] || THEME_ACCENT.rose;
     document.documentElement.style.setProperty('--brand', accent[0]);
@@ -505,7 +505,7 @@
     document.documentElement.style.setProperty('--radius-btn', accent[2]);
     document.documentElement.style.setProperty('--radius-surface', accent[3]);
     // Theme-specific extras beyond color/radius (e.g. terminal font) live in player.css.
-    document.documentElement.setAttribute('data-theme', tk ? 'custom' : THEME_ACCENT[course.theme] ? course.theme : 'rose');
+    document.documentElement.setAttribute('data-theme', tk ? course.theme : THEME_ACCENT[course.theme] ? course.theme : 'rose');
     // High-contrast accent: the theme's dark shade pushed toward black so
     // white-on-brand buttons and brand-colored text reach ~7:1.
     document.documentElement.style.setProperty('--brand-hc', darken(accent[1], 0.6));
