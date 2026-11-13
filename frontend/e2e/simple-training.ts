@@ -154,7 +154,10 @@ export async function simpleTrainingWorkflow(page: Page, browser: Browser) {
     // The sign-in sheet as a PDF, and the spreadsheet as an option.
     const pdfResponse = s.waitForResponse(r => new URL(r.url()).pathname === url(`/api/courses/${receipt.course}/sessions/${receipt.sessions[0]}/export/`) && new URL(r.url()).searchParams.get('kind') === 'sign-in-pdf');
     const pdfDownload = s.waitForEvent('download');
-    await cards.first().getByRole('button', {name: 'Sign-in sheet', exact: true}).click();
+    const signInSheet = cards.first().getByRole('group', {name: 'Sign-in sheet', exact: true});
+    await expect(signInSheet.getByText('Sign-in sheet:', {exact: true})).toBeVisible();
+    await expect(signInSheet.getByRole('button', {name: 'Sign-in sheet PDF', exact: true})).toHaveText('PDF');
+    await signInSheet.getByRole('button', {name: 'Sign-in sheet PDF', exact: true}).click();
     expect((await pdfResponse).headers()['content-type']).toContain('application/pdf');
     const pdf = await pdfDownload;
     // The file is named after the training and the session, as the server suggests.
@@ -162,7 +165,8 @@ export async function simpleTrainingWorkflow(page: Page, browser: Browser) {
     expect(readFileSync((await pdf.path())!).subarray(0, 4).toString('latin1')).toBe('%PDF');
     const sheetResponse = s.waitForResponse(r => new URL(r.url()).pathname === url(`/api/courses/${receipt.course}/sessions/${receipt.sessions[0]}/export/`) && new URL(r.url()).searchParams.get('kind') === 'sign-in');
     const sheetDownload = s.waitForEvent('download');
-    await cards.first().getByRole('button', {name: 'Excel', exact: true}).click();
+    await expect(signInSheet.getByRole('button', {name: 'Sign-in sheet Excel', exact: true})).toHaveText('Excel');
+    await signInSheet.getByRole('button', {name: 'Sign-in sheet Excel', exact: true}).click();
     expect((await sheetResponse).headers()['content-type']).toContain('spreadsheetml');
     const sheet = await sheetDownload;
     expect(sheet.suggestedFilename()).toBe(`${title} - Session 1 - sign-in.xlsx`);
@@ -186,6 +190,7 @@ export async function simpleTrainingWorkflow(page: Page, browser: Browser) {
     await expect(s).toHaveURL(/[?&]tab=people$/);
     await s.reload();
     await expect(s.locator('.training-tabs').getByRole('link', {name: 'People', exact: true})).toHaveAttribute('aria-current', 'page');
+    await expect(s.getByRole('link', {name: 'Assign training', exact: true})).toHaveCount(0);
     const counters = s.getByRole('group', {name: 'Status', exact: true});
     await expect(counters.getByRole('button', {name: 'All 2', exact: true})).toHaveAttribute('aria-pressed', 'true');
     await expect(counters.getByRole('button', {name: 'Registered 2', exact: true})).toBeVisible();

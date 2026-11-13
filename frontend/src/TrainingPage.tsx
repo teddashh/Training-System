@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pencil, Search } from 'lucide-react';
+import { Settings, Search } from 'lucide-react';
 import { api, ApiError } from './api';
 import { appPath } from './paths';
+import { useAccess } from './access';
 import { countLabel, t, useLocale } from './i18n';
 import { Badge, ErrorBox, Modal, Spinner } from './ui';
 import { coverUrl } from './CourseCover';
@@ -24,17 +25,18 @@ import type { Course } from './types';
 
 type Tab = 'overview' | 'people';
 type Created = { notified: number; skipped: RosterRow[] };
+const settingsFromUrl = () => new URLSearchParams(window.location.search).get('settings') === '1';
 const tabFromUrl = (): Tab => new URLSearchParams(window.location.search).get('tab') === 'people' ? 'people' : 'overview';
 
 function readCreated(course: number): Created | null {
   try { return JSON.parse(sessionStorage.getItem(createdKey(course)) || 'null'); } catch { return null; }
 }
 
-export default function TrainingPage({ id, go, onSaved }: { id: number; go: (path: string) => void; onSaved: () => void }) {
+export default function TrainingPage({ id, go, onSaved }: { id: number; go: (path: string, replace?: boolean) => void; onSaved: () => void }) {
   useLocale();
   const [tab, setTab] = useState<Tab>(tabFromUrl);
   const [overview, setOverview] = useState<TrainingOverview | null>(null), [course, setCourse] = useState<Course | null>(null);
-  const [error, setError] = useState(''), [editing, setEditing] = useState(false);
+  const [error, setError] = useState(''), [editing, setEditing] = useState(settingsFromUrl);
   const [created, setCreated] = useState<Created | null>(() => readCreated(id));
   const [prefill, setPrefill] = useState<string | null>(null), [version, setVersion] = useState(0);
   // Shown once: a reload or a later visit does not repeat the confirmation.
@@ -46,12 +48,12 @@ export default function TrainingPage({ id, go, onSaved }: { id: number; go: (pat
   }, [id]);
   useEffect(() => {
     let active = true;
-    load().then(full => { if (active && full.delivery_mode !== 'scheduled') go(`/authoring?course=${id}&action=edit`); })
+    load().then(full => { if (active && full.delivery_mode !== 'scheduled') go(`/authoring?course=${id}&action=edit`, true); })
       .catch(e => { if (active) setError((e as Error).message); });
     return () => { active = false; };
   }, [load, id, go]);
   useEffect(() => {
-    const pop = () => setTab(tabFromUrl());
+    const pop = () => { setTab(tabFromUrl()); setEditing(settingsFromUrl()); };
     window.addEventListener('popstate', pop);
     return () => window.removeEventListener('popstate', pop);
   }, []);
@@ -63,6 +65,12 @@ export default function TrainingPage({ id, go, onSaved }: { id: number; go: (pat
     history.pushState({}, '', url);
     setTab(next);
   }
+  function closeSettings() {
+    setEditing(false);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('settings');
+    history.replaceState({}, '', url);
+  }
   if (error && !overview) return <ErrorBox message={error} />;
   if (!overview || !course) return <Spinner />;
   const state = !overview.published ? 'Draft' : overview.release_at && Date.parse(overview.release_at) > Date.now() ? 'Scheduled' : '';
@@ -71,7 +79,7 @@ export default function TrainingPage({ id, go, onSaved }: { id: number; go: (pat
   return <div className="training-page">
     <div className="page-heading training-heading">
       <div className="training-title"><img className="training-thumb" src={coverUrl(course.cover)} alt="" /><h1>{overview.title}</h1>{state && <Badge tone="amber">{t(state)}</Badge>}</div>
-      <div className="heading-actions"><button type="button" className="btn" onClick={() => setEditing(true)}><Pencil size={16} />{t('Edit')}</button>
+      <div className="heading-actions"><button type="button" className="btn" onClick={() => setEditing(true)}><Settings size={16} />{t('Course settings')}</button>
         <ActionMenu title={course.title} label={t('More')}>
           <CancelTraining course={course} onSaved={() => void refresh()} />
           <DeleteTraining kind="course" target={course} onDeleted={() => { onSaved(); go('/authoring'); }} />
@@ -88,7 +96,10 @@ export default function TrainingPage({ id, go, onSaved }: { id: number; go: (pat
     {tab === 'overview'
       ? <Overview overview={overview} course={course} onChanged={refresh} />
       : <People overview={overview} course={course} version={version} prefill={prefill} onPrefilled={() => setPrefill(null)} onChanged={refresh} />}
-    {editing && <CourseEditor course={course} onClose={() => setEditing(false)} onSaved={() => void refresh()} />}
+    {editing && <CourseEditor course={course} onTrainingPage go={go} onClose={closeSettings} onSaved={saved => {
+      if (saved && saved.delivery_mode !== 'scheduled') { onSaved(); go('/authoring'); }
+      else void refresh();
+    }} />}
   </div>;
 }
 
@@ -102,9 +113,10 @@ function RegistrationShare({ overview, onChanged }: { overview: TrainingOverview
     try { await navigator.clipboard.writeText(link); setCopied(true); setFallback(false); }
     catch { setFallback(true); }
   }
-  async function create() {
+  async function create(rotate = false) {
+    if (rotate && !window.confirm(t('Create a new registration link? The old link will stop working immediately.'))) return;
     setBusy(true); setError('');
-    try { await api(`courses/${overview.id}/registration-link/`, 'POST', { rotate: false }); onChanged(); }
+    try { await api(`courses/${overview.id}/registration-link/`, 'POST', { rotate }); setCopied(false); setFallback(false); onChanged(); }
     catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   }
@@ -112,6 +124,10 @@ function RegistrationShare({ overview, onChanged }: { overview: TrainingOverview
     <div className="heading-actions training-share">
       {link ? <button type="button" className="btn primary" onClick={() => void copy()}>{t(copied ? 'Copied' : 'Copy link')}</button>
         : <button type="button" className="btn primary" disabled={busy} onClick={() => void create()}>{t('Create link')}</button>}
+      {link && <><a className="btn" href={link} target="_blank" rel="noopener noreferrer">{t('Open page')}</a>
+        <ActionMenu title={t('Registration link')}>
+          <button type="button" disabled={busy} onClick={() => void create(true)}>{t('Create new link')}</button>
+        </ActionMenu></>}
       {link && <p className="muted">{t('Anyone with it can register or switch session.')}</p>}
     </div>
     {fallback && link && <div className="registration-share"><label>{t('Registration link')}<input readOnly value={link} onFocus={e => e.target.select()} /></label></div>}
@@ -140,9 +156,12 @@ function Sessions({ overview, course, onChanged }: { overview: TrainingOverview;
     <h2>{t('Sessions')}</h2>
     <div className="session-list">{overview.sessions.map(session => {
       return <SessionCard key={session.id} session={session} seats={sessionFacts(session)}>
-        <div className="session-file-pair">
-          <button type="button" className="btn small" disabled={busy} onClick={() => void download(session, 'sign-in-pdf')}>{t('Sign-in sheet')}</button>
-          <button type="button" className="btn small" disabled={busy} onClick={() => void download(session, 'sign-in')}>{t('Excel')}</button>
+        <div className="heading-actions" role="group" aria-label={t('Sign-in sheet')}>
+          <span>{t('Sign-in sheet:')}</span>
+          <div className="session-file-pair">
+            <button type="button" className="btn small" disabled={busy} aria-label={t('Sign-in sheet PDF')} onClick={() => void download(session, 'sign-in-pdf')}>{t('PDF')}</button>
+            <button type="button" className="btn small" disabled={busy} aria-label={t('Sign-in sheet Excel')} onClick={() => void download(session, 'sign-in')}>{t('Excel')}</button>
+          </div>
         </div>
         <button type="button" className="btn small" onClick={() => setAttendance(session)}>{t('Attendance')}</button>
         <ActionMenu title={session.title}>
@@ -152,6 +171,7 @@ function Sessions({ overview, course, onChanged }: { overview: TrainingOverview;
       </SessionCard>;
     })}</div>
     <ErrorBox message={error} />
+    {!overview.sessions.length && <p className="muted">{t('No sessions available.')}</p>}
     <button type="button" className="btn" onClick={() => setEditing(null)}>{t('Add session')}</button>
     {editing !== undefined && <SessionEditor course={course} session={editing} onClose={() => setEditing(undefined)} onSaved={onChanged} />}
     {attendance && <Modal title={`${t('Attendance')} · ${attendance.title}`} wide onClose={closeAttendance}>
@@ -290,7 +310,8 @@ function People({ overview, course, version, prefill, onPrefilled, onChanged }: 
   overview: TrainingOverview; course: Course; version: number; prefill: string | null; onPrefilled: () => void; onChanged: () => void;
 }) {
   const locale = useLocale();
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]['key']>('all'), [search, setSearch] = useState(''), [page, setPage] = useState(1);
+  const access = useAccess();
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]['key']>(() => FILTERS.find(f => f.key === new URLSearchParams(window.location.search).get('status'))?.key || 'all'), [search, setSearch] = useState(''), [page, setPage] = useState(1);
   const [data, setData] = useState<EnrollmentPage | null>(null), [loading, setLoading] = useState(true), [error, setError] = useState(''), [message, setMessage] = useState('');
   const [adding, setAdding] = useState<string | null>(prefill), [deciding, setDeciding] = useState<{ row: EnrollmentRow; decision: Decision } | null>(null);
   const [busy, setBusy] = useState(false), [reload, setReload] = useState(0);
@@ -302,12 +323,15 @@ function People({ overview, course, version, prefill, onPrefilled, onChanged }: 
     const timer = setTimeout(() => {
       const params = new URLSearchParams({ status: chosen.status, page: String(page), search: search.trim() });
       api<EnrollmentPage>(`courses/${course.id}/enrollments/?${params}`)
-        .then(result => { if (active) { setData(result); setError(''); } })
+        .then(result => { if (active) {
+          setData(result); setError('');
+          if (filter !== 'all' && !result.counts[filter]) { setFilter('all'); setPage(1); }
+        } })
         .catch(e => { if (active) setError((e as Error).message); })
         .finally(() => { if (active) setLoading(false); });
     }, search ? 200 : 0);
     return () => { active = false; clearTimeout(timer); };
-  }, [course.id, chosen.status, page, search, version, reload]);
+  }, [course.id, chosen.status, filter, page, search, version, reload]);
   function changed() { setReload(v => v + 1); onChanged(); }
   async function move(row: EnrollmentRow, target: SessionOverview) {
     setBusy(true); setError(''); setMessage('');
@@ -328,7 +352,10 @@ function People({ overview, course, version, prefill, onPrefilled, onChanged }: 
       {FILTERS.filter(f => ['all', 'registered'].includes(f.key) || counts[f.key]).map(f => <button key={f.key} type="button" className="btn" aria-pressed={filter === f.key}
         onClick={() => { setFilter(f.key); setPage(1); }}>{t(f.label)} <span className="count">{counts[f.key] || 0}</span></button>)}
     </div>
-    {adding === null ? <button type="button" className="btn primary training-add-toggle" onClick={() => setAdding('')}>{t('Add people')}</button>
+    {adding === null ? <div className="heading-actions training-add-toggle">
+      <button type="button" className="btn primary" onClick={() => setAdding('')}>{t('Add people')}</button>
+      {course.published && access.assign && <a className="btn" href={appPath(`/assignments?action=assign&course=${course.id}&report=1`)}>{t('Assign training')}</a>}
+    </div>
       : <AddPeople overview={overview} course={course} prefill={adding} onClose={() => setAdding(null)} onAdded={changed} />}
     {(counts.all || 0) > 10 && <div className="search-field training-search"><Search size={16} /><input aria-label={t('Search people')} placeholder={t('Search people')} value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} /></div>}
     <div role="status">{message}</div>

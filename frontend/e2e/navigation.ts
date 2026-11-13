@@ -22,7 +22,7 @@ export async function trainingMore(page: Page, item: string) {
 }
 /** Opens a training row's menu (everything a row can do besides opening). */
 export async function rowMenu(page: Page, title: string) {
-  await page.locator('.training-row').filter({hasText: title}).getByLabel(`More actions for ${title}`, {exact: true}).click();
+  await page.locator('.training-row').filter({has: page.getByRole('link', {name: title, exact: true})}).getByLabel(`More actions for ${title}`, {exact: true}).click();
 }
 
 /** Secondary exam actions live in the row disclosure. */

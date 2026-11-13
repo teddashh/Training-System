@@ -22,9 +22,7 @@ export async function roundsSessionsWorkflow(page:Page,browser:Browser){
   await page.getByRole('button',{name:'Save exam',exact:true}).click();
   await expect(page.getByRole('dialog',{name:'Edit exam',exact:true})).toHaveCount(0);
   expect((await (await page.request.get(url(`/api/exams/${exam.id}/`))).json()).attempt_reset_minutes).toBe(4320);
-  await page.goto(url('/courses'));
-  const card=page.locator('.course-card').filter({has:page.getByRole('heading',{name:title,exact:true})});
-  await card.getByRole('button',{name:`Edit ${title}`,exact:true}).click();
+  await page.goto(url(`/authoring/${course.id}`));
   for(const [name,offset] of [['Morning',1],['Afternoon',3]] as const){
     await page.getByRole('button',{name:'Add session',exact:true}).click();
     const dialog=page.getByRole('dialog',{name:'Add session',exact:true});
@@ -36,13 +34,12 @@ export async function roundsSessionsWorkflow(page:Page,browser:Browser){
     await dialog.getByRole('button',{name:'Save session',exact:true}).click();
     await expect(dialog).toHaveCount(0);
   }
-  await expect(page.locator('.session-row')).toHaveCount(2);
-  // Managers reveal the shareable link in the course editor; learners never see it in the session list.
-  const editor=page.getByRole('dialog',{name:'Edit course details',exact:true});
-  await moreOptions(page);
-  await editor.getByRole('button',{name:'Show registration link',exact:true}).click();
-  await expect(editor.getByLabel('Registration link',{exact:true})).toHaveValue(new RegExp('^'+new URL(url('/register'),page.url()).href.replace(/[.?*+^$()[\]{}|\\/]/g,'\\$&')+'#[A-Za-z0-9_-]{43}$'));
-  await editor.getByRole('button',{name:'Close',exact:true}).click();
+  await expect(page.locator('.session-card')).toHaveCount(2);
+  // Share links live on the training page; learners never see them in the session list.
+  await page.getByRole('button',{name:'Create link',exact:true}).click();
+  await expect(page.getByRole('link',{name:'Open page',exact:true})).toHaveAttribute('href',new RegExp('^'+new URL(url('/register'),page.url()).href.replace(/[.?*+^$()[\]{}|\\/]/g,'\\$&')+'#[A-Za-z0-9_-]{43}$'));
+  await page.goto(url('/courses'));
+  const card=page.locator('.course-card').filter({has:page.getByRole('heading',{name:title,exact:true})});
   await card.getByRole('button',{name:'View sessions',exact:true}).click();
   await expect(page.getByLabel('Registration link',{exact:true})).toHaveCount(0);
   await expect(page.getByRole('dialog',{name:'Choose a session',exact:true}).getByRole('button',{name:'Start learning',exact:true})).toHaveCount(0);

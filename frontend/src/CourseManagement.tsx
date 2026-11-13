@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Eye, Pencil, Send, Settings, Upload, UserPlus, Users, Link2 } from "lucide-react";
+import { Download, Eye, Pencil, Send, Settings, Upload, UserPlus, Users } from "lucide-react";
 import { useAccess } from "./access";
 import { api } from "./api";
 import { appPath } from "./paths";
@@ -11,8 +11,8 @@ import { CancelTraining, DeleteTraining } from "./TrainingLifecycle";
 import { nextSession, shortWhen } from "./simpleTraining";
 import type { Course } from "./types";
 
-/** Trainings with sessions open on their own page; everything else opens the course editor. */
-export const opensTrainingPage = (course: Course) => course.delivery_mode === "scheduled" && course.sessions.length > 0;
+/** Every scheduled training has its own page, including drafts without sessions. */
+export const opensTrainingPage = (course: Course) => course.delivery_mode === "scheduled";
 
 export default function CourseManagement({ course, onOpen, onSettings, onEnrollments, onUpload, onSaved }: {
   course: Course;
@@ -53,9 +53,8 @@ export default function CourseManagement({ course, onOpen, onSettings, onEnrollm
       {course.venue !== "onsite" && <a href={appPath(`/courses?course=${course.id}&action=preview`)}><Eye size={16} />{t("Preview content")}</a>}
       {!course.published && <button type="button" disabled={busy || !publishable} title={!publishable ? t("Add content before publishing") : undefined} onClick={() => void publish()}><Send size={16} />{t(course.release_at && Date.parse(course.release_at) > Date.now() ? "Schedule release" : "Publish course")}</button>}
       <button type="button" onClick={onSettings}><Settings size={16} />{t("Course settings")}</button>
-      {course.published && course.delivery_mode === "scheduled" && <a href={appPath(`/courses?course=${course.id}&action=register`)}><Link2 size={16} />{t("Registration page")}</a>}
-      {course.published && access.assign && <a href={appPath(`/assignments?action=assign&course=${course.id}&report=1`)}><UserPlus size={16} />{t("Assign training")}</a>}
-      <button type="button" disabled={!course.published} onClick={onEnrollments}><Users size={16} />{t("Enrollments")}</button>
+      {!opensTrainingPage(course) && course.published && access.assign && <a href={appPath(`/assignments?action=assign&course=${course.id}&report=1`)}><UserPlus size={16} />{t("Assign training")}</a>}
+      <button type="button" disabled={!opensTrainingPage(course) && !course.published} onClick={onEnrollments}><Users size={16} />{t("People")}</button>
       {native && access.scorm_upload && <a href={appPath(`/studio/?course=${course.id}#/app`)}><Pencil size={16} />{t("Open in Studio")}</a>}
       {course.venue !== "onsite" && access.scorm_upload && <button type="button" onClick={onUpload}><Upload size={16} />{t("Upload SCORM")}</button>}
       {access.scorm_source && course.package?.has_source && <a href={appPath(`/api/courses/${course.id}/source/`)}><Download size={16} />{t("Content backup")}</a>}

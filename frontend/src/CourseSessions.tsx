@@ -1,14 +1,14 @@
 import { appPath } from "./paths";
 import AddToCalendar from "./AddToCalendar";
-import { formatDate, formatTimeRange, zoneName } from "./datetime";
-import CourseIntro, {SessionCard, SessionsHeading, sessionLabel} from "./CourseIntro";
+import { zoneName } from "./datetime";
+import CourseIntro, {SessionCard, SessionsHeading} from "./CourseIntro";
 export {sessionLabel} from "./CourseIntro";
 import AssessmentBlock from "./AssessmentBlock";
-import {useEffect,useState} from 'react';
+import {useState} from 'react';
 import CourseMaterials from './CourseMaterials';
 import {api} from './api';
 import {countLabel,t,useLocale} from './i18n';
-import {Badge,ErrorBox,Modal} from './ui';
+import {ErrorBox,Modal} from './ui';
 import type {Course,CourseSession} from './types';
 
 export function localDate(value?:string|null){
@@ -46,16 +46,6 @@ export function SessionEditor({course,session,onClose,onSaved}:{course:Course;se
     </div>{session&&<label className="checkbox-label"><input type="checkbox" checked={cancelled} onChange={e=>setCancelled(e.target.checked)}/>{t('Cancel this session')}</label>}</details>
     <ErrorBox message={error}/><div className="modal-footer"><button type="button" className="btn" onClick={onClose}>{t('Cancel')}</button><button className="btn primary" disabled={busy}>{t(busy?'Saving…':'Save session')}</button></div></fieldset>
   </form></Modal>;
-}
-
-export function CourseSessions({course,onSaved}:{course:Course;onSaved:()=>void}){
-  const locale=useLocale();const [sessions,setSessions]=useState(course.sessions||[]),[editing,setEditing]=useState<CourseSession|null|undefined>(),[error,setError]=useState('');
-  function refresh(){void api<CourseSession[]>(`courses/${course.id}/sessions/`).then(setSessions).catch(e=>setError(e.message));}
-  useEffect(refresh,[course.id]);
-  return <section className="form-section"><div className="section-heading"><h3>{t('Sessions')}</h3><button type="button" className="btn" onClick={()=>setEditing(null)}>{t('Add session')}</button></div>
-    {sessions.length?<div className="session-list">{sessions.map(s=><div className="session-row" key={s.id}><div><strong>{s.title}</strong>{s.location&&<p>{t('Location')}: {s.location}</p>}{s.meeting_url&&<a className="btn" href={s.meeting_url} target="_blank" rel="noopener noreferrer">{t('Join meeting')}</a>}<p>{formatDate(s.starts_at, locale)} · {formatTimeRange(s.starts_at, s.ends_at, locale)}</p><small>{t('{reserved} / {capacity} seats reserved',{reserved:s.reserved,capacity:s.capacity})}</small></div><div className="heading-actions"><Badge tone={s.state==='open'?'teal':'neutral'}>{sessionLabel(s.state)}</Badge><button type="button" className="btn" aria-label={t('Edit session {name}',{name:s.title})} onClick={()=>setEditing(s)}>{t('Edit')}</button></div></div>)}</div>:<p className="muted">{t('No sessions yet.')}</p>}
-    <ErrorBox message={error}/>{editing!==undefined&&<SessionEditor course={course} session={editing} onClose={()=>setEditing(undefined)} onSaved={()=>{refresh();onSaved();}}/>}
-  </section>;
 }
 
 export function SessionEnrollment({course:initial,onClose,onSaved,onReady,message}:{message?:string;course:Course;onClose:()=>void;onSaved:()=>void;onReady:(course:Course)=>void}){

@@ -15,7 +15,7 @@ export async function courseAssessmentsWorkflow(page: Page, browser: Browser) {
   const onsite = await write(page, 'courses/', {title: `Shared on-site ${stamp}`, published: true, delivery_mode: 'scheduled', venue: 'onsite', duration_minutes: 45, category: 'Synthetic practice', description: 'Synthetic enrollment introduction.\n'.repeat(8)});
   const session = await write(page, `courses/${onsite.id}/sessions/`, {title: 'Synthetic session', location: 'Synthetic room', starts_at: new Date(Date.now() + 86400000).toISOString(), ends_at: new Date(Date.now() + 90000000).toISOString(), capacity: 10});
   await page.goto(url(`/authoring?course=${online.id}&action=edit`));
-  const sourceEditor = page.getByRole('dialog', {name: 'Edit course details', exact: true});
+  const sourceEditor = page.getByRole('dialog', {name: 'Course settings', exact: true});
   await sourceEditor.getByRole('button', {name: 'Create quiz', exact: true}).click();
   const newQuiz = page.getByRole('dialog', {name: 'Create exam', exact: true});
   await moreOptions(page);
@@ -63,7 +63,7 @@ export async function courseAssessmentsWorkflow(page: Page, browser: Browser) {
   const invitation = await write(page, 'exams/', {title: `Interview quiz ${stamp}`, published: true, audience: 'invitation', questions: [{type: 'single', description: 'Synthetic interview question.', options: ['Yes', 'No'], solution: [0], points: 100, position: 0}]});
   const draftInvitation = await write(page, 'exams/', {title: `Pending interview ${stamp}`, published: false, audience: 'invitation', courses: [onsite.id]});
   await page.goto(url(`/authoring?course=${onsite.id}&action=edit`));
-  const editor = page.getByRole('dialog', {name: 'Edit course details', exact: true});
+  const editor = page.getByRole('dialog', {name: 'Course settings', exact: true});
   const draftInvitationRow = editor.locator('.assessment-link').filter({hasText: draftInvitation.title});
   await expect(draftInvitationRow.getByText('Draft', {exact: true})).toBeVisible();
   await expect(draftInvitationRow).toContainText("This quiz requires an invitation.");
@@ -118,13 +118,13 @@ export async function courseAssessmentsWorkflow(page: Page, browser: Browser) {
   await expect(editor.locator('.assessment-link').filter({hasText: exam.title}).getByRole('button', {name: 'Link copied', exact: true})).toBeVisible();
   await expect(participantLink).toHaveCount(0);
   expect(await page.evaluate(() => sessionStorage.getItem('synthetic-participant-copy'))).toBe(new URL(url(`/exams?exam=${exam.id}`), page.url()).href);
-  await editor.getByRole('button', {name: 'Add session', exact: true}).click();
+  await editor.getByRole('button', {name: 'Close', exact: true}).click();
+  await page.getByRole('button', {name: 'Add session', exact: true}).click();
   const sessionEditor = page.getByRole('dialog', {name: 'Add session', exact: true});
   await expect(sessionEditor.locator('.course-assessment-block')).toHaveCount(0);
   await sessionEditor.getByRole('button', {name: 'Close', exact: true}).click();
   const linked = await (await page.request.get(url(`/api/exams/${exam.id}/`))).json();
   expect(linked.courses).toEqual([online.id, onsite.id]);
-  await editor.getByRole('button', {name: 'Close', exact: true}).first().click();
   const username = `shared-assessment-${stamp}`, password = 'Synthetic-assessment-2026!';
   const participant = await write(page, 'users/', {username, password, role: 'learner'});
   const context = await browser.newContext({baseURL: new URL(page.url()).origin});

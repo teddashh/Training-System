@@ -1,4 +1,34 @@
 {
+  "Open page": {
+    "en": "Open page",
+    "zh-TW": "開啟頁面",
+    "es": "Abrir página"
+  },
+  "Open training page": {
+    "en": "Open training page",
+    "zh-TW": "開啟訓練頁面",
+    "es": "Abrir página de formación"
+  },
+  "Sign-in sheet PDF": {
+    "en": "Sign-in sheet PDF",
+    "zh-TW": "點名單 PDF",
+    "es": "Hoja de asistencia PDF"
+  },
+  "Sign-in sheet Excel": {
+    "en": "Sign-in sheet Excel",
+    "zh-TW": "點名單 Excel",
+    "es": "Hoja de asistencia Excel"
+  },
+  "Sign-in sheet:": {
+    "en": "Sign-in sheet:",
+    "zh-TW": "點名單：",
+    "es": "Hoja de asistencia:"
+  },
+  "PDF": {
+    "en": "PDF",
+    "zh-TW": "PDF",
+    "es": "PDF"
+  },
   "Directory sync failed. Nothing was changed.": {
     "en": "Directory sync failed. Nothing was changed.",
     "zh-TW": "目錄同步失敗。未變更任何資料。",

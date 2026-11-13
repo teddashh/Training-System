@@ -42,7 +42,7 @@ You now have a course in the learner catalog. See [course authoring](OPERATIONS.
 
 Click **Training → New training** for an on-site event. Add the title, date, start/end time, place and seats. Add people now or share **Copy link** from the resulting training page. The form publishes the course and creates registration.
 
-At session time, open **Attendance** and mark Present or Absent. Download **Sign-in sheet** or **Excel** if you need a paper roster. You now have registration and attendance records. See [sessions and attendance](OPERATIONS.md#schedule-sessions-and-mark-attendance), including online sessions.
+At session time, open **Attendance** and mark Present or Absent. Under **Sign-in sheet**, choose **PDF** for printing or **Excel** for a spreadsheet. You now have registration and attendance records. See [sessions and attendance](OPERATIONS.md#schedule-sessions-and-mark-attendance), including online sessions.
 
 ## 7. Create an exam
 

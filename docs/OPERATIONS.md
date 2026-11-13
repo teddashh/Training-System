@@ -52,7 +52,7 @@ Document import accepts PDF/PPTX text, not slide layouts, images, animation or O
 
 In Studio, use **Publish to course** to upload content and its editable backup. Use **Make available to learners** afterward, or **Publish course** in Training, to release the course. Uploading replacement content preserves its current visibility. **Download backup** keeps an editable copy; browser drafts alone do not move between devices.
 
-Use **Course settings** for category, duration, cover, enrollment approval and release time. Learners see published courses whose release time has arrived. The [starter library](course-library-sources.md) provides optional draft content.
+Open a scheduled training by its title, then choose **Course settings** for category, duration, cover, enrollment approval and release time. Self-paced courses keep their settings dialog. Learners see published courses whose release time has arrived. The [starter library](course-library-sources.md) provides optional draft content.
 
 ## Schedule sessions and mark attendance
 
@@ -60,11 +60,11 @@ For an on-site event, choose **Training → New training**. Enter a title and on
 
 Paste e-mail addresses or employee IDs, use **Pick people**, or upload CSV/XLSX. **Download template** provides Email, Employee ID and Name columns. Each row uses Email when present, otherwise Employee ID; Name never identifies a person. Limits are 1 MiB per file, 2,000 input lines and 500 unique people per request. Resolve skipped lines before creating the event.
 
-The training page has **Overview** and **People**. Overview contains **Copy link**, sessions, quiz state and **E-mail reminders**. People supports adding, moving, approving and removing participants. A confirmed or pending registration reserves a seat. Learners can switch before their current session starts, subject to the destination window and capacity.
+The training page has **Overview** and **People**. Overview contains the registration link, sessions, quiz state and **E-mail reminders**. People supports adding, moving, approving and removing participants. **Add people** adds participants directly; organizers with assignment rights also see **Assign training** for published trainings. A confirmed or pending registration reserves a seat. Learners can switch before their current session starts, subject to the destination window and capacity.
 
-For online sessions, use **Course settings → Scheduled online sessions** and add sessions to a published course. On-site courses require a place; scheduled sessions can have an HTTPS meeting link. Only managers and the learner's approved session expose that link.
+For online sessions, select **Scheduled online sessions** in **Course settings** and save. Open the training page and choose **Add session** on Overview. Scheduled drafts can have sessions too. On-site courses require a place; scheduled sessions can have an HTTPS meeting link. Only managers and the learner's approved session expose that link.
 
-From a session, choose **Attendance** after it starts. Mark **Present** or **Absent**; press the selected choice again to clear it. **Mark all present** marks the approved roster. Canceled sessions cannot be marked. **Sign-in sheet** downloads a PDF; **Excel** downloads the worksheet. Attendance results are available from session start.
+From a session, choose **Attendance** after it starts. Mark **Present** or **Absent**; press the selected choice again to clear it. **Mark all present** marks the approved roster. Canceled sessions cannot be marked. Under **Sign-in sheet**, choose **PDF** for printing or **Excel** for the same roster as a spreadsheet. Attendance results are available from session start.
 
 On-site presence completes the course. Marking absent or clearing presence removes that completion. Online content access within the learner's session provides automatic attendance evidence; manual marks override it. Online attendance does not itself complete the content. Moving sessions clears the old attendance evidence.
 
@@ -72,15 +72,15 @@ Add scheduled-course **Materials** as HTTPS links or PDF, PPTX, PPT, DOCX or XLS
 
 ## Course enrollment approval
 
-Enable approval in **Course settings**. Learners request access, then see the decision. Open **Enrollments**, or the training's **People** tab, to approve, reject, remove or restore enrollment. Pending approval reserves a scheduled seat.
+Enable approval in **Course settings**. Learners request access, then see the decision. Open the training's **People** tab to approve, reject, remove or restore enrollment. A self-paced row's **People** opens its enrollment dialog after publication. Pending approval reserves a scheduled seat.
 
 Removal blocks learning and SCORM files while preserving progress and completion history. Publication, release time and session timing still apply. Assignment does not bypass admission rules. Migration `0015_course_enrollment_approval` defaults old courses to open enrollment and old enrollments to approved.
 
 ## Shareable course registration links
 
-Use **Copy link** on a scheduled training. The public page shows course/session facts and registration availability, not the participant roster. The recipient signs in to register. The link does not bypass capacity, approval or account checks.
+Use **Copy link** on the training page's Overview tab. **Open page** opens the same registration page in a new tab. The public page shows course/session facts and registration availability, not the participant roster. The recipient signs in to register. The link does not bypass capacity, approval or account checks.
 
-A manager can rotate or disable the course registration link. Rotation invalidates the previous key. Numeric course links remain separate. See the [registration API](SIMPLE-TRAINING-API.md#request-and-response-contracts).
+Choose **Create new link** from the registration section's menu and confirm to replace the link. The old link stops working immediately. For self-paced courses, registration links remain under **Course settings → More options**. Numeric course links remain separate. See the [registration API](SIMPLE-TRAINING-API.md#request-and-response-contracts).
 
 ## Create an exam
 

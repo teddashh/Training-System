@@ -3,7 +3,7 @@ import type { Course, CourseSession } from '../src/types';
 
 const url = (path: string) => (process.env.E2E_SUBPATH || '') + path;
 test.beforeEach(async ({ page }) => { page.on('pageerror', error => { throw error; }); });
-async function setup(page: Page) {
+async function setup(page: Page, assign = false) {
   const session: CourseSession = { id: 81, title: 'Synthetic session', revision: 2, location: 'Room',
     starts_at: new Date(Date.now() + 86400000).toISOString(), ends_at: new Date(Date.now() + 90000000).toISOString(),
     registration_opens_at: null, registration_closes_at: new Date(Date.now() + 86400000).toISOString(),
@@ -25,7 +25,7 @@ async function setup(page: Page) {
     }
     let data: unknown = [];
     if (path.endsWith('/auth/session/')) data = { user: { id: 1, username: 'test', display_name: 'Test Manager',
-      role: 'training_scheduler', access: { courses: 'own', exams: 'own', results: 'none', assign: false,
+      role: 'training_scheduler', access: { courses: 'own', exams: 'own', results: 'none', assign,
         invitations: false, system_admin: false, people: false, scorm_upload: false, scorm_source: false } }, entra_enabled: false };
     else if (path.endsWith('/courses/901/deletion-preview/')) data = { title: course.title, counts: { sessions: 1, enrollments: 1, assignments: 0 } };
     else if (path.endsWith('/exams/902/deletion-preview/')) data = { title: exam.title, counts: { questions: 2, attempts: state.attempts, courses: 0, invitations: 0, assignments: 0 } };
@@ -43,6 +43,8 @@ async function setup(page: Page) {
     else if (path.endsWith('/courses/')) data = state.courseDeleted ? [] : [course];
     else if (path.endsWith('/exams/')) data = state.examDeleted ? [] : [exam];
     else if (path.endsWith('/exams/902/')) data = exam;
+    else if (path.endsWith('/courses/901/assessments/')) data = { linked: [], available: [] };
+    else if (path.endsWith('/courses/901/enrollments/')) data = { count: 0, page: 1, page_size: 50, counts: { all: 0 }, results: [] };
     else if (path.endsWith('/courses/901/')) data = course;
     else if (path.endsWith('/training/')) data = { ...course, reminders: false, registration_url: null, quizzes: [],
       sessions: [{ ...session, counts: { registered: 1, pending: 0, present: 0, absent: 0, seats: 1 }, emails: [] }] };
@@ -138,6 +140,62 @@ test('training page supports single-session cancellation and returns to list aft
   await dialog.getByRole('button', { name: 'Delete permanently' }).click();
   await expect(page).toHaveURL(new RegExp('/authoring$'));
   await expect(page.locator('.training-row')).toHaveCount(0);
+});
+
+test('People deep links select counted statuses and fall back to All for empty statuses', async ({ page }) => {
+  await setup(page, true);
+  const statuses: string[] = [];
+  await page.route('**/api/courses/901/enrollments/**', route => {
+    statuses.push(new URL(route.request().url()).searchParams.get('status')!);
+    return route.fulfill({ json: { count: 0, page: 1, page_size: 50, results: [],
+      counts: { all: 2, registered: 1, pending: 1, attended: 0, absent: 0, cancelled: 0 } } });
+  });
+  await page.goto(url('/authoring/901?tab=people&status=pending&settings=1'));
+  const settings = page.getByRole('dialog', { name: 'Course settings', exact: true });
+  await settings.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp('/authoring/901\\?tab=people&status=pending$'));
+  const filters = page.getByRole('group', { name: 'Status', exact: true });
+  await expect(filters.getByRole('button', { name: 'Pending 1', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  expect(statuses).toEqual(['pending']);
+  const assign = page.getByRole('link', { name: 'Assign training', exact: true });
+  await expect(assign).toBeVisible();
+  await page.getByRole('button', { name: 'Add people', exact: true }).click();
+  await expect(assign).toHaveCount(0);
+  await page.locator('.training-add').getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(assign).toBeVisible();
+
+  statuses.length = 0;
+  await page.goto(url('/authoring/901?tab=people&status=cancelled'));
+  await expect(filters.getByRole('button', { name: 'All 2', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(() => statuses).toEqual(['cancelled', 'all']);
+  await expect(filters.getByRole('button', { name: 'Cancelled 0', exact: true })).toHaveCount(0);
+  await page.goto(url('/authoring/901?tab=people&status=unknown'));
+  await expect(filters.getByRole('button', { name: 'All 2', exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('catalog settings link to the training page; self-paced redirects replace history', async ({ page }) => {
+  const state = await setup(page);
+  await page.goto(url('/courses'));
+  await page.getByRole('button', { name: 'Edit Synthetic training', exact: true }).click();
+  const settings = page.getByRole('dialog', { name: 'Course settings', exact: true });
+  const home = settings.getByRole('link', { name: 'Open training page', exact: true });
+  await expect(home).toHaveAttribute('href', url('/authoring/901'));
+  await expect(settings.getByRole('button', { name: 'Add session', exact: true })).toHaveCount(0);
+  await home.click();
+  await expect(page).toHaveURL(new RegExp('/authoring/901$'));
+  await expect(settings).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Add session', exact: true })).toBeVisible();
+
+  state.course.delivery_mode = 'self_paced';
+  state.course.venue = 'online';
+  state.course.sessions = [];
+  await page.goto(url('/my-training'));
+  await expect(page.getByRole('heading', { name: 'My training', exact: true })).toBeVisible();
+  await page.goto(url('/authoring/901'));
+  await expect(page).toHaveURL(new RegExp('/authoring\\?course=901&action=edit$'));
+  await expect(settings).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp('/my-training$'));
 });
 
 test('My training hides unpublished courses and restores republished courses', async ({ page }) => {

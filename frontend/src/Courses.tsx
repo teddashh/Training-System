@@ -5,7 +5,7 @@ import DocumentImport, { type DocumentPages } from "./DocumentImport";
 import CourseCover, { DEFAULT_COVER, CourseArtwork } from "./CourseCover";
 import CourseMaterials from './CourseMaterials';
 import CourseAssessments from "./CourseAssessments";
-import {CourseSessions,SessionEnrollment,RegistrationLink,localDate} from './CourseSessions';
+import {SessionEnrollment,RegistrationLink,localDate} from './CourseSessions';
 import { appPath } from "./paths";
 import { countLabel, getLocale, t, useLocale } from "./i18n";
 import { useEffect, useRef, useState } from "react";
@@ -37,10 +37,14 @@ export function CourseEditor({
   course,
   onClose,
   onSaved,
+  onTrainingPage = false,
+  go,
 }: {
   course: Course | null;
   onClose: () => void;
   onSaved: (saved?: Course) => void;
+  onTrainingPage?: boolean;
+  go?: (path: string, replace?: boolean) => void;
 }) {
   useLocale();
   const access = useAccess();
@@ -113,7 +117,7 @@ export function CourseEditor({
   return (
     <Modal
       title={
-        course ? t("Edit course details") : t("Create course")
+        course ? t("Course settings") : t("Create course")
       }
       onClose={onClose}
       closeDisabled={busy}
@@ -231,10 +235,14 @@ export function CourseEditor({
         </button>
         </div> : <p className="muted">{t("Next: edit your draft in Studio.")}</p>}
         {course && <CourseAssessments course={course} onSaved={onSaved} />}
-        <section className="form-section"><h3>{t('Delivery and release')}</h3><div className="form-grid">
-
-
-        </div>{!course?.published && <p className="muted">{t('Publish before scheduling or assigning.')}</p>}{course?.published && deliveryMode==='scheduled'&&(course?.delivery_mode==='scheduled'&&course.venue===venue?<CourseSessions course={course} onSaved={onSaved}/>:<p className="muted">{t('Save the course as Scheduled sessions first.')}</p>)}</section>
+        {((deliveryMode !== 'scheduled' && !course?.published) || (deliveryMode === 'scheduled' &&
+          (!onTrainingPage || course?.delivery_mode !== 'scheduled' || course.venue !== venue))) &&
+          <section className="form-section"><h3>{t('Delivery and release')}</h3>
+            {deliveryMode !== 'scheduled' ? <p className="muted">{t('Publish before scheduling or assigning.')}</p>
+              : course?.delivery_mode === 'scheduled' && course.venue === venue
+                ? <a className="btn small" href={appPath(`/authoring/${course.id}`)} onClick={go ? event => { event.preventDefault(); go(`/authoring/${course.id}`); } : undefined}>{t('Open training page')}</a>
+                : <p className="muted">{t('Save the course as Scheduled sessions first.')}</p>}
+          </section>}
         {course?.delivery_mode==='scheduled'&&<CourseMaterials course={course} edit/>}
         {(course || venue === "onsite" || contentType === "text") && <label className="checkbox-label">
           <input
@@ -246,7 +254,7 @@ export function CourseEditor({
         </label>}
         <details className="course-options">
           <summary>{t("More options")}</summary>
-          {course?.published && <RegistrationLink course={course} />}
+          {course?.published && course.delivery_mode !== 'scheduled' && deliveryMode !== 'scheduled' && <RegistrationLink course={course} />}
           {course?.published && <label>{t('Release time')}<input type="datetime-local" value={release} onChange={e=>setRelease(e.target.value)}/><span className="field-hint">{t('Leave blank to release immediately.')}</span></label>}
           <div className="form-grid">
             <label>{t("Course category")}<input value={category} onChange={e => setCategory(e.target.value)} maxLength={50} /></label>
@@ -529,7 +537,7 @@ export default function Courses({
   onSaved,
   studio = false,
   registrationMessage,
-  go = path => window.location.assign(appPath(path)),
+  go = (path, replace = false) => replace ? window.location.replace(appPath(path)) : window.location.assign(appPath(path)),
 }: {
   courses: Course[];
   exams?: Exam[];
@@ -537,7 +545,7 @@ export default function Courses({
   onSaved: () => void;
   studio?: boolean;
   registrationMessage?: string;
-  go?: (path: string) => void;
+  go?: (path: string, replace?: boolean) => void;
 }) {
   useLocale();
   const [search, setSearch] = useState(""),
@@ -583,11 +591,17 @@ export default function Courses({
       if (action === "register" && target.published) setEnrolling(target);
       else if (action === "learn" && target.can_learn) void open(target, false, true);
       else if (target.can_manage && action === "preview") void open(target, true);
-      else if (target.can_manage && action === "edit") setEditing(target);
-      else if (target.can_manage && action === "enrollments") setRoster(target);
+      else if (target.can_manage && action === "edit") {
+        if (opensTrainingPage(target)) go(`/authoring/${target.id}?settings=1`, true);
+        else setEditing(target);
+      }
+      else if (target.can_manage && action === "enrollments") {
+        if (opensTrainingPage(target)) go(`/authoring/${target.id}?tab=people&status=pending`, true);
+        else setRoster(target);
+      }
       else if (!action && target.published) void open(target);
     }
-  }, [courses, manage]);
+  }, [courses, manage, go]);
   // One list of everything the person manages: upcoming sessions first, then the latest.
   const available = studio ? sortTrainings(courses.filter(course => course.can_manage)) : courses.filter(course => course.published);
   const filtered = available.filter(
@@ -718,7 +732,8 @@ export default function Courses({
         studio ? <div className="training-list">
           {filtered.map(course => <CourseManagement key={course.id} course={course}
             onOpen={() => opensTrainingPage(course) ? go(`/authoring/${course.id}`) : setEditing(course)}
-            onSaved={onSaved} onSettings={() => setEditing(course)} onEnrollments={() => setRoster(course)}
+            onSaved={onSaved} onSettings={() => opensTrainingPage(course) ? go(`/authoring/${course.id}?settings=1`) : setEditing(course)}
+            onEnrollments={() => opensTrainingPage(course) ? go(`/authoring/${course.id}?tab=people`) : setRoster(course)}
             onUpload={() => { setError(""); setUploading(course); }} />)}
         </div> : <div className="course-grid">
           {filtered.map(c => (
@@ -821,6 +836,7 @@ export default function Courses({
       {editing !== undefined && (
         <CourseEditor
           course={editing}
+          go={go}
           onClose={() => setEditing(undefined)}
           onSaved={() => onSaved()}
         />

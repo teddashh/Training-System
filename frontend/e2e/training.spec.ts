@@ -12,6 +12,7 @@ import { uploadGuestFigure, expectFigureLoaded } from "./figures";
 import { emailWorkflow, notificationCourseLinkWorkflow, notificationExamLinkWorkflow } from "./notifications";
 import { libraryWorkflow } from "./library";
 import { roundsSessionsWorkflow } from "./rounds-sessions";
+import { trainingHomeWorkflow } from "./training-home";
 import { simpleTrainingWorkflow } from "./simple-training";
 import { learningViewport } from "./learning";
 import { contentWorkflow } from "./content";
@@ -467,7 +468,7 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
 test("dashboard, responsive navigation, library and persisted course editor", async ({
   page, browser,
 }) => {
-  test.setTimeout(180000);
+  test.setTimeout(240000);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await login(page);
@@ -532,6 +533,7 @@ test("dashboard, responsive navigation, library and persisted course editor", as
   await contentWorkflow(page, browser);
   await libraryWorkflow(page);
   await roundsSessionsWorkflow(page, browser);
+  await trainingHomeWorkflow(page);
   await simpleTrainingWorkflow(page, browser);
   expect(errors).toEqual([]);
 });

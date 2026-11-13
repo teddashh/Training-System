@@ -18,6 +18,7 @@ export async function libraryWorkflow(page:Page) {
   await rowMenu(page,title);
   await expect(draft.getByRole('button',{name:'Publish course',exact:true})).toBeVisible();
   await expect(draft.getByRole('link',{name:'Assign training',exact:true})).toHaveCount(0);
+  await expect(draft.getByRole('button',{name:'People',exact:true})).toBeDisabled();
   await draft.getByRole('button',{name:'Course settings',exact:true}).click();
   const preview=page.locator('.course-cover-field .course-cover');
   await expect(preview.locator('.course-cover-image')).toHaveAttribute('src',url('/covers/microsoft-teams.svg?v=2'));
@@ -53,7 +54,7 @@ export async function libraryWorkflow(page:Page) {
   await page.getByLabel('Existing quiz',{exact:true}).selectOption(String(quiz.id));
   await page.getByRole('button',{name:'Attach quiz',exact:true}).click();
   await expect(page.locator('.assessment-link').getByText(quiz.title,{exact:true})).toBeVisible();
-  await page.getByRole('dialog',{name:'Edit course details',exact:true}).getByRole('button',{name:'Publish course',exact:true}).click();
+  await page.getByRole('dialog',{name:'Course settings',exact:true}).getByRole('button',{name:'Publish course',exact:true}).click();
   await page.goto(url('/courses'));
   card=page.locator('.course-card').filter({has:page.getByRole('heading',{name:updatedTitle,exact:true})});
   await expect(card.getByText('Published',{exact:true})).toBeVisible();
@@ -66,8 +67,8 @@ export async function libraryWorkflow(page:Page) {
   await expect(card.getByRole('link',{name:'Preview exam',exact:true})).toHaveCount(0);
   await expect(card.getByRole('link',{name:'Take assessment',exact:true})).toHaveAttribute('href',url(`/exams?exam=${quiz.id}&action=start`));
   await card.getByRole('button',{name:'Manage quizzes',exact:true}).click();
-  await expect(page.getByRole('dialog',{name:'Edit course details',exact:true})).toBeVisible();
-  await page.getByRole('dialog',{name:'Edit course details',exact:true}).getByRole('button',{name:'Close',exact:true}).first().click();
+  await expect(page.getByRole('dialog',{name:'Course settings',exact:true})).toBeVisible();
+  await page.getByRole('dialog',{name:'Course settings',exact:true}).getByRole('button',{name:'Close',exact:true}).first().click();
   await card.getByRole('link',{name:'Take assessment',exact:true}).click();
   await expect(page.getByRole('dialog',{name:'Ready to start?',exact:true}).getByRole('heading',{name:quiz.title,exact:true})).toBeVisible();
 

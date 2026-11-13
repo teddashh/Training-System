@@ -79,6 +79,8 @@ export async function contentWorkflow(page: Page, browser: Browser) {
   const nativeRow = page.locator('.training-row').filter({ hasText: title });
   await nativeRow.getByLabel(`More actions for ${title}`, { exact: true }).click();
   await nativeRow.getByRole('button', { name: `Edit ${title} content`, exact: true }).click();
+  await expect(page.getByRole('dialog', {name: 'Course settings', exact: true})).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(url('/authoring') + '$'));
   await expect(page.getByLabel('Block 1 content')).toHaveValue(text);
   await page.getByRole('dialog').getByRole('button', { name: 'Save course', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);

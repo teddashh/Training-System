@@ -67,8 +67,9 @@ export default function App() {
     [loading, setLoading] = useState(false);
   const [registrationResult, setRegistrationResult] = useState<{course: string; message: string} | null>(null);
   const [registrationBusy, setRegistrationBusy] = useState(false);
-  const go = useCallback((next: string) => {
-    history.pushState({}, "", appPath(next));
+  const go = useCallback((next: string, replace = false) => {
+    if (replace) history.replaceState({}, "", appPath(next));
+    else history.pushState({}, "", appPath(next));
     setPath(new URL(next, window.location.origin).pathname);
     setMobile(false);
     setQuery("");
@@ -375,7 +376,7 @@ export default function App() {
             ) : path === "/my-exams" ? (
               <MyExams exams={exams}/>
             ) : path === "/courses" ? (
-              <Courses registrationMessage={registrationResult?.course === new URLSearchParams(window.location.search).get('course') ? t(registrationResult.message) : undefined} key={"courses" + window.location.search} courses={courses} exams={exams} user={user} onSaved={refresh} />
+              <Courses registrationMessage={registrationResult?.course === new URLSearchParams(window.location.search).get('course') ? t(registrationResult.message) : undefined} key={"courses" + window.location.search} courses={courses} exams={exams} user={user} onSaved={refresh} go={go} />
             ) : path === "/assignments" ? (
               <Assignments
                 key={"assignments" + window.location.search}
