@@ -4,7 +4,7 @@
 
 The supported runtime is `backend/`, `frontend/`, integrated `vendor/scormly/` and the Compose deployment. Dependency manifests and lockfiles define the active packages. The upstream audit does not certify security or complete feature parity.
 
-`legacy/yaksh/` is unsupported archival source. Its old dependencies are not part of the modern deployment. Do not install or deploy those requirements. `vendor/scorm-reference/` is also retained source, not a running service.
+`legacy/yaksh/` is unsupported archival source, kept for the upstream feature audit. It is never installed or deployed, so its dependency manifests (`requirements/*.txt`, `setup.py`) were removed; dependency alerts cover only the supported runtime. `vendor/scorm-reference/` is also retained source, not a running service.
 
 ## Protect content and identities
 
