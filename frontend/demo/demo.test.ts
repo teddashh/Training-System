@@ -67,6 +67,26 @@ test('same-day reload preserves timestamps and edits; a new local day discards s
     assert.equal(storage.getItem(storageKey), null);
   }
 });
+test('guest invitation starts with its own empty attempt history regardless of signed-in results', async () => {
+  const {state, call} = setup();
+  state.switchView('learner');
+  const result = state.data.attempts.find(a => a.exam_id === 1 && a.user_id === state.data.userId)!;
+  for (const passed of [false, true]) {
+    Object.assign(result, {status: 'graded', passed, score: passed ? 100 : 0});
+    const own = await call<Exam>('exams/1/');
+    assert.equal(own.last_result?.passed, passed);
+    for (const [path, method] of [['guest/exam/', 'GET'], ['guest/exchange/', 'POST']]) {
+      const guest = await call<Exam & {remaining: number; invitation_remaining: number}>(path, method);
+      assert.equal(guest.has_passed, false);
+      assert.equal(guest.last_result, null);
+      assert.equal(guest.active_attempt_id, null);
+      assert.equal(guest.attempts_used, 0);
+      assert.equal(guest.remaining, guest.invitation_remaining);
+      assert.equal(guest.remaining, guest.attempts_remaining);
+      assert.equal(examLearnerState(guest).state, 'ready');
+    }
+  }
+});
 test('each course uses a distinct existing product cover', () => {
   const covers = JSON.parse(readFileSync(new URL('../../shared/brand/covers.json', import.meta.url), 'utf8')) as { id: string }[];
   const selected = createData().courses.map(course => course.cover);
@@ -161,6 +181,17 @@ test('exam objective types score from solutions; essay submissions await review'
   const essay = await call<Attempt>('exams/3/start/', 'POST');
   const pending = await call<Attempt>(`attempts/${essay.id}/`, 'POST', { answers: { ...correct, '7': 'A team meeting.' } });
   assert.equal(pending.status, 'pending_review'); assert.equal(pending.score, 80); assert.equal(pending.passed, null);
+  const pendingView = await call<Exam>('exams/3/');
+  assert.deepEqual(pendingView.last_result, {id: essay.id, status: 'pending_review', score: null, passed: null});
+  assert.equal(pendingView.has_passed, false);
+  assert.equal(examLearnerState(pendingView).state, 'retake');
+  const pendingAttempt = state.data.attempts.find(a => a.id === essay.id)!;
+  state.data.attempts.splice(state.data.attempts.indexOf(pendingAttempt), 0,
+    {...structuredClone(pendingAttempt), id: 'older-pass', status: 'graded', passed: true, score: 100});
+  const afterPass = await call<Exam>('exams/3/');
+  assert.equal(afterPass.has_passed, true);
+  assert.equal(afterPass.last_result?.id, essay.id);
+  assert.equal(examLearnerState(afterPass).state, 'completed');
 });
 test('unsupported writes and downloads fail normally; only unknown paths warn', async () => {
   const { route } = setup();

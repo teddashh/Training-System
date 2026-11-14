@@ -612,24 +612,29 @@ def guest_email_verify(request):
 def guest_info(inv):
     budget = AttemptBudget.objects.filter(exam=inv.exam, identity=inv.identity).first()
     from .attempt_rounds import round_status
-    allowance = round_status(inv.exam, budget)
-    remaining = allowance['attempts_remaining']
     # The secret link identifies one pre-bound recipient; typing another email
     # never creates a new identity or budget. The link itself is a credential.
     now = timezone.now()
-    attempts = Attempt.objects.filter(exam=inv.exam, identity=inv.identity)
-    last_started_at = (
-        attempts.order_by("-number").values_list("started_at", flat=True).first()
-    )
-    active = attempts.filter(status="in_progress", deadline__gt=now).first()
+    attempts = list(Attempt.objects.filter(exam=inv.exam, identity=inv.identity).only(
+        'id', 'number', 'status', 'deadline', 'started_at', 'graded_at', 'score', 'passed',
+    ).order_by('number'))
+    allowance = round_status(inv.exam, budget, now, history=attempts)
+    remaining = allowance['attempts_remaining']
+    last_started_at = attempts[-1].started_at if attempts else None
+    active = next((a for a in reversed(attempts) if a.status == 'in_progress' and a.deadline > now), None)
+    results = [a for a in attempts if a.status != 'in_progress' or a.deadline <= now]
+    last = results[-1] if results else None
     eligible = next_attempt_at(inv.exam, last_started_at)
     if allowance['next_round_at']:
         eligible = max(eligible, allowance['next_round_at']) if eligible else allowance['next_round_at']
+    invitation_remaining = max(0, inv.max_attempts - inv.used)
     return {
         "exam_id": inv.exam_id,
         "title": inv.exam.title,
         "description": inv.exam.description,
         "duration_minutes": inv.exam.duration_minutes,
+        "starts_at": inv.exam.starts_at,
+        "ends_at": inv.exam.ends_at,
         "retry_interval_minutes": inv.exam.retry_interval_minutes,
         "attempt_reset_minutes": inv.exam.attempt_reset_minutes,
         "next_round_at": allowance['next_round_at'],
@@ -639,7 +644,12 @@ def guest_info(inv):
         "next_attempt_at": eligible,
         "server_time": now,
         "active_attempt_id": str(active.pk) if active else None,
-        "remaining": max(0, min(remaining, inv.max_attempts - inv.used)),
+        "last_result": {'id': str(last.pk), 'status': last.status,
+                        'score': last.score if last.status == 'graded' else None,
+                        'passed': last.passed if last.status == 'graded' else None} if last else None,
+        "has_passed": any(a.status == 'graded' and a.passed is True for a in attempts),
+        "remaining": min(remaining, invitation_remaining),
+        "invitation_remaining": invitation_remaining,
         "recipient": inv.identity.label,
         "expires_at": inv.expires_at,
     }
@@ -829,10 +839,10 @@ def dashboard(request):
         {
             "people": people.count(),
             "courses": courses.count(),
-            "completion": round(completed / total * 100) if total else 0,
+            "completion": (completed * 200 + total) // (2 * total) if total else 0,
             "enrollments": total,
             "completed": completed,
-            "pass_rate": round(graded.filter(passed=True).count() / count * 100)
+            "pass_rate": (graded.filter(passed=True).count() * 200 + count) // (2 * count)
             if count
             else 0,
             "average_score": round(

@@ -37,6 +37,21 @@ test('unknown progress and closed, upcoming, completed or waiting assessments ar
   const rows = selectNextSteps([course(1,{enrollment:{status:'approved'},progress:20,progress_known:false,assessments})],assessments,[],7,now);
   assert.deepEqual(rows.map(r=>r.action), ['Retake']);
 });
+test('pending assignments and course quizzes offer Retake only when available', () => {
+  const last_result = {id: 'pending', status: 'pending_review', score: null, passed: null};
+  const available = exam(1, {last_result}), courseQuiz = exam(2, {last_result});
+  const waiting = exam(3, {last_result, next_attempt_at: iso(1)});
+  const exhausted = exam(4, {last_result, attempts_remaining: 0});
+  const passed = exam(5, {last_result, has_passed: true});
+  const passedActive = exam(6, {last_result, has_passed: true, active_attempt_id: 'active'});
+  const assessments = [available, courseQuiz, waiting, exhausted, passed, passedActive];
+  const rows = selectNextSteps([course(1, {enrollment: {status: 'approved'}, assessments})], assessments,
+    [assignment('exam', 1, null), assignment('exam', 3, null), assignment('exam', 4, null), assignment('exam', 5, null)], 7, now);
+  assert.deepEqual(rows.map(row => [row.key, row.action, row.caption]), [
+    ['exam:6', 'Resume', 'Attempt in progress'],
+    ['exam:1', 'Retake', 'Assigned to you'], ['exam:2', 'Retake', 'assessment'],
+  ]);
+});
 test('selection retains total beyond the five displayed rows and ignores pending participation assessments', () => {
   const courses = Array.from({length:7},(_,i)=>course(i,{progress:10,enrollment:{status:'approved'}}));
   courses.push(course(50,{enrollment:{status:'pending'},assessments:[exam(50)]}));
@@ -76,4 +91,11 @@ test('a quiz that opened when the session ended comes before later sessions and 
   assert.deepEqual(rows.map(r => r.key), ['exam:9', 'course:2', 'exam:5', 'course:3']);
   assert.equal(rows[0].course?.title, 'Hot work briefing');
   assert.equal(rows[0].since, iso(-24));
+});
+
+test('ended assigned session that cannot be learned opens session information', () => {
+  const session = {id: 1, starts_at: iso(-3), ends_at: iso(-2), cancelled: false};
+  const c = course(1, {delivery_mode: 'scheduled', can_learn: false, enrollment: {status: 'approved', session}});
+  const [row] = selectNextSteps([c], [], [assignment('course', 1, null)], 7, now);
+  assert.equal(row.action, 'View session'); assert.equal(row.path, '/courses?course=1&action=register');
 });

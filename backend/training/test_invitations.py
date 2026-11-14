@@ -1,6 +1,7 @@
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.db import connection, connections
 from django.test import TestCase, TransactionTestCase, override_settings
@@ -8,6 +9,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from .models import (
+    Attempt,
     AttemptBudget,
     AuditEvent,
     Identity,
@@ -15,7 +17,7 @@ from .models import (
     InvitationBatch,
     User,
 )
-from .services import hash_token, identity_for_user, start_attempt
+from .services import finalize, hash_token, identity_for_user, start_attempt
 from .tests import make_exam
 
 
@@ -44,6 +46,68 @@ class InvitationWorkflowTests(TestCase):
 
     def bulk(self, payload):
         return self.client.post("/api/invitations/bulk/", payload, format="json")
+
+    def test_guest_sees_pending_result_and_earlier_pass_from_the_same_history(self):
+        exam = make_exam(self.admin, limit=3, essay=True)
+        exam.starts_at = timezone.now() - timedelta(minutes=1)
+        exam.ends_at = timezone.now() + timedelta(hours=2)
+        exam.save()
+        identity = Identity.objects.create(key='retake-guest@example.test', label='Synthetic guest')
+        invitation = Invitation.objects.create(exam=exam, identity=identity, created_by=self.admin,
+            token_hash=hash_token('retake-guest-token'), max_attempts=3, expires_at=timezone.now() + timedelta(days=1))
+        guest = APIClient()
+        response = guest.post('/api/guest/exchange/', {'token': 'retake-guest-token'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data['has_passed'])
+        self.assertIsNone(response.data['last_result'])
+        self.assertEqual(response.data['starts_at'], exam.starts_at)
+        self.assertEqual(response.data['ends_at'], exam.ends_at)
+        first = start_attempt(exam.pk, identity, invitation)
+        finalize(first)
+        pending = guest.get('/api/guest/exam/').data
+        self.assertEqual(pending['last_result'], {'id': str(first.pk), 'status': 'pending_review', 'score': None, 'passed': None})
+        self.assertEqual(pending['remaining'], 2)
+        self.assertEqual(pending['invitation_remaining'], 2)
+        self.assertFalse(pending['has_passed'])
+        # An authenticated account may be taking an invitation for a different identity.
+        account_attempt = start_attempt(exam.pk, identity_for_user(self.member))
+        finalize(account_attempt)
+        Attempt.objects.filter(pk=account_attempt.pk).update(status='graded', score=80, passed=True)
+        guest.force_authenticate(self.member)
+        self.assertTrue(guest.get(f'/api/exams/{exam.pk}/').data['has_passed'])
+        self.assertFalse(guest.get('/api/guest/exam/').data['has_passed'])
+        response = guest.post('/api/guest/exam/', {}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['number'], 2)
+        second = Attempt.objects.get(pk=response.data['id'])
+        self.assertEqual(guest.get(f'/api/attempts/{second.pk}/').status_code, 200)
+        finalize(second)
+        Attempt.objects.filter(pk=first.pk).update(status='graded', score=80, passed=True)
+        result = guest.get('/api/guest/exam/').data
+        self.assertTrue(result['has_passed'])
+        self.assertEqual(result['last_result']['id'], str(second.pk))
+        self.assertEqual(result['last_result']['status'], 'pending_review')
+        self.assertIsNone(result['last_result']['score'])
+
+    def test_guest_round_wait_keeps_invitation_limit_separate(self):
+        exam = make_exam(self.admin, limit=1)
+        exam.attempt_reset_minutes = 1
+        exam.save()
+        identity = Identity.objects.create(key='round-guest@example.test', label='Synthetic guest')
+        invitation = Invitation.objects.create(exam=exam, identity=identity, created_by=self.admin,
+            token_hash=hash_token('round-guest-token'), max_attempts=2, expires_at=timezone.now() + timedelta(days=1))
+        guest = APIClient()
+        self.assertEqual(guest.post('/api/guest/exchange/', {'token': 'round-guest-token'}, format='json').status_code, 200)
+        attempt = start_attempt(exam.pk, identity, invitation)
+        finalize(attempt)
+        waiting = guest.get('/api/guest/exam/').data
+        self.assertEqual(waiting['remaining'], 0)
+        self.assertEqual(waiting['invitation_remaining'], 1)
+        self.assertEqual(waiting['next_round_at'], attempt.graded_at + timedelta(minutes=1))
+        with patch('django.utils.timezone.now', return_value=attempt.graded_at + timedelta(minutes=1)):
+            ready = guest.get('/api/guest/exam/').data
+            self.assertEqual(ready['remaining'], 1)
+            self.assertEqual(ready['invitation_remaining'], 1)
 
     @override_settings(APP_ORIGIN="https://learn.example.test", APP_BASE_PATH="/training")
     def test_subpath_is_retained_in_single_batch_and_replayed_guest_links(self):
@@ -354,3 +418,36 @@ class ConcurrentInvitationTests(TransactionTestCase):
         self.assertEqual(results[0][1]["invitations"], results[1][1]["invitations"])
         self.assertEqual(InvitationBatch.objects.count(), 1)
         self.assertEqual(Invitation.objects.count(), 2)
+
+
+@override_settings(DEBUG=True)
+class RoundRegressionTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user('audit-owner', role='instructor')
+        self.learner = User.objects.create_user('audit-learner')
+        self.client = APIClient()
+        self.client.force_authenticate(self.learner)
+
+
+    def test_invitation_renewal_uses_current_round_grade_time(self):
+        exam = make_exam(self.owner, limit=1)
+        exam.attempt_reset_minutes = 10
+        exam.save()
+        identity = identity_for_user(self.learner)
+        now = timezone.now()
+        invite = Invitation.objects.create(exam=exam, identity=identity, created_by=self.owner,
+                                           token_hash=hash_token('audit-round'), max_attempts=5,
+                                           expires_at=now + timedelta(days=1))
+        first = start_attempt(exam.pk, identity, invite)
+        finalize(first)
+        with patch('django.utils.timezone.now', return_value=now + timedelta(minutes=11)):
+            second = start_attempt(exam.pk, identity, invite)
+            finalize(second)
+        self.client.force_authenticate(self.owner)
+        with patch('django.utils.timezone.now', return_value=now + timedelta(minutes=19)):
+            reviewed = self.client.post(f'/api/results/{first.pk}/review/', {'grades': {}}, format='json')
+            self.assertEqual(reviewed.status_code, 200, reviewed.data)
+        with patch('django.utils.timezone.now', return_value=now + timedelta(minutes=22)):
+            response = self.client.get('/api/invitations/', {'exam': exam.pk})
+            self.assertEqual(response.status_code, 200, response.data)
+            self.assertEqual(response.data[0]['remaining_new_attempts'], 1)

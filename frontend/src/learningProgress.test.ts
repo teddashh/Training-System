@@ -18,6 +18,15 @@ test('counts unavailable assigned items but excludes other people and cancelled 
 test('only completed courses and passed exams are done', () => {
   assert.deepEqual(learningProgress([c(1, {progress: 100, enrollment: {status: 'approved'}}), c(2, {progress: 50, enrollment: {status: 'approved'}}), c(3, {enrollment: {status: 'removed'}})], [e(1, {last_result: {passed: null}})], [], 1), {done: 1, total: 3});
 });
+test('an earlier pass still counts when the latest result is pending', () => {
+  assert.deepEqual(learningProgress([], [e(1, {has_passed: true, last_result: {status: 'pending_review', passed: null}})], [], 1), {done: 1, total: 1});
+});
+test('a pass still counts while a later attempt is in progress', () => {
+  for (const passed of [{has_passed: true, last_result: {status: 'pending_review', passed: null}},
+    {has_passed: false, last_result: {status: 'graded', passed: true}}]) {
+    assert.deepEqual(learningProgress([], [e(1, {...passed, active_attempt_id: 'active'})], [], 1), {done: 1, total: 1});
+  }
+});
 
 test('completed personal targets produce a complete total', () => {
   assert.deepEqual(learningProgress([c(1, {enrollment: {status: 'approved', completed_at: '2026-01-01'}})], [e(2, {last_result: {passed: true}})], [a(1)], 1), {done: 2, total: 2});

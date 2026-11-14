@@ -1,7 +1,8 @@
 import { appPath } from "./paths";
 import { useEffect, useState } from "react";
 import { Download, Upload } from "lucide-react";
-import { api, ApiError } from "./api";
+import { api, ApiError, request, unreachable } from "./api";
+import { readBody } from "./responseBody";
 import { t, useLocale } from "./i18n";
 import { Badge, ErrorBox, Modal, Spinner, statusLabel } from "./ui";
 
@@ -147,12 +148,12 @@ export default function MarksImport({
         status: filters.status,
       });
       if (filters.number) params.set("number", filters.number);
-      const response = await fetch(appPath(`/api/${endpoint}template/?${params}`), {
+      const response = await request(appPath(`/api/${endpoint}template/?${params}`), {
         credentials: "same-origin",
         headers: { "Accept-Language": locale === "zh-TW" ? "zh-hant" : locale },
       });
       if (!response.ok) {
-        const data = await response.json();
+        const data = await readBody(response, unreachable);
         throw new Error(
           typeof data === "string"
             ? data
@@ -161,7 +162,8 @@ export default function MarksImport({
               : data.detail || t("Request failed"),
         );
       }
-      const url = URL.createObjectURL(await response.blob());
+      const file = await response.blob().catch((reason) => { throw unreachable(reason); });
+      const url = URL.createObjectURL(file);
       const link = document.createElement("a");
       link.href = url;
       link.download = `exam-${examId}-marks.csv`;

@@ -155,7 +155,7 @@ export async function trainingHomeWorkflow(page: Page) {
   await page.locator('.training-row').getByRole('link', { name: event.title, exact: true }).click();
   await expect(page).toHaveURL(new RegExp(url(`/authoring/${event.id}`) + '$'));
   await expect(page.getByText('No sessions available.', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Add session', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Add session', exact: true })).toBeVisible();
-  await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+  // The server refuses sessions on an unpublished training, so the button waits for publication.
+  await expect(page.getByRole('button', { name: 'Add session', exact: true })).toBeDisabled();
+  await expect(page.getByText('Publish first.', { exact: true })).toBeVisible();
 }

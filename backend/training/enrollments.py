@@ -199,11 +199,13 @@ def roster(user, course, params):
         "requested_at", "id"
     )
     from django.db.models import Count
+    present = Q(status='approved') & (Q(attendance='present') | Q(attendance='', attended_at__isnull=False))
+    absent = Q(status='approved', attendance='absent')
     counts = rows.aggregate(
         all=Count('id'), registered=Count('id', filter=Q(status='approved')),
         pending=Count('id', filter=Q(status='pending')),
-        attended=Count('id', filter=Q(attendance='present') | Q(attendance='', attended_at__isnull=False)),
-        absent=Count('id', filter=Q(attendance='absent')),
+        attended=Count('id', filter=present),
+        absent=Count('id', filter=absent),
         cancelled=Count('id', filter=Q(status='cancelled')),
     )
     quizzes = list(course.assessments.filter(published=True).values_list('pk', flat=True))
@@ -220,6 +222,11 @@ def roster(user, course, params):
         raise ValidationError(translate("Invalid enrollment status."))
     if status != "all":
         rows = rows.filter(status=status)
+    attendance = params.get('attendance')
+    if attendance is not None:
+        if attendance not in ('present', 'absent'):
+            raise ValidationError(translate('Invalid enrollment status.'))
+        rows = rows.filter(present if attendance == 'present' else absent)
     if params.get('session'):
         try:session_id = int(params['session'])
         except (TypeError, ValueError):raise ValidationError(translate('Choose a valid session.'))

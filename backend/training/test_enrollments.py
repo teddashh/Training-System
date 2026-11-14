@@ -261,6 +261,23 @@ class EnrollmentTests(TestCase):
         )
         self.assertIn("aprobación", str(response.data))
 
+    def test_attendance_filter_precedes_pagination_and_combines_with_search(self):
+        from django.utils import timezone
+        for i in range(20):
+            Enrollment.objects.create(course=self.course, user=User.objects.create_user(f'present-{i}'),
+                                      status='approved', attended_at=timezone.now())
+        absent = Enrollment.objects.create(course=self.course, user=self.learner, status='approved',
+                                           attendance='absent', attended_at=timezone.now())
+        Enrollment.objects.create(course=self.course, user=self.other, status='removed', attendance='absent')
+        url = self.root + 'enrollments/'
+        result = self.manager.get(url, {'status': 'all', 'attendance': 'absent'}).data
+        self.assertEqual((result['count'], result['results'][0]['id']), (1, absent.pk))
+        self.assertEqual((result['counts']['attended'], result['counts']['absent']), (20, 1))
+        self.assertEqual(self.manager.get(url, {'status': 'all', 'attendance': 'absent', 'search': 'Taylor'}).data['count'], 1)
+        self.assertEqual(self.manager.get(url, {'status': 'all', 'attendance': 'absent', 'search': 'present'}).data['count'], 0)
+        self.assertEqual(self.manager.get(url, {'status': 'all', 'attendance': 'present'}).data['count'], 20)
+        self.assertEqual(self.manager.get(url, {'attendance': 'invalid'}).status_code, 400)
+
     def test_review_and_request_audit_failure_roll_back_state(self):
         with patch(
             "training.enrollments.audit",

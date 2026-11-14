@@ -1,10 +1,10 @@
 import { GradingGuideEditor } from "./GradingGuide";
 import QuestionFigureEditor from "./QuestionFigureEditor";
 import QuestionFigure, { QuestionContent, questionPayload } from "./QuestionFigure";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Search, Pencil, LibraryBig } from "lucide-react";
 import { api } from "./api";
-import { t, useLocale } from "./i18n";
+import { countLabel, t, useLocale } from "./i18n";
 import type { Question } from "./types";
 import { Badge, Empty, ErrorBox, Modal } from "./ui";
 import { questionTypes, questionTypeDefaults } from "./questionTypes";
@@ -29,18 +29,18 @@ export function BankPicker({
     [search, setSearch] = useState("");
   const [open, setOpen] = useState(false),
     [error, setError] = useState("");
+  const request = useRef(0);
+  const [loading, setLoading] = useState(false);
+  function close() { request.current++; setOpen(false); setSelected([]); setRows([]); setLoading(false); }
   async function load() {
-    setOpen(!open);
-    if (!open)
-      try {
-        setRows(
-          (await api<BankQuestion[]>("question-bank/")).filter(
-            (q) => !q.archived,
-          ),
-        );
-      } catch (e) {
-        setError((e as Error).message);
-      }
+    if (open) { close(); return; }
+    const current = ++request.current;
+    setOpen(true); setRows([]); setSelected([]); setError(""); setLoading(true);
+    try {
+      const result = await api<BankQuestion[]>("question-bank/");
+      if (request.current === current) setRows(result.filter(q => !q.archived));
+    } catch (e) { if (request.current === current) setError((e as Error).message); }
+    finally { if (request.current === current) setLoading(false); }
   }
   return (
     <section className="bank-picker">
@@ -51,7 +51,7 @@ export function BankPicker({
       {open && (
         <Modal
           title={t("Add from question bank")}
-          onClose={() => setOpen(false)}
+          onClose={close}
           wide
         >
           <div className="bank-picker-body">
@@ -85,20 +85,20 @@ export function BankPicker({
                     <span>
                       <span className="preserve-lines">{q.description}</span>
                       <small className="cell-note">
-                        {q.category} · {q.points} {t("points")}
+                        {q.category} · {countLabel(q.points, "{count} point", "{count} points")}
                       </small>
                     </span>
                   </label>
                   <QuestionFigure question={q} />
                   </div>
                 ))}
-              {!rows.length && (
+              {!loading && !rows.length && (
                 <p>
                   {t("Create reusable questions in the question bank first.")}
                 </p>
               )}
             </div>
-            <ErrorBox message={error} />
+            <div className="bank-picker-error"><ErrorBox message={error} /></div>
             <button
               type="button"
               className="btn primary"
@@ -121,8 +121,7 @@ export function BankPicker({
                       figure_caption: q.figure_caption,
                     })),
                 );
-                setSelected([]);
-                setOpen(false);
+                close();
               }}
             >
               {t("Add selected questions")} ({selected.length})
@@ -197,7 +196,7 @@ export default function QuestionBank() {
         </div>
       </div>
       <ErrorBox message={error} />
-      <div className="panel table-panel">
+      <div className="panel table-panel question-bank-table">
         <div className="table-scroll">
           <table>
             <thead>
@@ -212,15 +211,15 @@ export default function QuestionBank() {
             <tbody>
               {visible.map((q) => (
                 <tr key={q.id}>
-                  <td className="bank-description"><QuestionContent question={q} heading="span" /></td>
-                  <td>
+                  <td data-label={t("Question")} className="bank-description"><QuestionContent question={q} heading="span" /></td>
+                  <td data-label={t("Category")}>
                     <Badge tone="blue">{q.category}</Badge>
                   </td>
-                  <td>
+                  <td data-label={t("Question type")}>
                     {questionTypes().find(([key]) => key === q.type)?.[1]}
                   </td>
-                  <td>{q.points}</td>
-                  <td>
+                  <td data-label={t("Points")}>{q.points}</td>
+                  <td data-label={t("Actions")}>
                     <button className="text-btn" onClick={() => setEditing(q)}>
                       <Pencil size={14} />
                       {t("Edit")}

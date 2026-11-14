@@ -516,6 +516,7 @@ def marks_import_detail(request, pk, import_id):
                     "status",
                     "score",
                     "passed",
+                    "graded_at",
                 ]
             )
             audit(

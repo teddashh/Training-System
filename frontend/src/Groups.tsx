@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from './api';
-import { t, useLocale } from './i18n';
+import { countLabel, t, useLocale } from './i18n';
 import { Empty, ErrorBox, Modal } from './ui';
 import { PeoplePagination, PeoplePicker, usePeoplePage } from './PeopleDirectory';
 import { EntraBadge, EntraDialog, EntraStatus, UnlinkEntra } from './EntraGroups';
@@ -27,7 +27,7 @@ function useGroups(search: string, page: number, manual = false) {
 
 function GroupPagination({ page, total, loading, onPage }: { page: number; total: number; loading: boolean; onPage: (page: number) => void }) {
   return <div className="toolbar people-pagination">
-    <span aria-live="polite">{t('Page {page} of {pages} · {total} groups', { page, pages: Math.max(1, Math.ceil(total / 50)), total })}</span>
+    <span aria-live="polite">{t(countLabel(total, 'Page {page} of {pages} · {count} group', 'Page {page} of {pages} · {count} groups'), { page, pages: Math.max(1, Math.ceil(total / 50)) })}</span>
     {total > 50 && <>
       <button type="button" className="btn" disabled={loading || page <= 1} onClick={() => onPage(page - 1)}>{t('Previous')}</button>
       <button type="button" className="btn" disabled={loading || page * 50 >= total} onClick={() => onPage(page + 1)}>{t('Next')}</button>
@@ -46,7 +46,7 @@ export function GroupPicker({ selected, onChange, single = false, disabled = fal
       <legend>{t('Selected groups')} ({selected.length})</legend>
       {data.results.map(group => <label className="checkbox" key={group.id}>
         <input type="checkbox" checked={selected.includes(group.id)} onChange={e => { onGroup?.(group); onChange(e.target.checked ? single ? [group.id] : [...selected, group.id] : selected.filter(id => id !== group.id)); }} />
-        <span>{group.name} <EntraBadge group={group} /> · {t('{count} active members', { count: group.active_member_count })}</span>
+        <span>{group.name} <EntraBadge group={group} /> · {countLabel(group.active_member_count, '{count} active member', '{count} active members')}</span>
       </label>)}
       {loading && <p>{t('Loading…')}</p>}
       {!loading && !data.results.length && <p>{t('No groups match this search.')}</p>}
@@ -65,7 +65,7 @@ export function AddToGroup({ userIds, onClose, onSaved }: { userIds: number[]; o
   }
   return <Modal className="management-dialog" title={t('Add to group')} onClose={() => { if (!busy) onClose(); }}>
     <div className="modal-form">
-      <p>{t('{count} people selected', { count: userIds.length })}</p>
+      <p>{countLabel(userIds.length, '{count} person selected', '{count} people selected')}</p>
       <GroupPicker selected={selected} onChange={setSelected} single manual disabled={busy} />
       <ErrorBox message={error} />
       <div className="modal-footer"><button className="btn" disabled={busy} onClick={onClose}>{t('Cancel')}</button><button className="btn primary" disabled={busy || !selected.length || !userIds.length || userIds.length > 1000} onClick={save}>{t('Add to group')}</button></div>
@@ -113,7 +113,7 @@ function AddPeople({ group, onClose, onSaved }: { group: TrainingGroup; onClose:
       <p><strong>{group.name}</strong></p><p className="muted">{t('Inactive people can remain in a group but cannot receive training through it.')}</p>
       <PeoplePicker path="users/" includeInactive selected={selected} onChange={setSelected} disabled={busy} maxSelected={1000} onFiltersChange={next => { setFilters(next); setPreview(null); }} />
       <button className="btn" disabled={busy} onClick={count}>{t('Count all matching people')}</button>
-      {preview && <div className="notice"><p>{t('{matching} matching people; {adding} will be added. Existing members are kept.', { matching: preview.matching, adding: preview.to_add })}</p><button className="btn" disabled={busy || !preview.to_add} onClick={() => add(true)}>{t('Add all {count} matching', { count: preview.matching })}</button></div>}
+      {preview && <div className="notice"><p>{t(countLabel(preview.matching, '{count} matching person; {adding} will be added. Existing members are kept.', '{count} matching people; {adding} will be added. Existing members are kept.'), { adding: preview.to_add })}</p><button className="btn" disabled={busy || !preview.to_add} onClick={() => add(true)}>{t('Add all {count} matching', { count: preview.matching })}</button></div>}
       <ErrorBox message={error} />
       <div className="modal-footer"><button className="btn" disabled={busy} onClick={onClose}>{t('Cancel')}</button><button className="btn primary" disabled={busy || !selected.length} onClick={() => add(false)}>{t('Add selected people')}</button></div>
     </div>
@@ -135,7 +135,7 @@ function GroupDetail({ group, onBack, onEdit, onChanged }: { group: TrainingGrou
     <button className="text-btn" onClick={onBack}>{t('Back to groups')}</button>
     <div className="page-heading"><div><h1>{group.name}</h1></div><div className="heading-actions"><button className="btn" onClick={onEdit}>{t('Edit group')}</button>{!group.entra_group_id && <button className="btn primary" onClick={() => setAdding(true)}>{t('Add people')}</button>}<button className="btn" onClick={() => setEntra(true)}>{t(group.entra_group_id ? 'Sync now' : 'Link Entra group')}</button>{group.entra_group_id && <button className="btn" onClick={() => setUnlinking(true)}>{t('Unlink')}</button>}</div></div>
     {group.entra_group_id && <EntraStatus group={group} />}
-    <div className="toolbar people-toolbar"><input aria-label={t('Search members')} placeholder={t('Search members')} value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />{!group.entra_group_id && <><span>{t('{count} people selected', { count: selected.length })}</span><button className="btn" disabled={!selected.length} onClick={() => setRemoving(true)}>{t('Remove selected members')}</button><button className="text-btn" disabled={!selected.length} onClick={() => setSelected([])}>{t('Clear selection')}</button></>}</div>
+    <div className="toolbar people-toolbar"><input aria-label={t('Search members')} placeholder={t('Search members')} value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />{!group.entra_group_id && <><span>{countLabel(selected.length, '{count} person selected', '{count} people selected')}</span><button className="btn" disabled={!selected.length} onClick={() => setRemoving(true)}>{t('Remove selected members')}</button><button className="text-btn" disabled={!selected.length} onClick={() => setSelected([])}>{t('Clear selection')}</button></>}</div>
     <ErrorBox message={error || loadError} />
     {loading && <p role="status">{t('Loading…')}</p>}
     <div className="panel table-panel people-table"><table><thead><tr><th>{t('Person')}</th><th>{t('Department')}</th><th>{t('Status')}</th></tr></thead><tbody>{data.results.map(person => <tr key={person.id}>
@@ -146,7 +146,7 @@ function GroupDetail({ group, onBack, onEdit, onChanged }: { group: TrainingGrou
     {entra && <EntraDialog group={group} onClose={() => setEntra(false)} onSaved={refresh} />}
     {unlinking && <UnlinkEntra group={group} onClose={() => setUnlinking(false)} onSaved={refresh} />}
     {adding && <AddPeople group={group} onClose={() => setAdding(false)} onSaved={refresh} />}
-    {removing && <Modal className="management-dialog" title={t('Remove selected members')} onClose={() => { if (!busy) setRemoving(false); }}><div className="modal-form"><p>{t('Remove {count} people from this group? Existing assignments and records are kept.', { count: selected.length })}</p><ErrorBox message={error} /><div className="modal-footer"><button className="btn" disabled={busy} onClick={() => setRemoving(false)}>{t('Cancel')}</button><button className="btn primary" disabled={busy} onClick={remove}>{t('Remove')}</button></div></div></Modal>}
+    {removing && <Modal className="management-dialog" title={t('Remove selected members')} onClose={() => { if (!busy) setRemoving(false); }}><div className="modal-form"><p>{countLabel(selected.length, 'Remove {count} person from this group? Existing assignments and records are kept.', 'Remove {count} people from this group? Existing assignments and records are kept.')}</p><ErrorBox message={error} /><div className="modal-footer"><button className="btn" disabled={busy} onClick={() => setRemoving(false)}>{t('Cancel')}</button><button className="btn primary" disabled={busy} onClick={remove}>{t('Remove')}</button></div></div></Modal>}
   </>;
 }
 
@@ -162,17 +162,21 @@ export function GroupsView() {
     try { await api(`groups/${deleting!.id}/`, 'DELETE'); setDeleting(null); reload(); }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
+  const detailRequest = useRef(0);
   function refreshDetail() {
     reload();
-    if (opened) api<TrainingGroup>(`groups/${opened.id}/`).then(setOpened).catch(e => setError(e.message));
+    if (opened) {
+      const id = opened.id, request = ++detailRequest.current;
+      api<TrainingGroup>(`groups/${id}/`).then(group => { if (request === detailRequest.current) setOpened(current => current?.id === id ? group : current); }).catch(e => { if (request === detailRequest.current) setError(e.message); });
+    }
   }
   return <div className="training-groups">
-    {opened ? <GroupDetail group={opened} onBack={() => setOpened(null)} onEdit={() => setEditing(opened)} onChanged={refreshDetail} /> : <>
+    {opened ? <GroupDetail group={opened} onBack={() => { detailRequest.current++; setOpened(null); }} onEdit={() => setEditing(opened)} onChanged={refreshDetail} /> : <>
       <div className="page-heading"><div><h1>{t('Groups')}</h1></div><div className="heading-actions"><button className="btn" onClick={() => setEntra(true)}>{t('Add Entra group')}</button><button className="btn primary" onClick={() => setCreating(true)}>{t('Create group')}</button></div></div>
       <div className="toolbar"><input aria-label={t('Search groups')} placeholder={t('Search groups')} value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} /></div>
       {loading && <p role="status">{t('Loading…')}</p>}
       <div className="panel table-panel people-table"><table><thead><tr><th>{t('Group name')}</th><th>{t('Members')}</th><th>{t('Actions')}</th></tr></thead><tbody>{data.results.map(group => <tr key={group.id}>
-        <td><button className="text-btn" onClick={() => setOpened(group)}>{group.name}</button> <EntraBadge group={group} /><p className="muted">{group.description}</p></td><td data-label={t('Members')}>{group.member_count} · {t('{count} active members', { count: group.active_member_count })}</td>
+        <td><button className="text-btn" onClick={() => { detailRequest.current++; setOpened(group); }}>{group.name}</button> <EntraBadge group={group} /><p className="muted">{group.description}</p></td><td data-label={t('Members')}>{group.member_count} · {countLabel(group.active_member_count, '{count} active member', '{count} active members')}</td>
         <td className="people-row-actions"><button className="text-btn" onClick={() => setEditing(group)}>{t('Edit group')}</button><button className="text-btn" onClick={() => { setError(''); setDeleting(group); }}>{t('Delete group')}</button></td>
       </tr>)}</tbody></table>{!loading && !data.total && <Empty title={t('No groups match this search.')} />}</div>
       <GroupPagination page={page} total={data.total} loading={loading} onPage={setPage} />

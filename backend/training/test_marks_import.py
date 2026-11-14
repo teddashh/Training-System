@@ -648,3 +648,31 @@ class ConcurrentMarksImportTests(TransactionTestCase):
             self.assertEqual(pending.result(timeout=10), 409)
         self.attempt.refresh_from_db()
         self.assertEqual(self.attempt.manual_grades, {})
+
+
+@override_settings(DEBUG=True)
+class RoundRegressionTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user('audit-owner', role='instructor')
+        self.learner = User.objects.create_user('audit-learner')
+        self.client = APIClient()
+        self.client.force_authenticate(self.learner)
+
+
+    def test_marks_import_records_grading_time(self):
+        exam = make_exam(self.owner, limit=1, essay=True)
+        exam.attempt_reset_minutes = 60
+        exam.save()
+        attempt = start_attempt(exam.pk, identity_for_user(self.learner))
+        finalize(attempt)
+        essay = next(q for q in attempt.snapshot if q['type'] == 'essay')
+        self.client.force_authenticate(self.owner)
+        root = f'/api/exams/{exam.pk}/marks/imports/'
+        preview = self.client.post(root, {'csv': sheet([mark_row(attempt, essay['id'], points='0')]),
+                                          'reason': 'Grade essay'}, format='json')
+        self.assertEqual(preview.status_code, 201, preview.data)
+        applied = self.client.post(root + preview.data['id'] + '/', {}, format='json')
+        self.assertEqual(applied.status_code, 200, applied.data)
+        attempt.refresh_from_db()
+        self.assertEqual((attempt.status, attempt.passed), ('graded', False))
+        self.assertIsNotNone(attempt.graded_at)

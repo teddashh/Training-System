@@ -141,7 +141,9 @@ EMAIL_SERVER = bool(os.getenv("EMAIL_BACKEND", "") or os.getenv("EMAIL_HOST", ""
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "") or "training.mail.ConfiguredEmailBackend"
 EMAIL_FILE_PATH = os.getenv("EMAIL_FILE_PATH", str(BASE_DIR / "test-mail"))
 EMAIL_TIMEOUT = 10
-AUTH_ACCOUNT_LIMIT = 20
+# The browser suite signs every test in as the same account, more than 20 times in ten minutes; development servers
+# give that account a wider sign-in allowance, as they do for API_RATE. Outside development it stays 20.
+AUTH_ACCOUNT_LIMIT = 100 if DEBUG else 20
 AUTH_NETWORK_LIMIT = max(1, int(os.getenv("AUTH_NETWORK_LIMIT", "300")))
 EMAIL_HOST = os.getenv("EMAIL_HOST", "localhost")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))

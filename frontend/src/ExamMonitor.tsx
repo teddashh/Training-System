@@ -1,3 +1,4 @@
+import { formatDateTime } from "./datetime";
 import { useEffect, useState } from "react";
 import { Activity, Clock3, RefreshCw } from "lucide-react";
 import { api, ApiError } from "./api";
@@ -86,7 +87,7 @@ function ExtensionDialog({
     [busy, setBusy] = useState(false),
     [saved, setSaved] = useState<Extension | null>(null);
   const endpoint = `attempts/${attempt.id}/extensions/`;
-  const date = (value: string) => new Date(value).toLocaleString(locale);
+  const date = (value: string) => formatDateTime(value, locale);
   useEffect(() => {
     let alive = true;
     api<Page<Extension>>(`${endpoint}?page=${page}&page_size=10`)
@@ -276,7 +277,7 @@ export default function ExamMonitor({
     [paused, setPaused] = useState(document.hidden);
   const refresh = () => setVersion((v) => v + 1);
   const date = (value: string | null) =>
-    value ? new Date(value).toLocaleString(locale) : t("Not yet reported");
+    value ? formatDateTime(value, locale) : t("Not yet reported");
   useEffect(() => {
     let alive = true,
       flight = false;
@@ -333,9 +334,9 @@ export default function ExamMonitor({
         <div className="monitor-heading">
           <div>
             <h3>{data?.exam.title}</h3>
-            <p>
+            <p role={data && error ? "alert" : undefined}>
               <Activity size={14} aria-hidden="true" />{" "}
-              {paused
+              {data && error ? `${t("Monitor update failed. Displayed data may be out of date.")} ${error}` : paused
                 ? t("Updates paused while this tab is hidden.")
                 : t("Updates every 5 seconds.")}
             </p>
@@ -407,13 +408,7 @@ export default function ExamMonitor({
             {t("Apply filters")}
           </button>
         </form>
-        <ErrorBox
-          message={
-            error
-              ? `${t("Monitor update failed. Displayed data may be out of date.")} ${error}`
-              : ""
-          }
-        />
+        {!data && <ErrorBox message={error} />}
         {!data && !error && <Spinner />}
         {data && (
           <>

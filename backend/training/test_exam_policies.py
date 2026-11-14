@@ -12,6 +12,7 @@ from rest_framework.test import APIClient
 
 from .models import Attempt, AttemptBudget, Exam, Invitation, Question, User
 from .services import hash_token, identity_for_user, resolve_identity, start_attempt
+from .tests import make_exam
 
 
 def policy_exam(owner, **changes):
@@ -402,3 +403,23 @@ class ConcurrentExamPolicyTests(TransactionTestCase):
         attempt.refresh_from_db()
         self.assertEqual(attempt.unlocked_question_count, 2)
         self.assertEqual(attempt.answer_revision, 1)
+
+
+@override_settings(DEBUG=True)
+class RoundRegressionTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user('audit-owner', role='instructor')
+        self.learner = User.objects.create_user('audit-learner')
+        self.client = APIClient()
+        self.client.force_authenticate(self.learner)
+
+
+    def test_expired_attempt_finalized_when_retry_denied(self):
+        exam = make_exam(self.owner, limit=1)
+        attempt = start_attempt(exam.pk, identity_for_user(self.learner))
+        attempt.deadline = timezone.now() - timedelta(seconds=1)
+        attempt.save(update_fields=['deadline'])
+        response = self.client.post(f'/api/exams/{exam.pk}/start/', {}, format='json')
+        self.assertEqual(response.status_code, 403)
+        attempt.refresh_from_db()
+        self.assertEqual(attempt.status, 'graded')

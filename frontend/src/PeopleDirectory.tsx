@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
-import { t, useLocale } from './i18n';
+import { countLabel, t, useLocale } from './i18n';
 import { ErrorBox, Modal } from './ui';
 import type { User } from './types';
 
@@ -31,7 +31,7 @@ export function PeoplePagination({ page, total, pageSize = 50, loading, onPage }
   page: number; total: number; pageSize?: number; loading: boolean; onPage: (page: number) => void;
 }) {
   return <div className="toolbar people-pagination" aria-label={t('People pages')}>
-    <span aria-live="polite">{t('Page {page} of {pages} · {total} people', { page, pages: Math.max(1, Math.ceil(total / pageSize)), total })}</span>
+    <span aria-live="polite">{t(countLabel(total, 'Page {page} of {pages} · {count} person', 'Page {page} of {pages} · {count} people'), { page, pages: Math.max(1, Math.ceil(total / pageSize)) })}</span>
     {total > pageSize && <>
       <button type="button" className="btn" disabled={loading || page <= 1} onClick={() => onPage(page - 1)}>{t('Previous')}</button>
       <button type="button" className="btn" disabled={loading || page * pageSize >= total} onClick={() => onPage(page + 1)}>{t('Next')}</button>

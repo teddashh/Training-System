@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "./api";
+import { t } from "./i18n";
+import { sameAnswers } from "./attemptAnswers";
 import type { Attempt } from "./types";
 
 type Answers = Attempt["answers"];
@@ -37,6 +39,7 @@ export function useAttemptSession(id: string, preview = false) {
       failures = 0,
       nextHeartbeat = 0,
       heartbeatFailures = 0;
+    let uncertain: { revision: number; answers: Answers } | null = null;
     let saving: Promise<void> | null = null,
       timer: ReturnType<typeof setTimeout> | undefined;
     setAttempt(null);
@@ -64,6 +67,12 @@ export function useAttemptSession(id: string, preview = false) {
       setAttempt(data);
       if (data.status !== "in_progress") {
         dirty = false;
+        uncertain = null;
+        failures = 0;
+        heartbeatFailures = 0;
+        retryAt = 0;
+        setError("");
+        setTimingError("");
         latest = data.answers;
         setAnswers(data.answers);
         clearTimeout(timer);
@@ -147,7 +156,9 @@ export function useAttemptSession(id: string, preview = false) {
           }
         } finally {
           saving = null;
-          if (alive && dirty && !blocked && !submitting && !failures)
+          // A save or a retry may have come due while the heartbeat held the
+          // flight. schedule() keeps the delay of a pending retry.
+          if (alive && !blocked && !submitting && (dirty || uncertain))
             schedule(0);
         }
       })();
@@ -179,26 +190,57 @@ export function useAttemptSession(id: string, preview = false) {
           Math.max(delay, retryAt - performance.now()),
         );
     }
+    async function reconcile() {
+      if (!uncertain) return;
+      const requestedAt = performance.now();
+      const data = await api<Attempt>(endpoint, "GET", undefined, 15000);
+      if (!alive) return;
+      if (data.status === "in_progress" && data.answer_revision !== uncertain.revision &&
+          !sameAnswers(data.answers, uncertain.answers))
+        throw new ApiError(t("This attempt was updated in another window. Reload saved answers before continuing."), 409, "answer_conflict");
+      uncertain = null;
+      accept(data, requestedAt);
+    }
     async function save(): Promise<void> {
       if (
         !alive ||
         !current ||
-        !dirty ||
+        (!dirty && !uncertain) ||
         blocked ||
         submitting ||
         current.status !== "in_progress"
       )
         return;
       if (saving) return saving;
-      const snapshot = latest;
       setSaveState("Saving…");
       saving = (async () => {
         try {
+          await reconcile();
+          if (!alive || current!.status !== "in_progress") return;
+          if (!dirty) {
+            failures = 0;
+            heartbeatFailures = 0;
+            retryAt = 0;
+            setError("");
+            setTimingError("");
+            setSaveState("Answers saved automatically");
+            return;
+          }
+          const snapshot = latest;
           const requestedAt = performance.now();
-          const result = await api<Attempt>(endpoint, "PATCH", {
-            answers: snapshot,
-            answer_revision: current!.answer_revision,
-          });
+          const write = { revision: current!.answer_revision, answers: snapshot };
+          uncertain = write;
+          let result: Attempt;
+          try {
+            result = await api<Attempt>(endpoint, "PATCH", {
+              answers: snapshot,
+              answer_revision: write.revision,
+            }, 30000);
+            uncertain = null;
+          } catch (reason) {
+            if (reason instanceof ApiError && reason.status < 500) uncertain = null;
+            throw reason;
+          }
           if (!alive) return;
           accept(result, requestedAt);
           dirty = result.status === "in_progress" && latest !== snapshot;
@@ -236,11 +278,22 @@ export function useAttemptSession(id: string, preview = false) {
       if (saving) await saving;
       try {
         if (!alive || blocked || current.status !== "in_progress") return;
+        await reconcile();
+        if (!alive || current.status !== "in_progress") return;
         const requestedAt = performance.now();
-        const result = await api<Attempt>(endpoint, "POST", {
-          answers: latest,
-          answer_revision: current.answer_revision,
-        });
+        const write = { revision: current.answer_revision, answers: latest };
+        uncertain = write;
+        let result: Attempt;
+        try {
+          result = await api<Attempt>(endpoint, "POST", {
+            answers: write.answers,
+            answer_revision: write.revision,
+          }, 30000);
+          uncertain = null;
+        } catch (reason) {
+          if (reason instanceof ApiError && reason.status < 500) uncertain = null;
+          throw reason;
+        }
         if (alive) {
           accept(result, requestedAt);
           setError("");
@@ -274,6 +327,7 @@ export function useAttemptSession(id: string, preview = false) {
         const data = await api<Attempt>(endpoint);
         if (!alive) return;
         latest = data.answers;
+        uncertain = null;
         dirty = false;
         blocked = false;
         failures = 0;

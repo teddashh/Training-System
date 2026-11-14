@@ -78,6 +78,7 @@ A directory dry-run profile also has `user:null`; its real ID exists only after 
 
 `GET /api/courses/{id}/enrollments/?status=all&page=1&session=12&search=Alex` retains existing pagination:
 `{count,page,page_size:20,counts:{all,registered,pending,attended,absent,cancelled[,passed]},results:[EnrollmentRow]}`.
+`attendance=present|absent` filters approved people by effective attendance before pagination and can be combined with other filters.
 Tile counts cover the entire course before filters; `registered` means approved and `cancelled` means canceled.
 EnrollmentRow contains `{id,status,revision,request_note,requested_at,review_note,reviewed_at,progress,progress_known,
 completed_at,attended_at,attendance,attendance_marked_at,effective_attendance,session,user_id,person,username,department,active,reviewer,quiz}`.

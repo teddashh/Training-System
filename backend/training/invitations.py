@@ -16,6 +16,7 @@ from django.db import transaction
 from django.db.models import (
     Case,
     CharField,
+    Count,
     DateTimeField,
     DurationField,
     ExpressionWrapper,
@@ -186,7 +187,9 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
             deadline__gt=now,
         )
         participant_attempts = Attempt.objects.filter(exam_id=OuterRef('exam_id'), identity_id=OuterRef('identity_id'))
-        unfinished_round = participant_attempts.filter(number__gt=OuterRef('budget_round_start')).exclude(status='graded', passed=False, graded_at__isnull=False)
+        current_round = participant_attempts.filter(number__gt=OuterRef('budget_round_start'))
+        unfinished_round = current_round.exclude(status='graded', passed=False, graded_at__isnull=False)
+        round_count = current_round.order_by().values('exam_id').annotate(total=Count('pk')).values('total')
         qs = (
             Invitation.objects.select_related("exam", "identity", "identity__user")
             .annotate(
@@ -201,7 +204,8 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
             .annotate(
                 round_unfinished=Exists(unfinished_round),
                 has_passed=Exists(participant_attempts.filter(passed=True)),
-                last_graded=Subquery(participant_attempts.order_by('-graded_at').values('graded_at')[:1]),
+                last_graded=Subquery(current_round.order_by('-graded_at').values('graded_at')[:1]),
+                round_count=Coalesce(Subquery(round_count[:1]), Value(0)),
             )
             # SQLite's duration arithmetic recognizes IntegerField, not its
             # PositiveIntegerField subclass. Cast explicitly for both backends.
@@ -213,7 +217,7 @@ class Invitations(viewsets.ReadOnlyModelViewSet):
                 F('last_graded') + F('round_wait'), output_field=DateTimeField(),
             ))
             .annotate(budget_available=Case(
-                When(exam__attempt_reset_minutes__gt=0, budget_used__gte=F('budget_limit'), round_unfinished=False, has_passed=False, round_opens__lte=now, then=F('budget_limit')),
+                When(exam__attempt_reset_minutes__gt=0, budget_used__gte=F('budget_limit'), round_count=F('budget_used'), round_unfinished=False, has_passed=False, round_opens__lte=now, then=F('budget_limit')),
                 default=F('budget_limit')-F('budget_used'),
                 output_field=IntegerField(),
             ))

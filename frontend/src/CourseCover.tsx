@@ -3,7 +3,7 @@ import { Check, Search } from "lucide-react";
 import covers from "../../shared/brand/covers.json";
 import { brand } from "./brand";
 import { appPath } from "./paths";
-import { t } from "./i18n";
+import { t, countLabel } from "./i18n";
 import { Modal } from "./ui";
 
 export const DEFAULT_COVER = "scene-learning-classroom";
@@ -46,7 +46,7 @@ export default function CourseCover({ value, title, onChange, compact = false }:
         <div className="toolbar"><div className="search-field"><Search size={16} /><input aria-label={t("Search covers")} placeholder={t("Search covers")} value={query} onChange={e => setQuery(e.target.value)} /></div>
           <select aria-label={t("Cover theme")} value={category} onChange={e => setCategory(e.target.value)}><option value="">{t("All themes")}</option>{[...new Set(covers.map(c => c.category))].map(c => <option key={c} value={c}>{t(c)}</option>)}</select>
         </div>
-        <p className="muted" role="status">{t("{count} covers", {count: filtered.length})}</p>
+        <p className="muted" role="status">{countLabel(filtered.length, "{count} cover", "{count} covers")}</p>
         <div className="cover-library-grid">{filtered.map(c => <button type="button" key={c.id} aria-label={t(c.title)} aria-pressed={c.id === selected.id} onClick={() => { onChange(c.id); setOpen(false); }}>
           <img src={coverUrl(c.id)} alt="" loading="lazy" /><span>{t(c.title)}{c.id === selected.id && <Check size={16} />}</span>
         </button>)}</div>

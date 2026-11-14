@@ -4,7 +4,7 @@ import { appPath } from "./paths";
 import { useEffect, useState } from "react";
 import { ExamEditor } from "./Exams";
 import { api } from "./api";
-import { t } from "./i18n";
+import { t, countLabel } from "./i18n";
 import { Badge, ErrorBox } from "./ui";
 import { useAccess } from "./access";
 import type { Course, Exam } from "./types";
@@ -60,7 +60,7 @@ export default function CourseAssessments({ course, onSaved }: { course: Course;
       {options.available.length > 0 && <>
         <select aria-label={t("Existing quiz")} value={chosen} onChange={e => setChosen(e.target.value)}>
           <option value="">{t("Choose existing quiz")}</option>
-          {options.available.map(e => <option key={e.id} value={e.id}>{e.title} · {t(e.published ? "Published" : "Draft")} · {t("{count} questions", { count: e.question_count })}{e.other_courses ? ` · ${t("Also used by {count} courses", {count: e.other_courses})}` : ""}{e.audience === "invitation" ? ` · ${t("Invitation only")}` : ""}</option>)}
+          {options.available.map(e => <option key={e.id} value={e.id}>{e.title} · {t(e.published ? "Published" : "Draft")} · {countLabel(e.question_count, "{count} question", "{count} questions")}{e.other_courses ? ` · ${countLabel(e.other_courses, "Also used by {count} course", "Also used by {count} courses")}` : ""}{e.audience === "invitation" ? ` · ${t("Invitation only")}` : ""}</option>)}
         </select>
         <button className="btn" type="button" disabled={!chosen || busy} onClick={() => void link(Number(chosen), true)}>{t("Attach quiz")}</button>
       </>}

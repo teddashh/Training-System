@@ -1091,3 +1091,206 @@ class ConcurrentEmailTests(TransactionTestCase):
                 statuses = list(pool.map(send, range(4)))
         self.assertEqual(sorted(statuses), [200, 200, 200, 429])
         self.assertEqual(OutboundEmail.objects.filter(kind='test').count(), 3)
+
+
+
+class CancelledRegistrationProofTests(TestCase):
+    @override_settings(DEBUG=True, EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+                       EMAIL_NOTIFICATIONS_ENABLED=True, EMAIL_QUEUE_BATCH=20, EMAIL_DAILY_LIMIT=5000)
+    def test_cancelled_registration_does_not_receive_meeting_link(self):
+        from datetime import timedelta
+        from django.core import mail
+        from django.utils import timezone
+        from .models import User, Course, CourseSession, OutboundEmail
+        from .notifications import deliver_queued
+        owner = User.objects.create_user('owner', role='course_creator')
+        learner = User.objects.create_user('learner', email='learner@example.test')
+        course = Course.objects.create(owner=owner, title='Online', published=True, delivery_mode='scheduled')
+        session = CourseSession.objects.create(course=course, title='Morning',
+            starts_at=timezone.now() + timedelta(days=1), ends_at=timezone.now() + timedelta(days=1, hours=1),
+            meeting_url='https://meet.example.test/private')
+        client = APIClient()
+        client.force_authenticate(learner)
+        enrolled = client.post(f'/api/courses/{course.pk}/enroll/', {'session': session.pk}, format='json')
+        self.assertEqual(enrolled.status_code, 200)
+        queued = OutboundEmail.objects.get(kind='enrollment_approved')
+        self.assertIn(session.meeting_url, queued.body_text)
+        cancelled = client.post(f'/api/courses/{course.pk}/cancel-registration/',
+                                {'revision': enrolled.data['revision']}, format='json')
+        self.assertEqual(cancelled.status_code, 200)
+        deliver_queued()
+        self.assertFalse(any(session.meeting_url in message.body for message in mail.outbox))
+
+
+from .test_simple_training import TrainingFixture
+
+
+@override_settings(**TEST_SETTINGS)
+class QueuedNoticeAuditTests(TrainingFixture, TestCase):
+    def test_removed_person_does_not_receive_old_confirmation(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.post(self.root + 'enroll/', {'session': self.session.pk}, format='json')
+        self.assertEqual(response.status_code, 200)
+        mail = OutboundEmail.objects.get(kind='enrollment_approved')
+        self.client.force_authenticate(self.owner)
+        row = self.course.enrollments.get(user=self.user)
+        response = self.client.post(self.root + f'enrollments/{row.pk}/review/',
+            {'revision': row.revision, 'decision': 'removed', 'note': 'Removed'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        claim_next()
+        mail.refresh_from_db()
+        self.assertEqual(mail.status, 'cancelled')
+
+    def test_message_that_cannot_be_checked_does_not_stop_the_queue(self):
+        now = timezone.now()
+        bad = OutboundEmail.objects.create(kind='registered', recipient_user=self.user, to_email=self.user.email,
+            subject='Notice', body_text='Notice', dedupe_key='unreadable', context={'enrollment_id': 'not-a-number'},
+            next_attempt_at=now - timedelta(minutes=2))
+        good = OutboundEmail.objects.create(kind='test', recipient_user=self.user, to_email=self.user.email,
+            subject='Later', body_text='Later', dedupe_key='readable', next_attempt_at=now - timedelta(minutes=1))
+        with self.assertLogs('training.notifications', level='ERROR'):
+            first = claim_next()
+        self.assertEqual((first.pk, first.status), (bad.pk, 'queued'))
+        self.assertGreater(first.next_attempt_at, now + timedelta(minutes=10))
+        second = claim_next()
+        self.assertEqual((second.pk, second.status), (good.pk, 'sending'))
+
+    def test_unpublished_course_does_not_send_queued_roster_mail(self):
+        response = self.roster()
+        self.assertEqual(response.status_code, 200)
+        mail = OutboundEmail.objects.get(kind='registered')
+        response = self.client.patch(self.root, {'published': False}, format='json')
+        self.assertEqual(response.status_code, 200)
+        claim_next()
+        mail.refresh_from_db()
+        self.assertNotEqual(mail.status, 'sending')
+
+    def test_cancelled_assignment_does_not_send_queued_mail(self):
+        from .models import LearningAssignment
+        self.owner.role = 'course_creator'
+        self.owner.save(update_fields=['role'])
+        response = self.client.post('/api/assignments/', {'kind': 'course', 'target_id': self.course.pk,
+            'audience': 'people', 'people': [self.user.pk]}, format='json')
+        self.assertEqual(response.status_code, 201)
+        mail = OutboundEmail.objects.get(kind='assignment')
+        assignment = LearningAssignment.objects.get(user=self.user, course=self.course)
+        response = self.client.post(f'/api/assignments/{assignment.pk}/cancel/', {}, format='json')
+        self.assertEqual(response.status_code, 200)
+        claim_next()
+        mail.refresh_from_db()
+        self.assertEqual(mail.status, 'cancelled')
+
+    def test_changed_venue_invalidates_old_reminder(self):
+        from datetime import timedelta
+        from .reminders import produce_reminders
+        self.course.reminders = True
+        self.course.save(update_fields=['reminders'])
+        self.session.starts_at = self.now + timedelta(hours=23)
+        self.session.ends_at = self.now + timedelta(hours=24)
+        self.session.save()
+        self.seat()
+        produce_reminders()
+        mail = OutboundEmail.objects.get(kind='session_tomorrow')
+        self.assertIn('Building C, Room 12', mail.body_text)
+        response = self.client.patch(self.root + f'sessions/{self.session.pk}/',
+            {'revision': self.session.revision, 'location': 'Building D, Room 5',
+             'meeting_url': 'https://meet.example.test/new'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        claim_next()
+        mail.refresh_from_db()
+        self.assertEqual(mail.status, 'sending')
+        self.assertIn('Building D, Room 5', mail.body_text)
+        self.assertIn('https://meet.example.test/new', mail.body_text)
+        self.assertIn('https://meet.example.test/new', mail.body_html)
+
+
+    def test_notice_claims_follow_current_state(self):
+        row = self.seat()
+        kinds = ('registered', 'enrollment_approved', 'request_received', 'session_changed',
+                 'session_rescheduled', 'session_cancelled')
+        for kind in kinds:
+            for valid in (True, False):
+                with self.subTest(kind=kind, valid=valid):
+                    OutboundEmail.objects.all().delete()
+                    EmailQueueState.objects.update(active_email=None)
+                    row.status = 'pending' if kind == 'request_received' else 'approved'
+                    if not valid:
+                        row.status = 'removed'
+                    row.save()
+                    self.session.cancelled = kind == 'session_cancelled'
+                    self.session.save()
+                    OutboundEmail.objects.create(kind=kind, recipient_user=self.user, to_email=self.user.email,
+                        subject='Notice', body_text='Notice', dedupe_key=f'{kind}-{valid}',
+                        context={'enrollment_id': row.pk, 'session_id': self.session.pk})
+                    claimed = claim_next()
+                    self.assertEqual(claimed.status, 'sending' if valid else 'cancelled')
+                    if not valid:
+                        self.assertEqual(claimed.last_error, 'Notice no longer applies.')
+
+    def test_assignment_deletion_and_reactivation(self):
+        self.owner.role = 'course_creator'
+        self.owner.save(update_fields=['role'])
+        data = {'kind': 'course', 'target_id': self.course.pk, 'audience': 'people', 'people': [self.user.pk]}
+        self.assertEqual(self.client.post('/api/assignments/', data, format='json').status_code, 201)
+        assignment = LearningAssignment.objects.get(user=self.user, course=self.course)
+        old = OutboundEmail.objects.get(kind='assignment')
+        self.assertEqual(self.client.post(f'/api/assignments/{assignment.pk}/cancel/', {}, format='json').status_code, 200)
+        self.assertEqual(self.client.post('/api/assignments/', data, format='json').status_code, 201)
+        old.refresh_from_db()
+        self.assertEqual(old.status, 'cancelled')
+        self.assertEqual(claim_next().status, 'sending')
+        EmailQueueState.objects.update(active_email=None)
+        self.assertEqual(self.client.post(f'/api/assignments/{assignment.pk}/cancel/', {}, format='json').status_code, 200)
+        self.assertEqual(self.client.post('/api/assignments/', data, format='json').status_code, 201)
+        assignment.delete()
+        self.assertEqual(claim_next().status, 'cancelled')
+
+    def test_place_change_notifies_and_ignores_equivalent_places(self):
+        self.seat()
+        pending = User.objects.create_user('pending-place', email='pending@example.test')
+        self.seat(person=pending, status='pending')
+        response = self.client.patch(self.root + f'sessions/{self.session.pk}/',
+            {'revision': self.session.revision, 'location': 'Building D'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        notices = OutboundEmail.objects.filter(kind='session_rescheduled')
+        self.assertEqual(notices.count(), 2)
+        for notice in notices:
+            self.assertIn('Your session changed.', notice.body_text)
+            self.assertIn('Building C, Room 12', notice.body_text)
+            self.assertIn('Building D', notice.body_text)
+            self.assertNotIn(', now ', notice.subject)
+        self.session.refresh_from_db()
+        self.client.patch(self.root + f'sessions/{self.session.pk}/',
+            {'revision': self.session.revision, 'location': ' Building D '}, format='json')
+        self.assertEqual(notices.count(), 2)
+        self.course.venue = 'online'
+        self.course.save(update_fields=['venue'])
+        self.session.refresh_from_db()
+        self.client.patch(self.root + f'sessions/{self.session.pk}/',
+            {'revision': self.session.revision, 'location': 'Elsewhere'}, format='json')
+        self.assertEqual(notices.count(), 2)
+
+    def test_notice_session_release_and_legacy_context(self):
+        row = self.seat()
+        for kind in ('registered', 'enrollment_approved', 'request_received', 'session_changed',
+                     'session_rescheduled', 'session_cancelled', 'enrollment_rejected',
+                     'enrollment_removed', 'enrollment_cancelled', 'registration_cancelled'):
+            for case in ('legacy', 'session_mismatch', 'unreleased'):
+                with self.subTest(kind=kind, case=case):
+                    OutboundEmail.objects.all().delete()
+                    EmailQueueState.objects.update(active_email=None)
+                    row.status = 'pending' if kind == 'request_received' else 'approved'
+                    row.save()
+                    self.session.cancelled = kind == 'session_cancelled'
+                    self.session.save()
+                    self.course.release_at = self.now + timedelta(days=1) if case == 'unreleased' else None
+                    self.course.save()
+                    context = {} if case == 'legacy' else {'enrollment_id': row.pk, 'session_id':
+                        self.second.pk if case == 'session_mismatch' else self.session.pk}
+                    OutboundEmail.objects.create(kind=kind, recipient_user=self.user, to_email=self.user.email,
+                        subject='Notice', body_text='Notice', dedupe_key=f'{kind}-{case}', context=context)
+                    gated = kind in ('registered', 'enrollment_approved', 'request_received', 'session_changed',
+                                     'session_rescheduled', 'session_cancelled')
+                    invalid = gated and (case == 'session_mismatch' or (case == 'unreleased' and
+                        kind in ('registered', 'enrollment_approved', 'request_received', 'session_changed')))
+                    self.assertEqual(claim_next().status, 'cancelled' if invalid else 'sending')

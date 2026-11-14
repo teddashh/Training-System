@@ -46,6 +46,9 @@ def verify(folder):
     for filename, expected in manifest["files"].items():
         if digest(folder / filename) != expected:
             raise ValueError(f"Checksum mismatch: {filename}")
+    with (folder / "database.dump").open("rb") as source:
+        if source.read(5) != b"PGDMP":
+            raise ValueError("Database dump is not a PostgreSQL custom-format archive")
     with tarfile.open(folder / "media.tar.gz", "r:gz") as archive:
         for member in archive:
             path = Path(member.name)

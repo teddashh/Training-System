@@ -1,3 +1,4 @@
+import { gradePayload } from "./reportLogic";
 import OrganizationSettings from "./OrganizationSettings";
 import { roleInfo, roleLabel, rolesFor } from "./access";
 import { formatDateTime } from "./datetime";
@@ -11,7 +12,7 @@ import Activity, { activityLabel, type ActivityEntry } from "./Activity";
 import { answerText, acceptedAnswerText } from "./questionTypes";
 import InvitationBatch from "./InvitationBatch";
 import { PeopleImport, PersonEditor } from "./PeopleTools";
-import { getLocale, t, useLocale } from "./i18n";
+import { countLabel, getLocale, t, useLocale } from "./i18n";
 import { useEffect, useState } from "react";
 import {
   Plus,
@@ -242,7 +243,7 @@ export function Invitations({ exams }: { exams: Exam[] }) {
           </select>
         </label>
       </div>
-      <p role="status">{t("{count} matching invitations", { count })}</p>
+      <p role="status">{countLabel(count, "{count} matching invitation", "{count} matching invitations")}</p>
       <div className="panel table-panel" aria-busy={loading}>
         <div className="table-scroll">
           <table>
@@ -273,9 +274,7 @@ export function Invitations({ exams }: { exams: Exam[] }) {
                   <td>
                     {row.used} / {row.max_attempts}
                     <small className="cell-note">
-                      {t("{count} new attempts available", {
-                        count: row.remaining_new_attempts,
-                      })}
+                      {countLabel(row.remaining_new_attempts, "{count} new attempt available", "{count} new attempts available")}
                     </small>
                   </td>
                   <td>{row.expires_at ? formatDateTime(row.expires_at, getLocale()) : "—"}</td>
@@ -389,6 +388,7 @@ export function Invitations({ exams }: { exams: Exam[] }) {
       {open && (
         <Modal
           title={url ? t("Personal link created") : t("Create exam invitation")}
+          closeDisabled={busy}
           onClose={() => setOpen(false)}
         >
           <form className="modal-form" onSubmit={issue}>
@@ -538,7 +538,7 @@ export function ReviewModal({
 }) {
   useLocale();
   const [attempt, setAttempt] = useState<Attempt | null>(null),
-    [marks, setMarks] = useState<Attempt["manual_grades"]>({}),
+    [marks, setMarks] = useState<Record<string, {points: string; feedback: string}>>({}),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -553,7 +553,7 @@ export function ReviewModal({
               .filter(
                 (q) => q.type === "essay" && a.manual_grades[String(q.id)],
               )
-              .map((q) => [String(q.id), a.manual_grades[String(q.id)]]),
+              .map((q) => [String(q.id), {points: a.manual_grades[String(q.id)].points?.toString() ?? "", feedback: a.manual_grades[String(q.id)].feedback ?? ""}]),
           ),
         );
       })
@@ -568,14 +568,14 @@ export function ReviewModal({
     setError("");
     try {
       await api(`${preview ? "previews" : "results"}/${id}/review/`, "POST", {
-        grades: marks,
+        grades: gradePayload(marks),
         answer_revision: attempt?.answer_revision,
         grading_revision: attempt?.grading_revision,
       });
       onSaved();
       onClose();
     } catch (e) {
-      setError((e as Error).message);
+      setError(t((e as Error).message));
     } finally {
       setBusy(false);
     }
@@ -583,6 +583,7 @@ export function ReviewModal({
   return (
     <Modal
       title={preview ? t("Inspect test result") : t("Review attempt")}
+      closeDisabled={busy}
       onClose={onClose}
       wide
     >
@@ -594,7 +595,6 @@ export function ReviewModal({
             )}
           </p>
         )}
-        <ErrorBox message={error} />
         {attempt ? (
           <>
             <h3>
@@ -623,7 +623,7 @@ export function ReviewModal({
                         type="number"
                         min={0}
                         max={q.points}
-                        step={0.5}
+                        step="any"
                         required
                         value={marks[String(q.id)]?.points ?? ""}
                         onChange={(e) =>
@@ -631,7 +631,7 @@ export function ReviewModal({
                             ...marks,
                             [String(q.id)]: {
                               ...marks[String(q.id)],
-                              points: Number(e.target.value),
+                              points: e.target.value,
                             },
                           })
                         }
@@ -645,7 +645,7 @@ export function ReviewModal({
                           setMarks({
                             ...marks,
                             [String(q.id)]: {
-                              points: marks[String(q.id)]?.points ?? null,
+                              points: marks[String(q.id)]?.points ?? "",
                               feedback: e.target.value,
                             },
                           })
@@ -679,7 +679,7 @@ export function ReviewModal({
               </div>
             ))}
             <div className="modal-footer">
-              <button type="button" className="btn" onClick={onClose}>
+              <button type="button" className="btn" disabled={busy} onClick={onClose}>
                 {t("Close") + " "}
               </button>
               {attempt.questions.some((q) => q.type === "essay") && (
@@ -692,6 +692,7 @@ export function ReviewModal({
         ) : (
           !error && <Spinner />
         )}
+        <ErrorBox message={error} />
       </form>
     </Modal>
   );
@@ -773,11 +774,10 @@ export function Results({
           {t("Export results CSV") + " "}
         </a>}
       </div>
-      <div className="summary-strip">
+      <div className="summary-strip results-summary" aria-busy={loading}>
         <div>
           <FileCheck2 size={23} />
-          <strong>{data?.count ?? "—"}</strong>
-          <span>{t("attempt records")}</span>
+          <span>{data ? countLabel(data.count, "{count} attempt record", "{count} attempt records") : "—"}</span>
         </div>
         <div>
           <Check size={23} />
@@ -813,7 +813,7 @@ export function Results({
         <div className="search-field">
           <Search size={16} />
           <input
-            placeholder={t("Search people, exams or departments\u2026")}
+            placeholder={t("Search results")}
             aria-label={t("Search results")}
             value={search}
             onChange={(e) => {
@@ -888,8 +888,8 @@ export function Results({
           "Totals and CSV exports cover every matching attempt. Date filters use submission time, or start time for active attempts.",
         )}
       </p>
-      <ErrorBox message={error} />
-      <div className="panel table-panel" aria-busy={loading}>
+      <div className="results-error"><ErrorBox message={error} /></div>
+      <div className="panel table-panel results-table" aria-busy={loading}>
         <div className="table-scroll">
           <table>
             <thead>
@@ -906,7 +906,7 @@ export function Results({
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td>
+                  <td data-label={t("Participant")}>
                     <div className="cell-person">
                       <div className="avatar soft">{r.person.slice(0, 1)}</div>
                       <div>
@@ -917,9 +917,9 @@ export function Results({
                       </div>
                     </div>
                   </td>
-                  <td>{r.exam}</td>
-                  <td>{t("Attempt {number}", { number: r.number })}</td>
-                  <td>
+                  <td data-label={t("Exam title")}>{r.exam}</td>
+                  <td data-label={t("Attempt number")}>{t("Attempt {number}", { number: r.number })}</td>
+                  <td data-label={t("Result")}>
                     <strong className={r.passed ? "teal-text" : ""}>
                       {r.score === null ? "—" : r.score}
                     </strong>
@@ -927,7 +927,7 @@ export function Results({
                       <small className="muted"> / 100</small>
                     )}
                   </td>
-                  <td>
+                  <td data-label={t("Status")}>
                     <Badge
                       tone={
                         r.status === "pending_review"
@@ -946,8 +946,8 @@ export function Results({
                         : statusLabel()[r.status]}
                     </Badge>
                   </td>
-                  <td>{date(r.submitted_at)}</td>
-                  <td>
+                  <td data-label={t("Submitted at")}>{date(r.submitted_at)}</td>
+                  <td data-label={t("Actions")}>
                     {r.can_view_results && r.status !== "in_progress" ? (
                       <button
                         className="text-btn"
@@ -978,10 +978,7 @@ export function Results({
         )}
         <div className="table-footer">
           <span>
-            {t("Total") + " "}
-            {data?.count ?? 0}
-            {" " + t("records") + " "}
-            {loading && t("Loading…")}
+            {countLabel(data?.count ?? 0, "Total {count} record", "Total {count} records")}
           </span>
           <div>
             <button
@@ -1136,14 +1133,14 @@ function PeopleTable({ currentUser }: { currentUser: User }) {
       <div className="toolbar people-toolbar">
         <GroupFilter value={group} onChange={id => { setGroup(id); setPage(1); }} />
         <label className="checkbox"><input type="checkbox" disabled={loading || !matching.length || new Set([...selected, ...matching.map(u => u.id)]).size > 1000} checked={!!matching.length && matching.every(u => selected.includes(u.id))} onChange={e => setSelected(e.target.checked ? [...new Set([...selected, ...matching.map(u => u.id)])] : selected.filter(id => !matching.some(u => u.id === id)))} />{t('Select this page')}</label>
-        <span>{t('{count} people selected', { count: selected.length })}</span>
+        <span>{countLabel(selected.length, '{count} person selected', '{count} people selected')}</span>
         <button className="btn" disabled={!selected.length} onClick={() => setAddingToGroup(true)}>{t('Add to group')}</button>
         <button className="text-btn" disabled={!selected.length} onClick={() => setSelected([])}>{t('Clear selection')}</button>
       </div>
       {addingToGroup && <AddToGroup userIds={selected} onClose={() => setAddingToGroup(false)} onSaved={() => { setSelected([]); load(); }} />}
       <ErrorBox message={error || loadError} />
       {loading && <p role="status">{t("Loading…")}</p>}
-      <div className="panel table-panel people-table">
+      <div className="panel table-panel people-table people-directory">
         <div className="table-scroll">
           <table>
             <thead>
@@ -1177,14 +1174,14 @@ function PeopleTable({ currentUser }: { currentUser: User }) {
                       </div>
                     </td>
                     <td data-label={t("Employee ID")}>{u.employee_id || "—"}</td>
-                    <td data-label={t("Department")}>{u.department || "—"}</td>
+                    <td data-label={t("Department")} className="people-department">{u.department || "—"}</td>
                     <td data-label={t("Employment type")}>
                       <Badge
                         tone={u.employment === "employee" ? "blue" : "purple"}
                       >
                         {u.employment === "employee"
-                          ? t("Employees")
-                          : t("Contractors")}
+                          ? t("Employee")
+                          : t("Contractor")}
                       </Badge>
                     </td>
                     <td data-label={t("Role")}>
@@ -1329,7 +1326,7 @@ export function Settings({ user, go }: { user: User; go: (path: string) => void 
     {user.access.system_admin && <OrganizationSettings />}
     <section className="panel management-history" aria-labelledby="activity-heading" aria-busy={loading}>
       <div className="management-section-heading"><div><h2 id="activity-heading">{t("Activity history")}</h2><p>{t("Latest 200 entries")}</p></div>
-        <div className="search-field"><Search size={16} /><input aria-label={t("Search activity")} placeholder={t("Search people, actions or training")} value={search} onChange={event => setSearch(event.target.value)} /></div>
+        <div className="search-field"><Search size={16} /><input aria-label={t("Search activity")} placeholder={t("Search activity")} value={search} onChange={event => setSearch(event.target.value)} /></div>
       </div>
       <ErrorBox message={error} />
       {loading ? <Spinner /> : matching.length ? <Activity rows={matching} go={go} /> : <Empty title={search ? t("No activity matches this search.") : t("No activity yet")} />}

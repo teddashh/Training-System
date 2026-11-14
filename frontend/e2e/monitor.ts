@@ -225,9 +225,9 @@ export async function monitorWorkflow(page: Page, browser: Browser) {
       "Preserved response: isolate the hazard and notify the supervisor.",
     );
     await expect(answer).toBeEnabled();
-    await expect(
-      guest.getByText("Extra time granted: 5 minutes.", { exact: true }),
-    ).toBeVisible();
+    const timerCaption = guest.locator(".exam-timer > span");
+    await expect(timerCaption).toHaveText("Time remaining · +5 min");
+    await expect(timerCaption).toBeVisible();
     await expect(guest.locator(".exam-timer strong")).not.toHaveText("00:00");
     expect(submissions).toBe(0);
     const state = await (
@@ -457,9 +457,9 @@ export async function monitorWorkflow(page: Page, browser: Browser) {
     await reopening.getByRole("button", { name: "Close", exact: true }).click();
     await guest.goto(invitation.url);
     await guest
-      .getByRole("button", { name: "Start / resume exam", exact: true })
+      .getByRole("button", { name: "Resume", exact: true })
       .click();
-    await expect(guest).toHaveURL(new RegExp(`/attempt/${attemptId}$`));
+    await expect(guest).toHaveURL(new RegExp(`/attempt/${attemptId}\\?guest=1$`));
     await expect(answer).toHaveValue(
       "Preserved response: isolate the hazard and notify the supervisor.",
     );

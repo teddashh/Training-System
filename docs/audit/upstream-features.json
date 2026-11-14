@@ -198,7 +198,7 @@
         "backend/training/test_enrollments.py::test_removal_racing_completion_preserves_serial_order",
         "frontend/e2e/enrollments.ts::enrollmentWorkflow"
       ],
-      "assessment": "Courses opt into reviewed admission; existing enrollments remain approved. Learners request access, see organizer responses and reapply after rejection. Scoped organizers search/filter/page requests and approve, reject, remove or restore access with required rejection/removal reasons, revision conflicts and idempotent latest-decision recovery. API course blocks, text completion, SCORM launches/commits, signed tickets and participant-bound content cookies enforce current access. Removal preserves progress, completion, assignments and bookmarks; pending requests are not counted as learning activity. Required course assignments do not bypass approval and separate course-linked exams retain their own policies. Audit events capture before/after state atomically. English, Traditional Chinese, Spanish and mobile flows have browser coverage. This implements the admission state machine; integrated bulk account creation/enrollment CSV and enrollment windows remain separate work.",
+      "assessment": "Courses opt into reviewed admission; existing enrollments remain approved. Learners request access, see organizer responses and reapply after rejection. Scoped organizers search/filter/page requests and approve, reject, remove or restore access with required rejection/removal reasons, revision conflicts and idempotent latest-decision recovery. API course blocks, text completion, SCORM launches/commits, signed tickets and participant-bound content cookies enforce current access. Removal preserves progress, completion, assignments and bookmarks; pending requests are not counted as learning activity. Required course assignments do not bypass approval and separate course-linked exams retain their own policies. Audit events capture before/after state atomically. English, Traditional Chinese, Spanish and mobile flows have browser coverage. This implements the admission state machine; integrated bulk account creation/enrollment CSV and course-wide enrollment windows remain separate work; scheduled sessions support registration windows.",
       "priority": 1,
       "routes": [
         "yaksh:enroll_request",
@@ -211,16 +211,20 @@
       "id": "Y08",
       "repository": "yaksh",
       "feature": "Hidden course codes and enrollment windows",
-      "status": "missing",
+      "status": "partial",
       "source": [
         {
           "path": "yaksh/models.py",
           "line": 290
         }
       ],
-      "implementation": [],
-      "verification": [],
-      "assessment": "Exam audience/scheduling does not provide course access codes or enrollment start/end windows.",
+      "implementation": [
+        "backend/training/course_sessions.py"
+      ],
+      "verification": [
+        "backend/training/test_rounds_sessions.py::test_release_registration_learning_and_end_boundaries"
+      ],
+      "assessment": "Scheduled sessions support registration start/end windows. Course-wide enrollment windows and hidden course access codes remain absent.",
       "priority": 1,
       "routes": []
     },
@@ -3115,16 +3119,21 @@
       "id": "D03",
       "repository": "dashboard",
       "feature": "Attendance charts and attendance records",
-      "status": "missing",
+      "status": "partial",
       "source": [
         {
           "path": "src/app/components/AttendanceChartContainer.tsx",
           "line": 1
         }
       ],
-      "implementation": [],
-      "verification": [],
-      "assessment": "No scheduled session/attendance model, roster or genuine attendance chart. Course completion is not attendance.",
+      "implementation": [
+        "backend/training/course_sessions.py",
+        "backend/training/models.py"
+      ],
+      "verification": [
+        "backend/training/test_onsite.py::test_online_manual_attendance_never_changes_completion"
+      ],
+      "assessment": "Scheduled sessions support attendance records and downloadable rosters; a full attendance chart remains absent. Course completion and attendance are distinct.",
       "priority": 1,
       "routes": []
     },
@@ -3294,7 +3303,7 @@
       "id": "D12",
       "repository": "dashboard",
       "feature": "Lesson schedules and week/day/calendar views",
-      "status": "missing",
+      "status": "partial",
       "source": [
         {
           "path": "src/app/components/BigCalendarContainer.tsx",
@@ -3305,9 +3314,13 @@
           "line": 1
         }
       ],
-      "implementation": [],
-      "verification": [],
-      "assessment": "Exam dates and assignment due dates exist, but no training session timetable/calendar.",
+      "implementation": [
+        "backend/training/course_sessions.py"
+      ],
+      "verification": [
+        "backend/training/test_rounds_sessions.py::test_release_registration_learning_and_end_boundaries"
+      ],
+      "assessment": "Scheduled training sessions have dates, registration windows and capacity; full week/day calendar views remain absent.",
       "priority": 1,
       "routes": []
     },
@@ -3328,7 +3341,7 @@
       ],
       "implementation": [],
       "verification": [],
-      "assessment": "No company training events, calendar or audience-scoped event listing.",
+      "assessment": "Scheduled training events exist, but a full calendar and audience-scoped event listing remain absent.",
       "priority": 1,
       "routes": []
     },
@@ -3490,7 +3503,7 @@
       ],
       "implementation": [],
       "verification": [],
-      "assessment": "Current role filtering covers owned/assigned training; relationship-scoped schedule views await cohorts/supervisors/sessions.",
+      "assessment": "Current role filtering covers owned/assigned training and scheduled sessions exist; relationship-scoped schedule views await cohorts and supervisors.",
       "priority": 1,
       "routes": []
     }

@@ -106,15 +106,16 @@ def save_session(user, course_id, data, session_id=None):
     if previous:
         cancelled = session.cancelled and not previous[2]
         rescheduled = not session.cancelled and previous[:2] != (session.starts_at, session.ends_at)
-        if cancelled or rescheduled:
-            from .notifications import enqueue
-            before = None if cancelled else CourseSession(
-                title=previous[4], starts_at=previous[0], ends_at=previous[1], location=previous[3])
+        from .notifications import enqueue, session_where
+        before = CourseSession(title=previous[4], starts_at=previous[0], ends_at=previous[1], location=previous[3])
+        moved = not session.cancelled and session_where(course, before) != session_where(course, session)
+        if cancelled or rescheduled or moved:
+            before = None if cancelled else before
             for row in session.enrollments.filter(status__in=("approved", "pending")).select_related("user"):
                 enqueue(
                     kind="session_cancelled" if cancelled else "session_rescheduled",
                     user=row.user, target=course, actor=user, session=session, old_session=before,
-                    event="Session cancelled" if cancelled else "Session rescheduled",
+                    event="Session cancelled" if cancelled else "Session rescheduled" if rescheduled else "Session changed",
                     dedupe_key=f"session:{session.pk}:{session.revision}:{row.pk}",
                     context={"session_id": session.pk, "course_id": course.pk, "enrollment_id": row.pk},
                 )

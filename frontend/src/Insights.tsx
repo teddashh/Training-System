@@ -18,7 +18,7 @@ import {
   YAxis,
 } from "recharts";
 import { api } from "./api";
-import { t, useLocale } from "./i18n";
+import { countLabel, t, useLocale } from "./i18n";
 import { questionTypes } from "./questionTypes";
 import { Badge, Empty, ErrorBox, Spinner } from "./ui";
 import type { Exam, ExamInsights } from "./types";
@@ -34,6 +34,11 @@ export default function Insights({ exams }: { exams: Exam[] }) {
   const [error, setError] = useState(""),
     [loading, setLoading] = useState(false),
     [questionSearch, setQuestionSearch] = useState("");
+  useEffect(() => {
+    const onPop = () => setSelected(new URLSearchParams(window.location.search).get("exam") || "");
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   useEffect(() => {
     if (!selected && managed.length) setSelected(String(managed[0].id));
   }, [exams, selected]);
@@ -90,6 +95,7 @@ export default function Insights({ exams }: { exams: Exam[] }) {
             value={selected}
             onChange={(e) => {
               setSelected(e.target.value);
+              const url = new URL(window.location.href); url.searchParams.set("exam", e.target.value); window.history.replaceState(window.history.state, "", url);
               setQuestionSearch("");
             }}
           >
@@ -250,10 +256,7 @@ export default function Insights({ exams }: { exams: Exam[] }) {
                       />
                     </div>
                     <small>
-                      {t("{graded} graded · {total} total attempts", {
-                        graded: row.graded,
-                        total: row.attempts,
-                      })}{" "}
+                      {t("{count} graded", {count: row.graded})} · {countLabel(row.attempts, "{count} total attempt", "{count} total attempts")}{" "}
                       · {t("Average score")}: {row.average ?? "—"}
                     </small>
                   </div>
@@ -299,7 +302,7 @@ export default function Insights({ exams }: { exams: Exam[] }) {
                 <tbody>
                   {questions.map((q) => (
                     <tr key={q.variant}>
-                      <td className="bank-description">
+                      <td data-label={t("Question")} className="bank-description">
                         <QuestionContent question={q} heading="strong" />
                         <small className="cell-note">
                           {
@@ -311,9 +314,9 @@ export default function Insights({ exams }: { exams: Exam[] }) {
                           {q.variant.slice(0, 6)}
                         </small>
                       </td>
-                      <td>{q.responses}</td>
-                      <td>{q.answer_rate}%</td>
-                      <td>
+                      <td data-label={t("Graded responses")}>{q.responses}</td>
+                      <td data-label={t("Answer rate")}>{q.answer_rate}%</td>
+                      <td data-label={t("Full-credit rate")}>
                         <Badge
                           tone={
                             q.full_credit_rate >= 80
@@ -329,7 +332,7 @@ export default function Insights({ exams }: { exams: Exam[] }) {
                           {q.full_credit} / {q.responses}
                         </small>
                       </td>
-                      <td>
+                      <td data-label={t("Average points")}>
                         {q.average_points} / {q.points}
                       </td>
                     </tr>

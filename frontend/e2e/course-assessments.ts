@@ -70,7 +70,7 @@ export async function courseAssessmentsWorkflow(page: Page, browser: Browser) {
   await expect(draftInvitationRow.getByText('Participants can take it after it is published.', {exact: true})).toHaveCount(0);
   await expect(draftInvitationRow.getByText('Ask the exam owner to publish.', {exact: true})).toHaveCount(0);
   await expect(editor.getByText("Approved learners can take published quizzes unless invitation-only.", {exact: true})).toBeVisible();
-  await expect(editor.getByLabel('Existing quiz', {exact: true}).locator(`option[value="${exam.id}"]`)).toContainText('Also used by 1 courses');
+  await expect(editor.getByLabel('Existing quiz', {exact: true}).locator(`option[value="${exam.id}"]`)).toHaveText(`${quizTitle} · Published · 1 question · Also used by 1 course`);
   await editor.getByLabel('Existing quiz', {exact: true}).selectOption(String(exam.id));
   await editor.getByRole('button', {name: 'Attach quiz', exact: true}).click();
   await expect(editor.locator('.assessment-link').filter({hasText: exam.title})).toBeVisible();
@@ -276,6 +276,19 @@ export async function courseAssessmentsWorkflow(page: Page, browser: Browser) {
     await expect(failedTrainingRow).toContainText('Assessment closed');
     await expect(failedTrainingRow.getByRole('link', {name: 'Retake', exact: true})).toHaveCount(0);
     await write(page, `exams/${exam.id}/`, {ends_at: null}, 'PATCH');
+    const runningSession = async (route: Route) => {
+      const response = await route.fetch();
+      const courses = await response.json();
+      const times = {starts_at: new Date(Date.now() - 60000).toISOString(), ends_at: new Date(Date.now() + 3600000).toISOString(), cancelled: false};
+      await route.fulfill({json: courses.map((c: {id: number; sessions: object[]; enrollment: {session: object}}) => c.id === onsite.id
+        ? {...c, progress: 0, progress_known: true, can_learn: true, sessions: c.sessions.map(s => ({...s, ...times})), enrollment: {...c.enrollment, session: {...c.enrollment.session, ...times}}} : c)});
+    };
+    await learner.route('**/api/courses/mine/', runningSession);
+    await learner.goto(url('/my-training'));
+    const runningCard = learner.locator('.course-card').filter({has: learner.getByRole('heading', {name: onsite.title, exact: true})});
+    await expect(runningCard.getByText('In progress', {exact: true})).toBeVisible();
+    await expect(runningCard.getByRole('button', {name: 'Start learning', exact: true})).toBeVisible();
+    await learner.unroute('**/api/courses/mine/', runningSession);
     await learner.route('**/api/courses/mine/', async route => {
       const response = await route.fetch();
       const courses = await response.json();
@@ -294,6 +307,7 @@ export async function courseAssessmentsWorkflow(page: Page, browser: Browser) {
   await page.goto(url('/my-training'));
   const personalCard = page.locator('.course-card').filter({hasText: online.title});
   await expect(personalCard.getByText('Not started', {exact: true})).toBeVisible();
+  await expect(personalCard.getByRole('button', {name: 'Open', exact: true})).toBeVisible();
   await expect(personalCard.getByRole('link', {name: 'Take assessment', exact: true})).toBeVisible();
   await expect(personalCard.getByRole('link', {name: 'Preview exam', exact: true})).toHaveCount(0);
   await expect(personalCard.getByRole('link', {name: 'Edit quiz', exact: true})).toHaveCount(0);

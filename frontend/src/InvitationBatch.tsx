@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, Upload } from "lucide-react";
 import { api, ApiError } from "./api";
-import { t, useLocale } from "./i18n";
+import { countLabel, t, useLocale } from "./i18n";
 import { ErrorBox, Modal } from "./ui";
 import type { Exam, Invitation } from "./types";
 
@@ -177,9 +177,7 @@ export default function InvitationBatch({
           {result?.applied ? (
             <>
               <p className="notice success" role="status">
-                {t("Created {count} personal invitation links.", {
-                  count: result.count,
-                })}
+                {countLabel(result.count, "Created {count} personal invitation link.", "Created {count} personal invitation links.")}
               </p>
               <p>
                 {t(
@@ -369,10 +367,7 @@ export default function InvitationBatch({
                     role="status"
                   >
                     {result.valid
-                      ? t(
-                          "All {count} recipients are valid. No links have been created yet.",
-                          { count: result.count },
-                        )
+                      ? countLabel(result.count, "All {count} recipient is valid. No links have been created yet.", "All {count} recipients are valid. No links have been created yet.")
                       : t(
                           "Fix the recipient errors. No invitations were created.",
                         )}

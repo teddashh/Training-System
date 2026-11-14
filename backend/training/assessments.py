@@ -67,6 +67,7 @@ def course_assessments(course, context):
         rows.append({**option(exam, user, course.pk, membership), 'available_to_me': available,
                      'active_attempt_id': serializer.get_active_attempt_id(exam),
                      'last_result': serializer.get_last_result(exam),
+                     'has_passed': serializer.get_has_passed(exam),
                      'attempts_remaining': serializer.get_attempts_remaining(exam),
                      'next_attempt_at': serializer.get_next_attempt_at(exam),
                      'next_round_at': serializer.get_next_round_at(exam),

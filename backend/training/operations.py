@@ -16,6 +16,7 @@ from rest_framework import serializers, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 from .i18n import translate
 from .models import (
@@ -284,6 +285,9 @@ class Assignments(viewsets.ViewSet):
         if not item.cancelled_at:
             item.cancelled_at = timezone.now()
             item.save(update_fields=["cancelled_at"])
+            from .models import OutboundEmail
+            OutboundEmail.objects.filter(kind="assignment", status="queued", context__assignment_id=item.pk).update(
+                status="cancelled", last_error="Notice no longer applies.")
             audit(request.user, "assignment.cancelled", item.pk)
         return Response({"cancelled": True})
 
@@ -429,7 +433,15 @@ class PasswordInput(serializers.Serializer):
     )
 
 
+class PasswordChangePermission(IsAuthenticated):
+    def has_permission(self, request, view):
+        if not settings.PASSWORD_SIGN_IN:
+            raise PermissionDenied(translate("Password sign-in is off."))
+        return super().has_permission(request, view)
+
+
 @api_view(["POST"])
+@permission_classes([PasswordChangePermission])
 def change_password(request):
     if not settings.PASSWORD_SIGN_IN:
         return Response({"detail": translate("Password sign-in is off.")}, status=403)

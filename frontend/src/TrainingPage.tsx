@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Settings, Search } from 'lucide-react';
 import { api, ApiError } from './api';
 import { appPath } from './paths';
@@ -18,7 +18,7 @@ import TrainingQuiz from './TrainingQuiz';
 import PeopleBox, { SkippedLines, emptyNames, type PeopleNames } from './PeopleBox';
 import { createdKey } from './NewTraining';
 import {
-  MAIL_KINDS, MAIL_STATES, accepted, emptyRoster, gated, hasPeople, notifiedCount, released, movableSessions, nextMail, rosterSignature, shortWhen, skipped,
+  MAIL_KINDS, mailDelivery, accepted, emptyRoster, gated, hasPeople, notifiedCount, released, movableSessions, nextMail, rosterSignature, shortWhen, skipped,
   type EnrollmentPage, type EnrollmentRow, type RosterInput, type RosterReport, type RosterRow, type SessionOverview, type TrainingOverview,
 } from './simpleTraining';
 import type { Course } from './types';
@@ -41,23 +41,30 @@ export default function TrainingPage({ id, go, onSaved }: { id: number; go: (pat
   const [prefill, setPrefill] = useState<string | null>(null), [version, setVersion] = useState(0);
   // Shown once: a reload or a later visit does not repeat the confirmation.
   useEffect(() => { try { sessionStorage.removeItem(createdKey(id)); } catch { /* Storage can be disabled. */ } }, [id]);
-  const load = useCallback(async () => {
-    const [next, full] = await Promise.all([api<TrainingOverview>(`courses/${id}/training/`), api<Course>(`courses/${id}/`)]);
-    setOverview(next); setCourse(full); setError('');
-    return full;
+  const generation = useRef(0), pending = useRef<{ id: number; promise: Promise<Course | null> } | null>(null), goRef = useRef(go);
+  goRef.current = go;
+  const load = useCallback((reuse = false): Promise<Course | null> => {
+    if (reuse && pending.current?.id === id) return pending.current.promise;
+    const run = ++generation.current;
+    const promise = Promise.all([api<TrainingOverview>(`courses/${id}/training/`), api<Course>(`courses/${id}/`)]).then(([next, full]) => {
+      if (run !== generation.current) return null;
+      setOverview(next); setCourse(full); setError('');
+      return full;
+    }).catch(e => { if (run === generation.current) setError(e instanceof ApiError && e.status === 404 ? 'not-found' : (e as Error).message); return null; }).finally(() => { if (pending.current?.promise === promise) pending.current = null; });
+    pending.current = { id, promise };
+    return promise;
   }, [id]);
   useEffect(() => {
     let active = true;
-    load().then(full => { if (active && full.delivery_mode !== 'scheduled') go(`/authoring?course=${id}&action=edit`, true); })
-      .catch(e => { if (active) setError((e as Error).message); });
+    load(true).then(full => { if (active && full && full.delivery_mode !== 'scheduled') goRef.current(`/authoring?course=${id}&action=edit`, true); });
     return () => { active = false; };
-  }, [load, id, go]);
+  }, [load, id]);
   useEffect(() => {
     const pop = () => { setTab(tabFromUrl()); setEditing(settingsFromUrl()); };
     window.addEventListener('popstate', pop);
     return () => window.removeEventListener('popstate', pop);
   }, []);
-  const refresh = useCallback(() => { setVersion(v => v + 1); onSaved(); return load().catch(e => setError((e as Error).message)); }, [load, onSaved]);
+  const refresh = useCallback(() => { setVersion(v => v + 1); onSaved(); return load(); }, [load, onSaved]);
   function openTab(next: Tab) {
     if (next === tab) return;
     const url = new URL(window.location.href);
@@ -71,7 +78,7 @@ export default function TrainingPage({ id, go, onSaved }: { id: number; go: (pat
     url.searchParams.delete('settings');
     history.replaceState({}, '', url);
   }
-  if (error && !overview) return <ErrorBox message={error} />;
+  if (error && !overview) return error === 'not-found' ? <p>{t('Training not found.')} <a href={appPath('/authoring')}>{t('Trainings')}</a></p> : <ErrorBox message={error} />;
   if (!overview || !course) return <Spinner />;
   const state = !overview.published ? 'Draft' : overview.release_at && Date.parse(overview.release_at) > Date.now() ? 'Scheduled' : '';
   const tabLink = (value: Tab, label: string) => <a href={appPath(`/authoring/${id}${value === 'people' ? '?tab=people' : ''}`)} aria-current={tab === value ? 'page' : undefined}
@@ -106,7 +113,9 @@ export default function TrainingPage({ id, go, onSaved }: { id: number; go: (pat
 function RegistrationShare({ overview, onChanged }: { overview: TrainingOverview; onChanged: () => void }) {
   useLocale();
   const [copied, setCopied] = useState(false), [fallback, setFallback] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState('');
-  const link = overview.registration_url && new URL(overview.registration_url, window.location.origin).href;
+  const [newLink, setNewLink] = useState<string | null>(null);
+  const rawLink = newLink || overview.registration_url;
+  const link = rawLink && new URL(rawLink, window.location.origin).href;
   async function copy() {
     if (!link) return;
     setCopied(false);
@@ -116,19 +125,19 @@ function RegistrationShare({ overview, onChanged }: { overview: TrainingOverview
   async function create(rotate = false) {
     if (rotate && !window.confirm(t('Create a new registration link? The old link will stop working immediately.'))) return;
     setBusy(true); setError('');
-    try { await api(`courses/${overview.id}/registration-link/`, 'POST', { rotate }); setCopied(false); setFallback(false); onChanged(); }
+    try { const result = await api<{ url: string }>(`courses/${overview.id}/registration-link/`, 'POST', { rotate }); setNewLink(result.url); setCopied(false); setFallback(false); onChanged(); }
     catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   }
   return <section className="training-section" aria-label={t('Registration link')}>
     <div className="heading-actions training-share">
-      {link ? <button type="button" className="btn primary" onClick={() => void copy()}>{t(copied ? 'Copied' : 'Copy link')}</button>
+      {link ? <button type="button" className="btn primary" disabled={busy} onClick={() => void copy()}>{t(copied ? 'Copied' : 'Copy link')}</button>
         : <button type="button" className="btn primary" disabled={busy} onClick={() => void create()}>{t('Create link')}</button>}
       {link && <><a className="btn" href={link} target="_blank" rel="noopener noreferrer">{t('Open page')}</a>
         <ActionMenu title={t('Registration link')}>
           <button type="button" disabled={busy} onClick={() => void create(true)}>{t('Create new link')}</button>
         </ActionMenu></>}
-      {link && <p className="muted">{t('Anyone with it can register or switch session.')}</p>}
+      {link && <p className="muted" title={link}>{link}</p>}
     </div>
     {fallback && link && <div className="registration-share"><label>{t('Registration link')}<input readOnly value={link} onFocus={e => e.target.select()} /></label></div>}
     <ErrorBox message={error} />
@@ -172,7 +181,8 @@ function Sessions({ overview, course, onChanged }: { overview: TrainingOverview;
     })}</div>
     <ErrorBox message={error} />
     {!overview.sessions.length && <p className="muted">{t('No sessions available.')}</p>}
-    <button type="button" className="btn" onClick={() => setEditing(null)}>{t('Add session')}</button>
+    <button type="button" className="btn" disabled={!overview.published} onClick={() => setEditing(null)}>{t('Add session')}</button>
+    {!overview.published && <p className="field-hint">{t('Publish first.')}</p>}
     {editing !== undefined && <SessionEditor course={course} session={editing} onClose={() => setEditing(undefined)} onSaved={onChanged} />}
     {attendance && <Modal title={`${t('Attendance')} · ${attendance.title}`} wide onClose={closeAttendance}>
       <div className="modal-form"><SessionAttendance heading={false} course={course} session={attendance} refreshKey={0} onSaved={() => {}} />
@@ -230,7 +240,7 @@ function Emails({ overview, onChanged }: { overview: TrainingOverview; onChanged
       <ul className="training-mail-list">{events.map((event, i) => <li key={i}>
         <span>{t(MAIL_KINDS[event.kind] || event.kind)}</span>
         <span className="muted">{event.session.title}{event.scheduled_at ? ` · ${shortWhen(event.produced_at || event.scheduled_at, locale)}` : ''}</span>
-        <Badge tone={event.state === 'produced' ? 'teal' : 'neutral'}>{t(MAIL_STATES[event.state] || event.state)}</Badge>
+        <Badge tone={event.state === 'produced' ? 'teal' : 'neutral'}>{mailDelivery(event).map(label => t(label)).join(' · ')}</Badge>
       </li>)}</ul>
     </details>}
   </section>;
@@ -263,14 +273,18 @@ function AddPeople({ overview, course, prefill, onClose, onAdded }: { overview: 
   const [roster, setRoster] = useState<RosterInput>({ ...emptyRoster(), text: prefill }), [names, setNames] = useState<PeopleNames>(emptyNames);
   const [check, setCheck] = useState<{ signature: string; report: RosterReport } | null>(null), [checking, setChecking] = useState(false);
   const [result, setResult] = useState<RosterReport | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [peopleError, setPeopleError] = useState('');
+  // A failed automatic check shows in the box's check line, which has its place already: it must not move the Add button.
+  const [checkError, setCheckError] = useState(''), [uploading, setUploading] = useState(false);
+  const checkRun = useRef(0);
   /** Validation (such as the line limit) belongs under the People box; anything else below the form. */
   function fail(e: unknown) { if (e instanceof ApiError && e.status === 400) setPeopleError(e.message); else setError((e as Error).message); }
   const body = (value: RosterInput, dryRun: boolean) => ({ session, ...value, text: value.text.trim(), dry_run: dryRun, notify: notify && !dryRun });
   async function dryRun(value: RosterInput, target = session) {
-    if (!hasPeople(value) || !target) return;
+    const run = ++checkRun.current;
+    if (!hasPeople(value) || !target) { setChecking(false); setCheckError(''); return; }
     setChecking(true);
-    try { setCheck({ signature: rosterSignature(value) + target, report: await api<RosterReport>(`courses/${course.id}/roster/`, 'POST', { ...body(value, true), session: target }) }); setError(''); setPeopleError(''); }
-    catch (e) { fail(e); } finally { setChecking(false); }
+    try { const report = await api<RosterReport>(`courses/${course.id}/roster/`, 'POST', { ...body(value, true), session: target }); if (run === checkRun.current) { setCheck({ signature: rosterSignature(value) + target, report }); setCheckError(''); } }
+    catch (e) { if (run === checkRun.current) setCheckError((e as Error).message); } finally { if (run === checkRun.current) setChecking(false); }
   }
   // Skipped lines handed over from creation are checked straight away.
   useEffect(() => { if (prefill) void dryRun(roster); }, []);
@@ -281,9 +295,10 @@ function AddPeople({ overview, course, prefill, onClose, onAdded }: { overview: 
   }
   async function add(event: React.FormEvent) {
     event.preventDefault();
-    if (busy || !hasPeople(roster)) return;
+    if (busy || uploading || !hasPeople(roster)) return;
+    ++checkRun.current; setChecking(false);
     setBusy(true); setError('');
-    try { setResult(await api<RosterReport>(`courses/${course.id}/roster/`, 'POST', body(roster, false))); setRoster(emptyRoster()); setNames(emptyNames()); setCheck(null); setPeopleError(''); onAdded(); }
+    try { setResult(await api<RosterReport>(`courses/${course.id}/roster/`, 'POST', body(roster, false))); setRoster(emptyRoster()); setNames(emptyNames()); setCheck(null); setPeopleError(''); setCheckError(''); onAdded(); }
     catch (e) { fail(e); } finally { setBusy(false); }
   }
   const report = check && check.signature === rosterSignature(roster) + session ? check.report : undefined;
@@ -296,10 +311,10 @@ function AddPeople({ overview, course, prefill, onClose, onAdded }: { overview: 
           {open.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
         </select></div>}
       <PeopleBox id="training-add-people" value={roster} names={names} report={report} checking={checking && !report}
-        error={peopleError} onChange={(value, next) => { setRoster(value); setNames(next); setResult(null); setPeopleError(''); }} onCheck={value => void dryRun(value)} onUpload={upload} />
+        error={peopleError} checkError={checkError} onChange={(value, next) => { ++checkRun.current; setChecking(false); setRoster(value); setNames(next); setResult(null); setPeopleError(''); setCheckError(''); }} onCheck={value => void dryRun(value)} onUpload={upload} onUploadingChange={setUploading} />
       <ErrorBox message={error} />
       <div className="heading-actions training-submit">
-        <button className="btn primary" disabled={busy || !hasPeople(roster)}>{t(busy ? 'Adding…' : notify ? 'Add and notify' : 'Add')}</button>
+        <button className="btn primary" disabled={busy || uploading || !hasPeople(roster)}>{t(busy ? 'Adding…' : notify ? 'Add and notify' : 'Add')}</button>
         <button type="button" className="btn" disabled={busy} onClick={onClose}>{t('Close')}</button>
       </div>
     </fieldset>
@@ -315,24 +330,37 @@ function People({ overview, course, version, prefill, onPrefilled, onChanged }: 
   const [data, setData] = useState<EnrollmentPage | null>(null), [loading, setLoading] = useState(true), [error, setError] = useState(''), [message, setMessage] = useState('');
   const [adding, setAdding] = useState<string | null>(prefill), [deciding, setDeciding] = useState<{ row: EnrollmentRow; decision: Decision } | null>(null);
   const [busy, setBusy] = useState(false), [reload, setReload] = useState(0);
+  // Invalidate pending results as soon as the query changes, before the next effect runs.
+  const request = useRef(0);
   useEffect(() => { if (prefill !== null) { setAdding(prefill); onPrefilled(); } }, [prefill, onPrefilled]);
+  useEffect(() => {
+    const pop = () => {
+      const next = FILTERS.find(f => f.key === new URLSearchParams(window.location.search).get('status'))?.key || 'all';
+      if (next !== filter || page !== 1) request.current++;
+      setFilter(next); setPage(1);
+    };
+    window.addEventListener('popstate', pop);
+    return () => window.removeEventListener('popstate', pop);
+  }, [filter, page]);
   const chosen = FILTERS.find(f => f.key === filter)!;
   useEffect(() => {
     let active = true;
+    const run = ++request.current;
     setLoading(true);
     const timer = setTimeout(() => {
       const params = new URLSearchParams({ status: chosen.status, page: String(page), search: search.trim() });
+      if ('attendance' in chosen) params.set('attendance', chosen.attendance);
       api<EnrollmentPage>(`courses/${course.id}/enrollments/?${params}`)
-        .then(result => { if (active) {
+        .then(result => { if (active && run === request.current) {
           setData(result); setError('');
-          if (filter !== 'all' && !result.counts[filter]) { setFilter('all'); setPage(1); }
+          if (filter !== 'all' && !result.counts[filter]) { request.current++; setFilter('all'); setPage(1); }
         } })
-        .catch(e => { if (active) setError((e as Error).message); })
-        .finally(() => { if (active) setLoading(false); });
+        .catch(e => { if (active && run === request.current) setError((e as Error).message); })
+        .finally(() => { if (active && run === request.current) setLoading(false); });
     }, search ? 200 : 0);
     return () => { active = false; clearTimeout(timer); };
   }, [course.id, chosen.status, filter, page, search, version, reload]);
-  function changed() { setReload(v => v + 1); onChanged(); }
+  function changed() { request.current++; setReload(v => v + 1); onChanged(); }
   async function move(row: EnrollmentRow, target: SessionOverview) {
     setBusy(true); setError(''); setMessage('');
     try {
@@ -344,20 +372,27 @@ function People({ overview, course, version, prefill, onPrefilled, onChanged }: 
   }
   const counts = data?.counts || {};
   const hasQuiz = overview.quizzes.some(quiz => quiz.published);
-  const rows = (data?.results || []).filter(row => !('attendance' in chosen) || row.effective_attendance === chosen.attendance);
+  const rows = data?.results || [];
   const targets = movableSessions(overview.sessions);
   const pages = data ? Math.max(1, Math.ceil(data.count / data.page_size)) : 1;
   return <>
-    <div className="heading-actions training-filters" role="group" aria-label={t('Status')}>
-      {FILTERS.filter(f => ['all', 'registered'].includes(f.key) || counts[f.key]).map(f => <button key={f.key} type="button" className="btn" aria-pressed={filter === f.key}
-        onClick={() => { setFilter(f.key); setPage(1); }}>{t(f.label)} <span className="count">{counts[f.key] || 0}</span></button>)}
-    </div>
     {adding === null ? <div className="heading-actions training-add-toggle">
       <button type="button" className="btn primary" onClick={() => setAdding('')}>{t('Add people')}</button>
       {course.published && access.assign && <a className="btn" href={appPath(`/assignments?action=assign&course=${course.id}&report=1`)}>{t('Assign training')}</a>}
     </div>
       : <AddPeople overview={overview} course={course} prefill={adding} onClose={() => setAdding(null)} onAdded={changed} />}
-    {(counts.all || 0) > 10 && <div className="search-field training-search"><Search size={16} /><input aria-label={t('Search people')} placeholder={t('Search people')} value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} /></div>}
+    {/* Below the primary action: the filters depend on the counts, so their wrapping must not move it. */}
+    <div className="heading-actions training-filters" role="group" aria-label={t('Status')}>
+      {FILTERS.filter(f => f.key === 'all' || counts[f.key]).map(f => <button key={f.key} type="button" className="btn" aria-pressed={filter === f.key}
+        onClick={() => {
+          const url = new URL(window.location.href);
+          if (f.key === 'all') url.searchParams.delete('status'); else url.searchParams.set('status', f.key);
+          history.replaceState(history.state, '', url);
+          if (f.key !== filter || page !== 1) request.current++;
+          setFilter(f.key); setPage(1);
+        }}>{t(f.label)} <span className="count">{counts[f.key] || 0}</span></button>)}
+    </div>
+    {(counts.all || 0) > 10 && <div className="search-field training-search"><Search size={16} /><input aria-label={t('Search people')} placeholder={t('Search people')} value={search} onChange={e => { request.current++; setSearch(e.target.value); setPage(1); }} /></div>}
     <div role="status">{message}</div>
     <ErrorBox message={error} />
     {loading && !data ? <Spinner /> : rows.length ? <div className="people-table training-table"><table>
@@ -380,9 +415,9 @@ function People({ overview, course, version, prefill, onPrefilled, onChanged }: 
       })}</tbody>
     </table></div> : <p className="muted">{t('No people yet.')}</p>}
     {data && data.count > data.page_size && <div className="enrollment-pagination">
-      <button type="button" className="btn" disabled={loading || data.page <= 1} onClick={() => setPage(data.page - 1)}>{t('Previous')}</button>
+      <button type="button" className="btn" disabled={loading || data.page <= 1} onClick={() => { request.current++; setPage(data.page - 1); }}>{t('Previous')}</button>
       <span>{data.page} / {pages}</span>
-      <button type="button" className="btn" disabled={loading || data.page >= pages} onClick={() => setPage(data.page + 1)}>{t('Next')}</button>
+      <button type="button" className="btn" disabled={loading || data.page >= pages} onClick={() => { request.current++; setPage(data.page + 1); }}>{t('Next')}</button>
     </div>}
     {deciding && <Modal title={t(deciding.decision === 'approved' ? 'Approve' : deciding.decision === 'rejected' ? 'Reject' : 'Remove')} onClose={() => setDeciding(null)}>
       <div className="modal-form"><EnrollmentDecision course={course} row={deciding.row} decision={deciding.decision} cancelLabel={t('Cancel')}

@@ -1,6 +1,7 @@
 """Synthetic contracts for shared assessments, personal learning and image rollback."""
 from datetime import timedelta
 from io import StringIO
+from types import SimpleNamespace
 from django.core.management import call_command
 
 from django.db import connection
@@ -370,13 +371,59 @@ class CourseAssessmentTests(TestCase):
         self.assertEqual(row['last_result']['status'], 'pending_review')
         self.assertIsNone(row['last_result']['score'])
         self.assertIsNone(row['last_result']['passed'])
+        self.assertFalse(row['has_passed'])
         Attempt.objects.filter(pk=attempt.pk).update(status='graded', score=80, passed=True)
         row = self.client.get(f'/api/exams/{exam.pk}/').data
         self.assertEqual(row['last_result']['score'], 80)
         self.assertTrue(row['last_result']['passed'])
+        self.assertTrue(row['has_passed'])
         result = self.client.get(f'/api/attempts/{attempt.pk}/').data
         self.assertFalse(result['review_available'])
         self.assertEqual(result['questions'], [])
+
+    def test_earlier_pass_is_personal_and_present_in_every_assessment_payload(self):
+        exam = make_exam(self.admin, limit=3, essay=True)
+        exam.courses.add(self.course)
+        Enrollment.objects.create(user=self.learner, course=self.course, status='approved')
+        first = start_attempt(exam.pk, identity_for_user(self.learner))
+        finalize(first)
+        Attempt.objects.filter(pk=first.pk).update(status='graded', score=80, passed=True)
+        second = start_attempt(exam.pk, identity_for_user(self.learner))
+        finalize(second)
+        self.client.force_authenticate(self.learner)
+        exams = self.client.get('/api/exams/').data
+        courses = self.client.get('/api/courses/').data
+        mine = self.client.get('/api/courses/mine/').data
+        rows = [self.client.get(f'/api/exams/{exam.pk}/').data,
+                next(row for row in exams if row['id'] == exam.pk),
+                next(row for row in courses if row['id'] == self.course.pk)['assessments'][0],
+                next(row for row in mine if row['id'] == self.course.pk)['assessments'][0],
+                self.client.get(f'/api/courses/{self.course.pk}/').data['assessments'][0]]
+        for row in rows:
+            self.assertTrue(row['has_passed'])
+            self.assertEqual(row['attempts_remaining'], 1)
+            self.assertEqual(row['last_result'], {'id': str(second.pk), 'status': 'pending_review', 'score': None, 'passed': None})
+
+        # Another person's pass must not be exposed as this person's result.
+        self.client.force_authenticate(self.admin)
+        other = self.client.get(f'/api/exams/{exam.pk}/').data
+        self.assertFalse(other['has_passed'])
+        self.assertIsNone(other['last_result'])
+        from .serializers import ExamSerializer
+        self.assertTrue(ExamSerializer().fields['has_passed'].read_only)
+
+    def test_pass_history_uses_prefetched_attempts_without_extra_queries(self):
+        from .assessments import exam_queryset
+        from .serializers import ExamSerializer
+        for _ in range(3):
+            exam = make_exam(self.admin)
+            attempt = start_attempt(exam.pk, identity_for_user(self.learner))
+            finalize(attempt)
+            Attempt.objects.filter(pk=attempt.pk).update(passed=True)
+        exams = list(exam_queryset(self.learner).filter(attempt__identity__user=self.learner).distinct())
+        serializer = ExamSerializer(context={'request': SimpleNamespace(user=self.learner)})
+        with self.assertNumQueries(0):
+            self.assertEqual([serializer.get_has_passed(exam) for exam in exams], [True, True, True])
 
     def test_expired_attempt_offers_result_without_charging_another_start(self):
         exam = make_exam(self.admin)
@@ -422,6 +469,7 @@ class CourseAssessmentTests(TestCase):
         self.assertEqual(len(small), len(large))
         self.assertLessEqual(len(large), 12)
         self.assertTrue(all('questions' not in row and 'allowed_users' not in row for row in response.data))
+        self.assertTrue(all('has_passed' in row for row in response.data))
         self.client.force_authenticate(self.admin)
         with CaptureQueriesContext(connection) as manager_large:
             self.assertEqual(self.client.get('/api/exams/').status_code, 200)

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Plus, RefreshCw } from "lucide-react";
 import { api } from "./api";
 import { appPath } from "./paths";
-import { t, useLocale } from "./i18n";
+import { countLabel, t, useLocale } from "./i18n";
 import { Badge, ErrorBox, Spinner } from "./ui";
 import Activity, { type ActivityEntry } from "./Activity";
 
@@ -64,8 +64,8 @@ export default function Administration({ go }: { go: (path: string) => void }) {
     {!data && !error ? <Spinner /> : data && <>
       <section className="panel management-summary" aria-label={t("Training at a glance")}>
         {[
-          { count: data.courses.total, label: t("Courses"), detail: t("{count} drafts", { count: data.courses.total - data.courses.published }), path: "/authoring" },
-          { count: data.exams.total, label: t("Exams"), detail: t("{count} drafts", { count: data.exams.total - data.exams.published }), path: "/exams" },
+          { count: data.courses.total, label: t("Courses"), detail: countLabel(data.courses.total - data.courses.published, "{count} draft", "{count} drafts"), path: "/authoring" },
+          { count: data.exams.total, label: t("Exams"), detail: countLabel(data.exams.total - data.exams.published, "{count} draft", "{count} drafts"), path: "/exams" },
           { count: data.people.active, label: t("Active people"), detail: t("Manage access and roles"), path: "/people" },
           { count: data.pending_enrollments, label: t("Enrollment requests"), detail: t("Review course access below"), path: "#management-attention" },
         ].map(item => <a key={item.label} href={item.path.startsWith("#") ? item.path : appPath(item.path)} onClick={event => {
@@ -100,9 +100,9 @@ export default function Administration({ go }: { go: (path: string) => void }) {
         <aside className="management-aside">
           <section className="panel management-attention" id="management-attention" aria-labelledby="management-attention-heading">
             <div className="management-section-heading"><h2 id="management-attention-heading">{t("Needs your attention")}</h2></div>
-            {data.pending_reviews > 0 && <div className="management-attention-item"><strong>{t("{count} exams awaiting review", { count: data.pending_reviews })}</strong>{link("/results?status=pending_review", t("Review answers"))}</div>}
+            {data.pending_reviews > 0 && <div className="management-attention-item"><strong>{countLabel(data.pending_reviews, "{count} exam awaiting review", "{count} exams awaiting review")}</strong>{link("/results?status=pending_review", t("Review answers"))}</div>}
             {data.enrollment_requests.map(item => <div className="management-attention-item" key={item.course_id}>
-              <strong>{item.course__title}</strong><p>{t("{count} enrollment requests", { count: item.count })}</p>
+              <strong>{item.course__title}</strong><p>{countLabel(item.count, "{count} enrollment request", "{count} enrollment requests")}</p>
               {link(`/authoring?course=${item.course_id}&action=enrollments`, t("Review requests"))}
             </div>)}
             {!data.pending_reviews && !data.pending_enrollments && <p className="management-empty">{t("No enrollment requests or exam reviews are waiting.")}</p>}

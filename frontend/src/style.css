@@ -1059,6 +1059,13 @@ svg {
   box-shadow: 0 2px 3px color-mix(in srgb, var(--ink) 0.78%, transparent);
   overflow: hidden;
 }
+.overview-error { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 12px; min-height: 56px; }
+.overview-error > .error { flex: 1; min-width: 0; margin: 0; }
+.overview-error > button { flex: 0 0 auto; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .overview-error > .error { flex-basis: 100%; }
+}
+.overview-figures[data-stale="true"], .results-summary[aria-busy="true"], .results-table[aria-busy="true"] tbody { opacity: .5; }
 .dashboard-main {
   display: grid;
   grid-template-columns: minmax(0, 1.95fr) minmax(260px, 1fr);
@@ -1678,6 +1685,8 @@ svg {
 }
 .exam-title h2 {
   font-size: 15px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .exam-main > p {
   font-size: var(--font-caption);
@@ -1743,6 +1752,19 @@ svg {
 .table-scroll {
   overflow-x: auto;
 }
+.results-error { min-height: 56px; }
+.results-error > .error { margin: 0; }
+/* A table becomes a list of cards by the width of its own panel, not the window: the sidebar takes its share
+   between the phone and desktop sizes. Below that width a table would break short words in narrow columns. */
+.results-table { container: results-table / inline-size; }
+.email-log { container: email-log / inline-size; }
+.assignment-table { container: assignment-table / inline-size; }
+.training-table { container: training-table / inline-size; }
+.people-directory { container: people-directory / inline-size; }
+.results-table table { table-layout: auto; }
+.results-table th { white-space: nowrap; overflow-wrap: normal; }
+.results-table td { white-space: normal; overflow-wrap: anywhere; }
+.results-table .text-btn { white-space: normal; }
 table {
   width: 100%;
   border-collapse: collapse;
@@ -1980,7 +2002,8 @@ form > label {
   margin-right: auto;
 }
 .question-toolbar select {
-  width: 100px;
+  width: 180px;
+  max-width: 100%;
   padding: 7px 8px;
   font-size: var(--font-caption);
 }
@@ -2091,6 +2114,8 @@ form > label {
   display: block;
   background: var(--surface);
 }
+/* Its children are rows of the dialog; the dialog is as tall as they are. */
+.preflight-availability { display: contents; }
 .preflight {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2159,6 +2184,9 @@ form > label {
   color: var(--text-secondary);
   text-align: left;
 }
+/* "Ready" lies over the opening time it replaces and takes its height. */
+.retry-availability .retry-opened > * { grid-area: 1 / 1; }
+.retry-availability .retry-opened > [aria-hidden] { visibility: hidden; }
 .help-content h3 {
   color: var(--text-secondary);
   font-size: 14px;
@@ -2523,6 +2551,9 @@ form > label {
   padding: 35px 30px 100px;
   min-height: 100vh;
 }
+.attempt-shell.attempt-shell--has-error {
+  padding-bottom: calc(45vh + 100px);
+}
 .attempt-header {
   display: flex;
   align-items: center;
@@ -2530,6 +2561,23 @@ form > label {
   gap: 25px;
   margin-bottom: 30px;
 }
+/* The title gives way to the timer: it wraps, also inside a long word. */
+.attempt-header > div:first-child { min-width: 0; overflow-wrap: anywhere; }
+.attempt-status {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 10;
+  width: min(360px, calc(100vw - 32px));
+  max-height: 45vh;
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-dialog);
+}
+.attempt-status:empty { display: none; }
+.attempt-status .save-recovery { padding: 0 14px; }
 .attempt-header h1 {
   font-size: 23px;
   margin: 12px 0 8px;
@@ -2549,12 +2597,15 @@ form > label {
   color: var(--text-secondary);
   flex-wrap: wrap;
   justify-content: center;
+  /* Beside a long title the box keeps the width of its caption. */
+  flex-shrink: 0;
 }
 .exam-timer strong {
   font-size: 25px;
   font-variant-numeric: tabular-nums;
 }
 .exam-timer > span {
+  white-space: nowrap;
   width: 100%;
   text-align: center;
   font-size: var(--font-caption);
@@ -2770,6 +2821,8 @@ form > label {
 .result-celebration > .btn {
   margin-top: 15px;
 }
+.result-celebration--retry { justify-content: flex-start; }
+.result-retry-slot { min-height: 44px; display: grid; justify-items: center; gap: 12px; }
 .exam-policy-notice,
 .result-celebration p.exam-policy-notice {
   color: var(--text-secondary);
@@ -3439,7 +3492,7 @@ form > label {
     font-size: var(--font-caption);
   }
   .question-toolbar select {
-    width: 85px;
+    width: 180px;
   }
   .question-toolbar .inline-label {
     font-size: var(--font-caption);
@@ -3500,6 +3553,7 @@ form > label {
   .attempt-header p {
     font-size: var(--font-caption);
   }
+  .attempt-status { bottom: 80px; }
   .exam-timer {
     padding: 10px 8px;
     gap: 7px;
@@ -3628,7 +3682,16 @@ form > label {
   justify-content: flex-end;
   margin-bottom: 14px;
 }
+@container results-table (max-width: 959px) {
+  .results-table .table-scroll { overflow: visible; }
+  .results-table table, .results-table tbody { display: block; width: 100%; }
+  .results-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .results-table tr { display: grid; grid-template-columns: minmax(0, 1fr); padding: 16px; border-bottom: 1px solid var(--border); }
+  .results-table td { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; padding: 8px 0; border: 0; }
+  .results-table td::before { content: attr(data-label); font-weight: 600; color: var(--text-secondary); }
+}
 @media (max-width: 700px) {
+
   .topbar-right {
     gap: 8px;
   }
@@ -3717,6 +3780,9 @@ form > label {
   font-size: 12px;
   margin-top: 6px;
 }
+.assignment-table table { width: 100%; table-layout: fixed; }
+.assignment-table th, .assignment-table td { white-space: normal; overflow-wrap: anywhere; }
+.assignment-table .text-btn, .assignment-table .badge { white-space: normal; }
 .assignment-note {
   max-width: 360px;
   white-space: pre-wrap;
@@ -3724,6 +3790,17 @@ form > label {
 .bank-description {
   max-width: 520px;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.bank-picker-list label > span { min-width: 0; overflow-wrap: anywhere; }
+.question-bank-table table, .insight-question-table table { table-layout: fixed; width: 100%; }
+@media (max-width: 768px) {
+  .question-bank-table .table-scroll, .insight-question-table .table-scroll { overflow: visible; }
+  .question-bank-table table, .question-bank-table tbody, .insight-question-table table, .insight-question-table tbody { display: block; width: 100%; }
+  .question-bank-table thead, .insight-question-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .question-bank-table tr, .insight-question-table tr { display: grid; grid-template-columns: minmax(0, 1fr); padding: 16px; border-bottom: 1px solid var(--stroke-subtle); }
+  .question-bank-table td, .insight-question-table td { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; padding: 8px 0; border: 0; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+  .question-bank-table td::before, .insight-question-table td::before { content: attr(data-label); font-weight: 600; color: var(--text-secondary); }
 }
 .bank-picker,
 .exam-randomization {
@@ -3738,11 +3815,13 @@ form > label {
   padding: 24px;
 }
 .bank-picker-list {
-  max-height: min(45vh, 360px);
+  height: min(45vh, 360px);
   overflow-y: auto;
   display: grid;
   gap: 12px;
 }
+.bank-picker-error { min-height: 48px; }
+.bank-picker-error > .error { margin: 0; }
 .bank-picker-list label {
   display: flex;
   align-items: start;
@@ -3900,6 +3979,9 @@ form > label {
 }
 .insight-context > strong {
   margin-right: auto;
+  /* A title without spaces wraps instead of widening the page. */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .insight-departments {
   max-height: 300px;
@@ -3941,6 +4023,9 @@ form > label {
 .insight-question-table th:first-child,
 .insight-question-table td:first-child {
   min-width: 300px;
+}
+@media (max-width: 768px) {
+  .insight-question-table table, .insight-question-table td:first-child { min-width: 0; }
 }
 .exam-budget-info {
   display: grid;
@@ -4150,11 +4235,15 @@ form > label {
   gap: 12px;
   flex-wrap: wrap;
 }
+.monitor-heading > div { min-width: 0; overflow-wrap: anywhere; }
 .monitor-heading p {
+  min-height: 3em;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
 }
+.monitor-heading p svg { flex-shrink: 0; }
+.monitor-heading p[role="alert"] { color: var(--danger); }
 .monitor-filters {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(90px, 1fr) minmax(0, 1.5fr) auto;
@@ -4421,6 +4510,16 @@ form > label {
   .management-surface .heading-actions .btn { justify-content: center; }
   .people-toolbar .search-field { flex: 1 1 100%; }
   .people-filter { flex: 1 1 40%; }
+}
+@container assignment-table (max-width: 759px) {
+  .assignment-table .table-scroll { overflow: visible; }
+  .assignment-table table, .assignment-table tbody { display: block; width: 100%; }
+  .assignment-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .assignment-table tbody tr { display: grid; grid-template-columns: minmax(0, 1fr); padding: 16px; border-bottom: 1px solid var(--border); }
+  .assignment-table td { display: block; min-width: 0; padding: 8px 0; border: 0; }
+  .assignment-table td::before { content: attr(data-label); display: block; font-weight: 600; color: var(--text-secondary); }
+}
+@media (max-width: 800px) {
   .people-table .table-scroll { overflow: visible; }
   .people-table table,
   .people-table tbody { display: block; width: 100%; }
@@ -4435,6 +4534,39 @@ form > label {
   .people-table .cell-person { align-items: flex-start; }
   .people-table .cell-person > div:last-child { min-width: 0; }
 }
+@media (min-width: 801px) {
+  .people-directory table { table-layout: auto; }
+  .people-directory th,
+  .people-directory td { white-space: normal; overflow-wrap: normal; padding-inline: 12px; }
+  .people-directory .cell-person small { overflow-wrap: normal; }
+  .people-directory .cell-person small:first-of-type { overflow-wrap: anywhere; }
+  .people-directory .people-row-actions .text-btn { white-space: nowrap; }
+  /* Measured: the table then needs 940 px with DejaVu Sans and long synthetic data (869 px on live data with Arial
+     metrics), so it is a table from 950 px; narrower panels show cards. */
+  @container people-directory (max-width: 949px) {
+    .people-directory .table-scroll { overflow: visible; }
+    .people-directory table,
+    .people-directory tbody { display: block; width: 100%; }
+    .people-directory thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    /* Wider than a phone, the fields share a row (four across at a 1100 px window) so each card stays short. */
+    .people-directory tbody tr { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); padding: 20px; gap: 16px; border-bottom: 1px solid var(--border); }
+    .people-directory tbody tr:last-child { border-bottom: 0; }
+    .people-directory td { display: block; padding: 0; border: 0; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+    .people-directory td:first-child,
+    .people-directory .people-row-actions { grid-column: 1 / -1; }
+    .people-directory td[data-label]::before { content: attr(data-label); display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+    .people-directory .people-row-actions { display: flex; align-items: center; gap: 24px; border-top: 1px solid var(--border); padding-top: 8px; }
+    .people-directory .cell-person { align-items: flex-start; }
+    .people-directory .cell-person > div:last-child { min-width: 0; }
+    .people-directory .cell-person small { overflow-wrap: anywhere; }
+  }
+}
+/* In both card layouts a department keeps two columns: live names hold up to 24 characters without a break. A
+   table row ignores these. */
+.people-directory tbody tr { grid-auto-flow: row dense; }
+.people-directory .people-department { grid-column: span 2; }
+/* A long status ("Disabled by directory sync") wraps inside its badge instead of widening its column or card. */
+.people-directory .badge { white-space: normal; }
 @media (max-width: 560px) {
   .management-summary > a { padding: 16px; }
   .management-aside { grid-template-columns: minmax(0, 1fr); }
@@ -4603,6 +4735,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--focus); box-shad
 .course-format { border: 0; padding: 0; margin: 0 0 16px; display: flex; flex-wrap: wrap; gap: 8px; }
 .course-format legend { padding: 0; margin-bottom: 8px; font-weight: 600; }
 .course-format label { display: flex; flex-direction: row; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-control); font-size: var(--font-body); cursor: pointer; }
+.modal:has(.course-editor-fields) > header { z-index: 10; }
+.course-editor-fields select { min-height: 44px; height: auto; line-height: 1.5; }
 .course-editor-fields { display: flex; flex-direction: column; gap: inherit; border: 0; margin: 0; padding: 0; min-width: 0; }
 .course-format label:has(input:checked) { border-color: var(--brand-pink); background: var(--pink-soft); }
 .course-options { border-top: 1px solid var(--border); }
@@ -4751,6 +4885,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--focus); box-shad
 
 .training-groups table { width: 100%; table-layout: fixed; }
 .training-groups td { white-space: normal; overflow-wrap: anywhere; }
+.training-groups td .text-btn { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+.training-groups td label.checkbox { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 8px; }
+.training-groups td label.checkbox > span { min-width: 0; overflow-wrap: anywhere; }
 .training-groups p { overflow-wrap: anywhere; }
 /* Email operations use the management surface and existing brand tokens. */
 .email-page { min-width: 0; }
@@ -4764,12 +4901,38 @@ input:focus, select:focus, textarea:focus { border-color: var(--focus); box-shad
 .email-pagination { margin-top: 16px; flex-wrap: wrap; }
 @media (max-width: 768px) {
   .email-status { flex-direction: column; padding: 16px; gap: 16px; }
+  .email-page .toolbar { flex-wrap: wrap; }
+}
+@container email-log (max-width: 919px) {
   .email-log table, .email-log tbody { display: block; }
   .email-log thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .email-log tr { display: grid; grid-template-columns: minmax(0, 1fr); padding: 16px; border-bottom: 1px solid var(--stroke-subtle); }
   .email-log td { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; padding: 8px 0; border: 0; }
   .email-log td::before { content: attr(data-label); font-weight: 600; color: var(--text-secondary); }
-  .email-page .toolbar { flex-wrap: wrap; }
+}
+@media (min-width: 801px) {
+  .email-log table { table-layout: auto; }
+  .email-log th { white-space: nowrap; overflow-wrap: normal; }
+  .email-log td { white-space: normal; overflow-wrap: normal; }
+  .email-log td:nth-child(1) { min-width: 11ch; }
+  .email-log td:nth-child(2) { overflow-wrap: anywhere; }
+  .email-log td:nth-child(4), .email-log td:nth-child(7) { overflow-wrap: break-word; }
+  .email-log td:nth-child(6) { white-space: nowrap; }
+  .email-log .badge, .email-log .btn { white-space: nowrap; }
+  /* Measured with the widest fonts in use (DejaVu Sans, Spanish labels): the table needs 852 px with 10 px
+     inline padding and 978 px with the usual 19 px, so it is a table from 920 px and pads fully from 1040 px. */
+  @container email-log (min-width: 920px) and (max-width: 1039px) {
+    .email-log th, .email-log td { padding-inline: 10px; }
+  }
+  @container email-log (max-width: 919px) {
+    .email-log table, .email-log tbody { display: block; }
+    .email-log thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .email-log tr { display: grid; grid-template-columns: minmax(0, 1fr); padding: 16px; border-bottom: 1px solid var(--stroke-subtle); }
+    .email-log td { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px; padding: 8px 0; border: 0; min-width: 0; }
+    .email-log td::before { content: attr(data-label); font-weight: 600; color: var(--text-secondary); }
+    .email-log td:nth-child(1) { min-width: 0; }
+    .email-log .badge, .email-log .btn { white-space: normal; }
+  }
 }
 
 /* Question figures share their layout in editors, attempts and historical review. */
@@ -4947,7 +5110,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--focus); box-shad
 .area-tabs a:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }
 .sidebar nav > a { min-height: 44px; }
 .topbar-right { margin-left: auto; }
-.personal-progress { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 24px; }
+.personal-progress { min-height: 48px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 24px; }
 .personal-progress p { margin: 0; }
 .personal-progress progress { appearance: none; -webkit-appearance: none; flex: 1 1 160px; max-width: 320px; height: 8px; border: 0; border-radius: var(--radius-control); overflow: hidden; background: var(--surface-muted); }
 .personal-progress progress::-webkit-progress-bar { background: var(--surface-muted); border-radius: var(--radius-control); }
@@ -5036,16 +5199,24 @@ input:focus, select:focus, textarea:focus { border-color: var(--focus); box-shad
 .training-cover-field > img { width: 160px; max-width: 50%; aspect-ratio: 2 / 1; object-fit: cover; border-radius: var(--radius-control); }
 .people-box { display: grid; gap: 8px; min-width: 0; }
 .people-box > label { color: var(--text-muted); font-size: var(--font-caption); font-weight: 500; }
+.people-box > .danger-text { overflow-wrap: anywhere; }
 .people-box > .linked-course-chips { margin-block: 0; }
 .people-box .linked-course-chips .icon-btn { width: 24px; height: 24px; }
 .people-box-actions { display: flex; flex-wrap: wrap; gap: 8px 24px; }
 .people-box .people-upload { display: inline-flex; flex-direction: row; align-items: center; color: var(--brand-blue); font-size: var(--font-body); font-weight: 700; cursor: pointer; }
 .people-box .people-upload:focus-within { outline: 3px solid var(--brand-blue); outline-offset: 3px; }
 .people-box .people-upload.is-disabled { opacity: 0.45; cursor: not-allowed; }
-/* As tall as its tallest one-line state (the line with the Show button), so no state of the check moves what is below. */
-.people-check-slot { display: flex; align-items: center; font-size: var(--font-body); min-height: 27px; min-height: calc(1lh + 8px); }
+/* Reserve the height of the one-line check (a line with the Show button); longer errors and an opened list can grow.
+   The text keeps the slot's own line height, so no one-line state is taller than the reserved place. */
+.people-check-slot { display: flex; align-items: center; font-size: var(--font-body); line-height: normal; min-height: calc(1lh + 8px); min-width: 0; }
 .people-check-slot > * { flex: 1 1 auto; min-width: 0; }
-.people-check > p { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; }
+.people-check-slot p { margin: 0; line-height: inherit; }
+.people-check-slot > p[role="status"] { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.people-check-slot > p[role="alert"] { white-space: normal; overflow-wrap: anywhere; }
+.people-check { min-width: 0; }
+.people-check > p { display: flex; align-items: center; gap: 8px; font-size: var(--font-body); }
+.people-check-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.people-check > p > button { flex: 0 0 auto; }
 .people-skipped { list-style: none; margin: 4px 0 0; padding: 0; display: grid; font-size: var(--font-caption); }
 .people-skipped li { display: flex; justify-content: space-between; gap: 16px; padding: 4px 0; border-bottom: 1px solid var(--stroke-subtle); overflow-wrap: anywhere; }
 .people-skipped li > span:first-child { min-width: 0; }
@@ -5064,8 +5235,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--focus); box-shad
 .training-section > h2 { font-family: var(--font-section); font-size: var(--font-section-size); }
 .training-section > .btn, .training-section > .training-quiz { justify-self: start; }
 .training-section > .training-quiz { width: min(100%, 480px); }
-.training-share { flex-wrap: wrap; gap: 8px 16px; }
-.training-share > p { min-width: 0; }
+.training-share { flex-wrap: nowrap; gap: 8px; min-width: 0; }
+.training-share > p { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.training-share > .btn, .training-share > .action-menu { flex: 0 0 auto; }
 .training-section .session-list > .session-card { margin-bottom: 8px; }
 .session-file-pair { display: inline-flex; }
 .session-file-pair > .btn { border-radius: 0; }
@@ -5079,8 +5251,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--focus); box-shad
 .training-mail-list { list-style: none; margin: 0; padding: 0; }
 .training-mail-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding: 8px 0; border-bottom: 1px solid var(--stroke-subtle); overflow-wrap: anywhere; }
 .training-mail-list li > span:nth-child(2) { flex: 1 1 200px; min-width: 0; }
-.training-filters { flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.training-add-toggle { margin-bottom: 16px; }
+/* Rows of their own, not the action group of a page heading: full width and left-aligned at every size. */
+.training-filters, .training-add-toggle, .training-share, .training-views { justify-content: flex-start; max-width: none; }
+/* Filters wrap; they never scroll. */
+.training-filters, .training-add-toggle { flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .training-add { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-panel); background: var(--surface); max-width: 720px; }
 .training-fields-stack { display: grid; gap: 16px; min-width: 0; margin: 0; padding: 0; border: 0; }
 .training-search { max-width: 360px; margin-bottom: 16px; }
@@ -5094,7 +5268,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--focus); box-shad
   .training-form .btn, .training-form .text-btn, .training-page .btn, .training-page .text-btn, .training-row .btn { min-height: 44px; }
   .people-box .people-upload, .people-box .linked-course-chips .icon-btn { min-height: 44px; }
   .people-box .linked-course-chips .icon-btn { width: 44px; }
-  .people-check-slot { min-height: 44px; }
+  .people-check-slot, .people-check > p { min-height: 44px; }
   .action-menu > summary.icon-btn { width: 44px; height: 44px; }
 }
 @media (max-width: 600px) {
@@ -5147,6 +5321,31 @@ input:focus, select:focus, textarea:focus { border-color: var(--focus); box-shad
   /* Without the column heading, the quiz line names itself. */
   .training-table td.training-quiz-cell::before { content: attr(data-prefix); display: inline; margin: 0; font-size: inherit; color: inherit; }
   .training-table .people-row-actions { grid-column: 3; grid-row: 1 / span 4; align-self: start; border-top: 0; padding-top: 0; }
+}
+@media (min-width: 801px) {
+  .training-table table { table-layout: auto; }
+  .training-table th { white-space: nowrap; overflow-wrap: normal; }
+  .training-table td { white-space: normal; overflow-wrap: normal; }
+  .training-table td:first-child { overflow-wrap: break-word; }
+  .training-table td.training-status { min-width: 6.5em; }
+  .training-table td.training-quiz-cell { min-width: 7em; }
+  /* The table needs up to 763 px (DejaVu Sans, Spanish labels); narrower panels show the phone rows. */
+  @container training-table (max-width: 819px) {
+    .training-table table, .training-table tbody { display: block; width: 100%; }
+    .training-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .training-table tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 0 8px; padding: 8px 4px 8px 16px; align-items: center; border-bottom: 1px solid var(--border); }
+    .training-table tbody tr:last-child { border-bottom: 0; }
+    .training-table td { display: block; padding: 0; border: 0; min-width: 0; white-space: normal; overflow-wrap: break-word; }
+    .training-table td:first-child { grid-column: 1; grid-row: 1; }
+    .training-table td[data-label] { grid-column: 1 / span 2; color: var(--text-muted); }
+    .training-table td[data-label]::before { content: none; }
+    .training-table td.is-empty { display: none; }
+    .training-table td.training-status { grid-column: 2; grid-row: 1; text-align: right; min-width: 0; }
+    .training-table td.training-quiz-cell { min-width: 0; }
+    .training-table td.training-quiz-cell::before { content: attr(data-prefix); display: inline; margin: 0; font-size: inherit; color: inherit; }
+    .training-table td:last-child { width: auto; text-align: left; }
+    .training-table .people-row-actions { grid-column: 3; grid-row: 1 / span 4; align-self: start; border-top: 0; padding-top: 0; display: flex; align-items: center; gap: 24px; }
+  }
 }
 @media (max-width: 768px) {
   .training-page .session-card { position: relative; }

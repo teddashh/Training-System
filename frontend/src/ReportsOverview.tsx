@@ -1,3 +1,4 @@
+import { audiencePadding, roundedPercent } from "./reportLogic";
 import { hasManagementAccess } from "./access";
 import { countLabel, attemptCount, t, useLocale } from "./i18n";
 import { useEffect, useState } from "react";
@@ -43,11 +44,14 @@ export default function ReportsOverview({user, exams, go, refreshKey}: {
   const [data, setData] = useState<Data | null>(null),
     [days, setDays] = useState("30"),
     [department, setDepartment] = useState(""),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [loading, setLoading] = useState(true),
+    [retry, setRetry] = useState(0);
   useEffect(() => {
     if (!management) return;
     let active = true;
     setError("");
+    setLoading(true);
     api<Data>(
       `dashboard/?days=${days}&department=${encodeURIComponent(department)}`,
     )
@@ -56,22 +60,23 @@ export default function ReportsOverview({user, exams, go, refreshKey}: {
       })
       .catch((e) => {
         if (active) setError(e.message);
-      });
+      })
+      .finally(() => { if (active) setLoading(false); });
     return () => {
       active = false;
     };
-  }, [days, department, refreshKey, management]);
-  if (error) return <ErrorBox message={error} />;
-  if (!data) return <Spinner />;
-  const audience = [
+  }, [days, department, refreshKey, management, retry]);
+
+  const audience = data ? [
     { name: t("Employees"), value: data.employee_count },
     { name: t("Contractors"), value: data.contractor_count },
-  ];
-  const stats = [
+  ] : [];
+  const stats = data ? [
     {
       label: t("Training participants"),
       value: data.people,
-      suffix: t("people"),
+      suffix: "",
+      count: countLabel(data.people, "{count} person", "{count} people"),
       icon: Users,
       detail: t("Employees {v0} \u00B7 Contractors {v1}", {
         v0: data.employee_count,
@@ -82,30 +87,29 @@ export default function ReportsOverview({user, exams, go, refreshKey}: {
     {
       label: t("Courses"),
       value: data.courses,
-      suffix: t("courses"),
+      suffix: "",
+      count: countLabel(data.courses, "{count} course", "{count} courses"),
       icon: BookOpen,
-      detail: t("{v0} total enrollments", { v0: data.enrollments }),
+      detail: countLabel(data.enrollments, "{count} total enrollment", "{count} total enrollments"),
       color: "teal",
     },
     {
       label: t("Course completion"),
-      value: data.completion,
+      value: roundedPercent(data.completion),
       suffix: "%",
       icon: GraduationCap,
-      detail: t("{v0} completed enrollments", { v0: data.completed }),
+      detail: countLabel(data.completed, "{count} completed enrollment", "{count} completed enrollments"),
       color: "purple",
     },
     {
       label: t("Exam pass rate"),
-      value: data.pass_rate,
+      value: roundedPercent(data.pass_rate),
       suffix: "%",
       icon: Target,
-      detail: t("{v0} graded attempts in this period", {
-        v0: data.graded_count,
-      }),
+      detail: countLabel(data.graded_count, "{count} graded attempt in this period", "{count} graded attempts in this period"),
       color: "amber",
     },
-  ];
+  ] : [];
   const published = exams.filter((e) => e.published).slice(0, 3);
   return (
     <>
@@ -113,8 +117,7 @@ export default function ReportsOverview({user, exams, go, refreshKey}: {
         <div>
 
           <h1>
-            {t("Training overview") + " "}
-            <span className="heading-dot" />
+            {t("Training overview")}
           </h1>
 
         </div>
@@ -122,18 +125,18 @@ export default function ReportsOverview({user, exams, go, refreshKey}: {
           {management && <select
             aria-label={t("Filter by department")}
             value={department}
-            onChange={(e) => setDepartment(e.target.value)}
+            onChange={(e) => { setLoading(true); setDepartment(e.target.value); }}
           >
             <option value="">{t("All departments")}</option>
             {Array.from(
-              new Set(data.departments.map((d) => d.user__department)),
+              new Set((data?.departments || []).map((d) => d.user__department)),
             )
               .filter(Boolean)
               .map((d) => (
                 <option key={d}>{d}</option>
               ))}
             {department &&
-              !data.departments.find(
+              !data?.departments.find(
                 (d) => d.user__department === department,
               ) && <option>{department}</option>}
           </select>}
@@ -142,7 +145,7 @@ export default function ReportsOverview({user, exams, go, refreshKey}: {
             <select
               aria-label={t("Reporting period")}
               value={days}
-              onChange={(e) => setDays(e.target.value)}
+              onChange={(e) => { setLoading(true); setDays(e.target.value); }}
             >
               <option value="7">{t("Last 7 days")}</option>
               <option value="30">{t("Last 30 days")}</option>
@@ -151,6 +154,9 @@ export default function ReportsOverview({user, exams, go, refreshKey}: {
           </div>
         </div>
       </div>
+      <div className="overview-error">{error && <><ErrorBox message={error} /><button className="btn" onClick={() => setRetry(value => value + 1)}>{t("Try again")}</button></>}</div>
+      {!data && loading && <Spinner />}
+      {data && <div className="overview-figures" aria-busy={loading} data-stale={loading || !!error}>
       <div className="stats-grid">
         {stats.map((s) => (
           <section className="stat-card" key={s.label}>
@@ -161,7 +167,7 @@ export default function ReportsOverview({user, exams, go, refreshKey}: {
               </div>
             </div>
             <div className="stat-value">
-              {s.value.toLocaleString()}
+              {s.count ?? s.value.toLocaleString()}
               <span>{s.suffix}</span>
             </div>
             <div className="stat-foot">
@@ -188,8 +194,7 @@ export default function ReportsOverview({user, exams, go, refreshKey}: {
             <span className="chart-key" />
             <span>{t("Graded attempts")}</span>
             <strong>
-              {data.graded_count}
-              <small>{" " + t(!management && data.graded_count === 1 ? "submission" : "submissions")}</small>
+              {countLabel(data.graded_count, "{count} submission", "{count} submissions")}
             </strong>
           </div>
           <div className="chart-area">
@@ -278,7 +283,7 @@ export default function ReportsOverview({user, exams, go, refreshKey}: {
                   dataKey="value"
                   startAngle={90}
                   endAngle={-270}
-                  paddingAngle={data.contractor_count ? 5 : 0}
+                  paddingAngle={audiencePadding(data.employee_count, data.contractor_count)}
                   stroke="none"
                 >
                   <Cell fill={data.people ? "var(--brand-blue)" : "var(--stroke-subtle)"} />
@@ -310,7 +315,7 @@ export default function ReportsOverview({user, exams, go, refreshKey}: {
             title={t("Department learning outcomes")}
 
             action={
-              <LinkButton onClick={() => go("/results")}>
+              <LinkButton onClick={() => go(management && user.access.results !== "none" ? "/results" : "/results?from=reports")}>
                 {t("Full report")}
               </LinkButton>
             }
@@ -435,6 +440,7 @@ export default function ReportsOverview({user, exams, go, refreshKey}: {
           </ResponsiveContainer>
         </div>
       </section>
+      </div>}
     </>
   );
 }

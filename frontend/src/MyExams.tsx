@@ -21,6 +21,7 @@ export default function MyExams({exams}: {exams: Exam[]}) {
             {exam.course_links.length > 0 && <p>{exam.course_links.map(c => c.title).join(" · ")}</p>}
             <p className="muted">{countLabel(exam.question_count, '{count} question', '{count} questions')} · {countLabel(exam.duration_minutes, '{count} minute', '{count} minutes')} · {t('Passing score')}: {exam.pass_score} · {countLabel(exam.attempts_remaining, "{count} attempt remaining", "{count} attempts remaining")}</p>
             {exam.assignment_due_at && <p>{t("Due {time}", {time: formatDateTime(exam.assignment_due_at, locale, {zone: true})})}</p>}
+            {exam.last_result?.status === 'pending_review' && <p><Badge tone="purple">{t('Awaiting grading')}</Badge></p>}
             {exam.last_result?.score !== null && exam.last_result?.score !== undefined && <p>{t("Last score: {score}", {score: exam.last_result.score})} {exam.last_result.passed !== null && <Badge tone={exam.last_result.passed ? "teal" : "amber"}>{t(exam.last_result.passed ? "Passed" : "Not passed")}</Badge>}</p>}
             <RetryNotice value={exam}/>
           </div>

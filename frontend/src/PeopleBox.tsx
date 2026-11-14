@@ -2,10 +2,10 @@ import { useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { downloadFile } from './api';
 import { countLabel, t, useLocale } from './i18n';
-import { ErrorBox, Modal } from './ui';
+import { Modal } from './ui';
 import { PeoplePicker } from './PeopleDirectory';
 import { GroupPicker } from './Groups';
-import { REASONS, accepted, appendLines, hasPeople, skipped, type RosterInput, type RosterReport } from './simpleTraining';
+import { REASONS, accepted, appendLines, skipped, type RosterInput, type RosterReport } from './simpleTraining';
 
 export type PeopleNames = { people: Record<number, string>; groups: Record<number, string> };
 export const emptyNames = (): PeopleNames => ({ people: {}, groups: {} });
@@ -16,30 +16,40 @@ export function SkippedLines({ rows }: { rows: RosterReport['rows'] }) {
   return <ul className="people-skipped">{rows.map((row, i) => <li key={i}><span>{row.input}</span><span className="muted">{t(REASONS[row.outcome] || 'Not checked')}</span></li>)}</ul>;
 }
 
-/** "18 people · 2 not found" with the unresolved lines one click away. */
-export function CheckLine({ report, checking }: { report?: RosterReport; checking?: boolean }) {
+/** "18 people · 2 not found" with the unresolved lines one click away; "18 people, 12 seats" when they do not fit. */
+export function CheckLine({ report, checking, seats }: { report?: RosterReport; checking?: boolean; seats?: number }) {
   useLocale();
   const [open, setOpen] = useState(false);
   if (checking) return <p className="field-hint" role="status">{t('Checking…')}</p>;
   if (!report) return null;
-  const rest = skipped(report), notFound = rest.every(row => row.outcome === 'not_found');
+  const rest = skipped(report), notFound = rest.every(row => row.outcome === 'not_found'), people = accepted(report);
+  const overCapacity = !!seats && seats > 0 && people > seats;
+  const summary = overCapacity
+    ? t('{people}, {seats}', { people: countLabel(people, '{count} person', '{count} people'), seats: countLabel(seats, '{count} seat', '{count} seats') })
+    : countLabel(people, '{count} person', '{count} people');
+  const skippedSummary = rest.length ? ` · ${t(notFound ? '{count} not found' : '{count} skipped', { count: rest.length })}` : '';
   return <div className="people-check" role="status">
-    <p className="field-hint">{countLabel(accepted(report), '{count} person', '{count} people')}
-      {rest.length > 0 && ` · ${t(notFound ? '{count} not found' : '{count} skipped', { count: rest.length })}`}
+    <p className="field-hint">
+      <span className="people-check-text" title={summary + skippedSummary}>{overCapacity ? <span className="training-warning">{summary}</span> : summary}{skippedSummary}</span>
       {rest.length > 0 && <button type="button" className="text-btn" aria-expanded={open} onClick={() => setOpen(!open)}>{t(open ? 'Hide' : 'Show')}</button>}
     </p>
     {open && <SkippedLines rows={rest} />}
   </div>;
 }
 
-export default function PeopleBox({ id, value, names, onChange, onCheck, onUpload, report, checking, disabled = false, error }: {
+export default function PeopleBox({ id, value, names, onChange, onCheck, onUpload, onUploadingChange, report, checking, checkError, seats, disabled = false, error }: {
   id: string; value: RosterInput; names: PeopleNames; disabled?: boolean; error?: string;
   report?: RosterReport; checking?: boolean;
+  /** A failed automatic check: shown in the check line's place, with room to wrap. */
+  checkError?: string;
+  /** The session's seats, to warn in the check line when more people than seats are listed. */
+  seats?: number;
   onChange: (value: RosterInput, names: PeopleNames) => void;
   /** Called with the box's latest value whenever it is complete: on blur, after picking and after a file. */
   onCheck: (value: RosterInput) => void;
   /** Returns the lines the server read from a CSV or XLSX file. */
   onUpload: (file: File) => Promise<string[]>;
+  onUploadingChange: (uploading: boolean) => void;
 }) {
   useLocale();
   const [picking, setPicking] = useState(false), [view, setView] = useState<'people' | 'groups'>('people');
@@ -47,7 +57,9 @@ export default function PeopleBox({ id, value, names, onChange, onCheck, onUploa
   const [downloading, setDownloading] = useState(false);
   // The pickers report the ticked row just before the new selection, so its name can label the chip.
   const ticked = useRef<{ kind: 'people' | 'groups'; id: number; name: string } | null>(null);
-  function change(next: RosterInput, nextNames = names) { onChange(next, nextNames); }
+  const latest = useRef({ value, names });
+  latest.current = { value, names };
+  function change(next: RosterInput, nextNames = latest.current.names) { latest.current = { value: next, names: nextNames }; onChange(next, nextNames); }
   function pick(kind: 'people' | 'groups', ids: number[]) {
     const row = ticked.current?.kind === kind ? ticked.current : null;
     ticked.current = null;
@@ -61,12 +73,14 @@ export default function PeopleBox({ id, value, names, onChange, onCheck, onUploa
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
-    setUploading(true); setUploadError('');
+    setUploading(true); onUploadingChange(true); setUploadError('');
     try {
-      const next = { ...value, text: appendLines(value.text, await onUpload(file)) };
+      const lines = await onUpload(file);
+      const current = latest.current.value;
+      const next = { ...current, text: appendLines(current.text, lines) };
       change(next); onCheck(next);
     } catch (e) { setUploadError((e as Error).message); }
-    finally { setUploading(false); }
+    finally { setUploading(false); onUploadingChange(false); }
   }
   function closePicker() { setPicking(false); onCheck(value); }
   async function downloadTemplate() {
@@ -94,10 +108,11 @@ export default function PeopleBox({ id, value, names, onChange, onCheck, onUploa
       </label>
       <button type="button" className="text-btn" disabled={disabled || downloading} onClick={() => void downloadTemplate()}>{t('Download template')}</button>
     </div>
-    {error && <span className="field-hint danger-text" id={id + '-error'}>{error}</span>}
-    <ErrorBox message={uploadError} />
+    {error && <span className="field-hint danger-text" id={id + '-error'} role="alert">{error}</span>}
     {/* The check line has its place as soon as the box has content: arriving on blur, it must not move a button that is being pressed. */}
-    {!disabled && hasPeople(value) && <div className="people-check-slot"><CheckLine report={report} checking={checking} /></div>}
+    {<div className="people-check-slot">{(uploadError || (checkError && !checking))
+      ? <p className="field-hint danger-text" role="alert" title={uploadError || checkError}>{uploadError || checkError}</p>
+      : (report || checking) ? <CheckLine report={report} checking={checking} seats={seats} /> : null}</div>}
     {picking && <Modal title={t('Pick people')} wide onClose={closePicker}>
       <div className="modal-form">
         <div className="heading-actions training-views">

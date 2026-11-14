@@ -5,7 +5,7 @@ import LazyPageBoundary from "./LazyPageBoundary";
 import { AccessContext, CurrentUserContext, roleLabel } from "./access";
 import Brand from "./Brand";
 import { t, useLocale, LanguagePicker, setInterfaceLanguages } from "./i18n";
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   ClipboardCheck,
@@ -67,9 +67,11 @@ export default function App() {
     [loading, setLoading] = useState(false);
   const [registrationResult, setRegistrationResult] = useState<{course: string; message: string} | null>(null);
   const [registrationBusy, setRegistrationBusy] = useState(false);
+  const currentUrl = useRef(window.location.href);
   const go = useCallback((next: string, replace = false) => {
     if (replace) history.replaceState({}, "", appPath(next));
     else history.pushState({}, "", appPath(next));
+    currentUrl.current = window.location.href;
     setPath(new URL(next, window.location.origin).pathname);
     setMobile(false);
     setQuery("");
@@ -116,7 +118,10 @@ export default function App() {
   }, [ready,user,path,go]);
   const refresh = useCallback(() => setRefreshKey((v) => v + 1), []);
   useEffect(() => {
-    const pop = () => setPath(routePath());
+    const pop = () => {
+      if (!window.dispatchEvent(new Event("training-before-pop", {cancelable: true}))) { history.pushState({}, "", currentUrl.current); return; }
+      currentUrl.current = window.location.href; setPath(routePath());
+    };
     window.addEventListener("popstate", pop);
     const refreshSession = () => api<SessionSettings & {
       user: User | null;
@@ -191,7 +196,7 @@ export default function App() {
   if (path === "/register") return <Registration user={user} entra={entra} onLogin={setUser} />;
   if (path === "/invite") return <GuestExam go={go} />;
   if (path.startsWith("/attempt/"))
-    return <Attempt key={path} id={path.split("/")[2]} go={go} guest={!user} />;
+    return <Attempt key={path} id={path.split("/")[2]} go={go} guest={!user || new URLSearchParams(window.location.search).get("guest") === "1"} />;
   if (!user)
     return (
       <Login
@@ -285,7 +290,7 @@ export default function App() {
             <div className="global-search">
               <Search size={17} />
               <input
-                placeholder={t("Search courses and exams\u2026")}
+                placeholder={t("Search")}
                 aria-label={t("Search everything")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}

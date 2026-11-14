@@ -293,10 +293,10 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
     "Resuming uses no extra attempt.",
   );
   await dialog
-    .getByRole("button", { name: "Start / resume attempt", exact: true })
+    .getByRole("button", { name: "Resume", exact: true })
     .click();
   await expect(page).toHaveURL(attemptUrl);
-  await page.getByRole("radio", { name: /Report the issue/ }).check();
+  await page.getByRole("radio", { name: /Ignore the issue/ }).check();
   await page
     .getByRole("button", { name: "Finish and submit", exact: true })
     .click();
@@ -305,7 +305,7 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
     .click();
   await expect(
     page.getByRole("heading", {
-      name: "Congratulations, you passed",
+      name: "Assessment completed",
       exact: true,
     }),
   ).toBeVisible();
@@ -334,7 +334,7 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
   await editor.getByRole("button", { name: "Save exam", exact: true }).click();
   await page.goto(`/exams?exam=${exam.id}&action=start`);
   const startButton = dialog.getByRole("button", {
-    name: "Start / resume attempt",
+    name: "Retake",
     exact: true,
   });
   await expect(dialog).toContainText("2 new attempts remaining");
@@ -347,7 +347,7 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
   await expect(translatedDialog).toContainText("下一次可開始作答的時間");
   await expect(
     translatedDialog.getByRole("button", {
-      name: "開始／繼續作答",
+      name: "重新應考",
       exact: true,
     }),
   ).toBeDisabled();
@@ -391,7 +391,7 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
   await page
     .getByRole("row")
     .filter({ hasText: title })
-    .getByRole("button", { name: "Open assessment", exact: true })
+    .getByRole("button", { name: "Retake", exact: true })
     .click();
   const assignment = page.getByRole("dialog", {
     name: "Open assessment",
@@ -400,7 +400,7 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
   await expect(assignment).toContainText("Next attempt available at");
   await expect(
     assignment.getByRole("button", {
-      name: "Start / resume exam",
+      name: "Retake",
       exact: true,
     }),
   ).toBeDisabled();
@@ -418,7 +418,7 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
   try {
     await guest.goto(invitation.url);
     await expect(
-      guest.getByRole("button", { name: "Start / resume exam", exact: true }),
+      guest.getByRole("button", { name: "Retake", exact: true }),
     ).toBeDisabled();
     await expect(guest).toHaveURL(/\/invite$/);
     await expect(guest.locator(".retry-availability")).toContainText(
@@ -449,10 +449,10 @@ test("individual attempt limits, live monitoring and safe time extensions", asyn
       .getByRole("button", { name: "Refresh availability", exact: true })
       .click();
     await expect(
-      guest.getByRole("button", { name: "Start / resume exam", exact: true }),
+      guest.getByRole("button", { name: "Retake", exact: true }),
     ).toBeEnabled();
     await guest
-      .getByRole("button", { name: "Start / resume exam", exact: true })
+      .getByRole("button", { name: "Retake", exact: true })
       .click();
     await expect(guest).toHaveURL(/\/attempt\//);
     const after = await (
@@ -601,10 +601,9 @@ test("guest invitation allows a bounded standalone exam and rejects a second att
   await guest.locator(".language-picker select").selectOption("es");
   await expect(guest.getByText("0 intentos", { exact: true })).toBeVisible();
   await guest.locator(".language-picker select").selectOption("en");
-  await guest
-    .getByRole("button", { name: "Start / resume exam", exact: true })
-    .click();
-  await expect(guest.getByRole("alert")).toContainText("attempt limit");
+  await expect(guest.getByRole("button", { name: "Retake", exact: true })).toHaveCount(0);
+  await guest.getByRole("button", { name: "View results", exact: true }).click();
+  await expect(guest.getByRole("heading", { name: "Congratulations, you passed", exact: true })).toBeVisible();
   await context.close();
 });
 
@@ -1137,7 +1136,7 @@ test("exam policies preserve audience, enforce sequential guest access and relea
   const invitation = await post<{ url: string }>(page, "invitations/issue/", {
     exam: exam.id,
     key: `policy-${Date.now()}@example.com`,
-    max_attempts: 1,
+    max_attempts: 2,
     days: 1,
   });
   const context = await browser.newContext();
@@ -1158,7 +1157,7 @@ test("exam policies preserve audience, enforce sequential guest access and relea
     let release: (() => void) | undefined;
     let firstSave = true;
     let rejectSubmission = true;
-    await guest.route(endpoint, async (route) => {
+    const attemptHandler = async (route: Route) => {
       if (route.request().method() === "POST" && rejectSubmission) {
         rejectSubmission = false;
         await route.fulfill({
@@ -1178,7 +1177,8 @@ test("exam policies preserve audience, enforce sequential guest access and relea
         });
         await route.fulfill({ response });
       } else await route.continue();
-    });
+    };
+    await guest.route(endpoint, attemptHandler);
     await expect(
       guest.getByRole("button", { name: "Go to question 2", exact: true }),
     ).toBeDisabled();
@@ -1288,6 +1288,12 @@ test("exam policies preserve audience, enforce sequential guest access and relea
         exact: true,
       }),
     ).toBeVisible();
+    await guest.unroute(endpoint, attemptHandler);
+    await expect(guest.getByRole("link", { name: "Retake", exact: true })).toBeVisible();
+    await guest.getByRole("button", { name: "Back to invitation", exact: true }).click();
+    await expect(guest.getByRole("button", { name: "Retake", exact: true })).toBeEnabled();
+    await guest.getByRole("button", { name: "View results", exact: true }).click();
+    await expect(guest.getByRole("heading", { name: "Submitted, awaiting instructor review", exact: true })).toBeVisible();
     await expect(guest.locator(".response-item")).toHaveCount(0);
     const hidden = await guest.evaluate(
       async (id) => (await fetch(`/api/attempts/${id}/`)).json(),
@@ -1984,10 +1990,10 @@ test("CSV preview imports learners, profile edits persist, and new pages transla
   ).toBeDisabled();
   await page.getByRole("button", { name: "Validate preview" }).click();
   await expect(
-    page.getByText("All 1 rows are valid. Ready to import."),
+    page.getByText("1 row is valid. Ready to import.", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Create learner accounts" }).click();
-  await expect(page.getByText("Created 1 learner accounts.")).toBeVisible();
+  await expect(page.getByText("Created 1 learner account.", { exact: true })).toBeVisible();
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "Close", exact: true })
@@ -2049,7 +2055,7 @@ test("slow autosaves preserve newer edits and submission waits before showing in
   let patches = 0,
     posts = 0,
     release: (() => void) | undefined;
-  await page.route(endpoint, async (route) => {
+  const autosaveHandler = async (route: Route) => {
     if (route.request().method() === "POST") posts++;
     if (route.request().method() === "PATCH") {
       patches++;
@@ -2063,7 +2069,8 @@ test("slow autosaves preserve newer edits and submission waits before showing in
       }
     }
     await route.continue();
-  });
+  };
+  await page.route(endpoint, autosaveHandler);
   await page.goto("/attempt/" + attempt.id);
   const answer = page.getByRole("textbox", { name: "Your answer" });
   await answer.fill("Initial draft");
@@ -2102,6 +2109,13 @@ test("slow autosaves preserve newer edits and submission waits before showing in
       { exact: true },
     ),
   ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Retake", exact: true })).toBeVisible();
+  await page.goto("/my-exams");
+  const pendingCard = page.locator(".exam-card").filter({ hasText: "Reliable written response" });
+  await expect(page.locator(".personal-section").filter({ has: page.getByRole("heading", { name: "To do", exact: true }) })).toContainText("Reliable written response");
+  await expect(pendingCard.getByRole("link", { name: "Retake", exact: true })).toBeVisible();
+  await pendingCard.getByRole("link", { name: "View results", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Submitted, awaiting instructor review", exact: true })).toBeVisible();
   await post(page, `results/${attempt.id}/review/`, {
     grades: {
       [attempt.questions[0].id]: {
@@ -2124,6 +2138,7 @@ test("slow autosaves preserve newer edits and submission waits before showing in
   ).json();
   expect(result.answer_revision).toBe(4);
   expect(result.questions[0]).not.toHaveProperty("solution");
+  await page.unroute(endpoint, autosaveHandler);
 });
 
 test("conflicting tabs require recovery and a failed save retries without losing local answers", async ({
@@ -2451,7 +2466,7 @@ test("invitation history pages and filters a cohort and confirms revocation", as
     .click();
   await page.getByLabel("Invitation status").selectOption("revoked");
   await expect(
-    page.getByText("1 matching invitations", { exact: true }),
+    page.getByText("1 matching invitation", { exact: true }),
   ).toBeVisible();
   await expect(page.locator("tbody tr")).toHaveCount(1);
   await expect(page.locator("tbody")).toContainText(participant);

@@ -1,18 +1,33 @@
 import { t, getLocale } from "./i18n";
+import { readBody } from "./responseBody";
+import { noteArrival } from "./serverClock";
 import { appPath } from "./paths";
 import { fileNameFrom } from "./fileName";
 
+/** `fetch` whose failure reads as a sentence: browsers report a lost connection or a timeout as "Failed to fetch" or "Load failed". */
+export async function request(input: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch (reason) {
+    throw unreachable(reason);
+  }
+}
+/** The same sentence for an answer that began to arrive and was cut off. */
+export const unreachable = (reason: unknown) =>
+  new Error(t('The server could not be reached. Check your connection and try again.'), { cause: reason });
+
 /** Download an authenticated, localized attachment using the server's file name. */
 export async function downloadFile(path: string, fallback: string) {
-  const response = await fetch(appPath('/api/' + path), {
+  const response = await request(appPath('/api/' + path), {
     credentials: 'same-origin',
     headers: { 'Accept-Language': getLocale() === 'zh-TW' ? 'zh-hant' : getLocale() },
   });
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
+    const body = await readBody(response, unreachable);
     throw new Error(typeof body.detail === 'string' ? body.detail : Array.isArray(body) ? body.join('; ') : t('The operation could not be completed. Please try again.'));
   }
-  const url = URL.createObjectURL(await response.blob()), link = document.createElement('a');
+  const file = await response.blob().catch((reason) => { throw unreachable(reason); });
+  const url = URL.createObjectURL(file), link = document.createElement('a');
   link.href = url;
   link.download = fileNameFrom(response.headers.get('Content-Disposition'), fallback);
   link.click();
@@ -43,7 +58,7 @@ export async function api<T>(
       .find((v) => /^(?:__Host-)?training_csrf=/.test(v))
       ?.split("=")[1] || "";
   const form = data instanceof FormData;
-  const response = await fetch(appPath("/api/" + path), {
+  const response = await request(appPath("/api/" + path), {
     method,
     credentials: "same-origin",
     ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
@@ -56,7 +71,8 @@ export async function api<T>(
     },
     body: data === undefined ? undefined : form ? data : JSON.stringify(data),
   });
-  const body = await response.json().catch(() => ({}));
+  // A cut-off answer must not pass for an empty one: a save would count as done with nothing to show for it.
+  const body = await readBody(response, unreachable);
   if (!response.ok) {
     const message =
       typeof body.detail === "string"
@@ -77,5 +93,6 @@ export async function api<T>(
       body,
     );
   }
+  noteArrival(body);
   return body;
 }

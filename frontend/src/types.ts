@@ -46,7 +46,7 @@ export type Enrollment = {
   progress_known?: boolean;
   completed_at: string | null;
 };
-export type Assessment = Pick<Exam, "audience" | "id" | "title" | "published" | "can_manage" | "available_to_me" | "starts_at" | "ends_at" | "active_attempt_id" | "last_result" | "attempts_remaining" | "next_attempt_at"> & {
+export type Assessment = Pick<Exam, "audience" | "id" | "title" | "published" | "can_manage" | "available_to_me" | "starts_at" | "ends_at" | "active_attempt_id" | "last_result" | "has_passed" | "attempts_remaining" | "next_attempt_at"> & {
   next_round_at?: string | null; round_awaiting_grading?: boolean; attempts_used?: number;
   retry_interval_minutes?: number; server_time?: string;
   question_count: number; other_courses: number; window_state: "open" | "upcoming" | "closed";
@@ -118,6 +118,7 @@ export type Exam = {
   available_to_me: boolean;
   assignment_due_at: string | null;
   last_result: { id: string; status: string; score: number | null; passed: boolean | null } | null;
+  has_passed: boolean;
   duration_minutes: number;
   max_attempts: number;
   retry_interval_minutes: number;
@@ -231,6 +232,10 @@ export type Dashboard = {
   distribution: number[];
 };
 export type Guest = {
+  starts_at: string | null;
+  ends_at: string | null;
+  last_result: Exam['last_result'];
+  has_passed: boolean;
   attempt_reset_minutes: number;
   next_round_at: string | null;
   round_awaiting_grading: boolean;
@@ -246,6 +251,7 @@ export type Guest = {
   server_time: string;
   active_attempt_id: string | null;
   remaining: number;
+  invitation_remaining: number;
   recipient: string;
   expires_at: string;
 };

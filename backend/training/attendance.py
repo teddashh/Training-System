@@ -83,12 +83,14 @@ def mark_attendance(user, course_id, session_id, data):
         row.attendance = values['attendance']
         row.attendance_marked_by = user if row.attendance else None
         row.attendance_marked_at = now if row.attendance else None
+        fields = ['attendance', 'attendance_marked_by', 'attendance_marked_at', 'revision', 'updated_at']
         if session.course.venue == 'onsite':
+            fields += ['progress_known', 'progress', 'completed_at']
             row.progress_known = True
             row.progress = 100 if effective(row) == 'present' else 0
             row.completed_at = min(session.ends_at, now) if row.progress == 100 else None
         row.revision += 1
-        row.save()
+        row.save(update_fields=fields)
         count += 1
     audit(user, 'course.attendance_marked', session.pk, {
         'course': session.course_id, 'count': count,

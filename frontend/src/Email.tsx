@@ -1,3 +1,4 @@
+import { formatDateTime } from "./datetime";
 import { appPath } from "./paths";
 import { useEffect, useState } from "react";
 import { api } from "./api";
@@ -18,10 +19,13 @@ const statusLabels: Record<string, string> = {
   queued: "Queued", sending: "Sending", sent: "Accepted", failed: "Failed", cancelled: "Cancelled",
 };
 const kindLabels: Record<string, string> = {
-  assignment: "Training assignment", enrollment_approved: "Enrollment approved",
+  assignment: "Training assignment", registered: "Registered", request_received: "Request received",
+  registration_cancelled: "Registration cancelled", enrollment_approved: "Enrollment approved",
   enrollment_rejected: "Enrollment rejected", enrollment_removed: "Enrollment removed",
-  session_rescheduled: "Session rescheduled",
-  session_cancelled: "Session cancelled", sign_in_code: "Sign-in code",
+  // A person moved to another session, or the session's time or place changed.
+  session_changed: "Session changed", session_rescheduled: "Session changed",
+  session_cancelled: "Session cancelled", session_tomorrow: "Session reminder",
+  quiz_ready: "Quiz ready", quiz_reminder: "Quiz reminder", sign_in_code: "Sign-in code",
   guest_verification: "Guest verification", test: "Test email",
 };
 function errorLabel(message: string) {
@@ -72,7 +76,7 @@ export default function Email() {
     <ErrorBox message={errorLabel(error)} />
     {notice && <p className="notice" role="status">{t(notice)}</p>}
     {data && <>
-      {data.off ? <section className="panel"><p>{t("Email is off.")}</p><a className="btn" href={appPath('/settings')}>{t("Settings")}</a></section> : <section className="panel email-status" aria-label={t("Email delivery")}>
+      {data.off ? <section className="panel email-status"><p>{t("Email is off.")}</p><a className="btn" href={appPath('/settings')}>{t("Settings")}</a></section> : <section className="panel email-status" aria-label={t("Email delivery")}>
         <div><h2>{t("Email delivery")}</h2><p>{t("Sender")}: <strong>{data.sender}</strong></p>
           <p><Badge tone={data.configured ? "teal" : "amber"}>{data.configured ? t("Configuration present") : t("Not configured")}</Badge></p>
           <p>{t("Queued")}: {data.queued} · {t("Failed")}: {data.failed}</p>
@@ -82,7 +86,7 @@ export default function Email() {
           {!data.enabled && <p className="notice">{t("Notifications are paused. Verification codes and test emails still work.")}</p>}
           {data.enabled && data.daily_limit_reached && <p className="notice" role="status">{t("Daily sending limit reached. Notifications wait and resume automatically as older messages leave the 24-hour window. Verification codes and test emails still work.")}</p>}
           {data.enabled && data.paused_until && <p className="notice" role="status">{t("Email queue paused: {reason} Next try: {time}. Sending resumes automatically.", {
-            reason: errorLabel(data.pause_reason), time: new Date(data.paused_until).toLocaleString(),
+            reason: errorLabel(data.pause_reason), time: formatDateTime(data.paused_until, locale),
           })}</p>}
           <p className="muted">{t("Accepted means the mail service accepted the message, not confirmed inbox delivery.")}</p>
         </div>
@@ -97,9 +101,9 @@ export default function Email() {
       <div className="panel table-panel email-log" aria-busy={loading}>
         <table><thead><tr>{headings.map(label => <th key={label}>{t(label)}</th>)}</tr></thead>
           <tbody>{data.results.map(row => <tr key={row.id}>
-            <td data-label={t("Time")}>{new Date(row.created_at).toLocaleString()}</td>
+            <td data-label={t("Time")}>{formatDateTime(row.created_at, locale)}</td>
             <td data-label={t("Recipient")}>{row.to_email}</td>
-            <td data-label={t("Type")}>{t(kindLabels[row.kind] || row.kind)}</td>
+            <td data-label={t("Type")}>{t(kindLabels[row.kind] || "Other")}</td>
             <td data-label={t("Subject")}>{row.subject || "—"}</td>
             <td data-label={t("Status")}><Badge tone={row.status === "failed" ? "amber" : row.status === "sent" ? "teal" : "neutral"}>{t(statusLabels[row.status])}</Badge></td>
             <td data-label={t("Attempts")}>{row.attempts}</td>

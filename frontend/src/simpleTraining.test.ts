@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  accepted, appendLines, formErrors, gated, movableSessions, notifiedCount, released, newSession, nextMail, rosterSignature, skipped, sortTrainings,
+  accepted, appendLines, mailDelivery, formErrors, gated, movableSessions, notifiedCount, released, newSession, nextMail, rosterSignature, skipped, sortTrainings,
   trainingPayload, updateSession, validateTraining, type SessionDraft, type TrainingOverview,
 } from './simpleTraining.ts';
 import type { Course } from './types';
@@ -95,4 +95,12 @@ test('gated quizzes, notified counts and released courses follow the contract', 
   assert.equal(released({ published: true, release_at: null }, now.getTime()), true);
   assert.equal(released({ published: true, release_at: later }, now.getTime()), false);
   assert.equal(released({ published: false, release_at: null }, now.getTime()), false);
+});
+
+
+test('mail delivery reports actual outcomes, including mixed and in-flight deliveries', () => {
+  assert.deepEqual(mailDelivery({ state: 'scheduled', delivery: {} }), ['Scheduled']);
+  assert.deepEqual(mailDelivery({ state: 'produced', delivery: { queued: 2 } }), ['Queued']);
+  assert.deepEqual(mailDelivery({ state: 'produced', delivery: { sending: 1, sent: 2, failed: 1 } }), ['Queued', 'Sent', 'Failed']);
+  assert.deepEqual(mailDelivery({ state: 'produced', delivery: {} }), ['Queued']);
 });

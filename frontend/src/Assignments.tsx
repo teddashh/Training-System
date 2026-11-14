@@ -4,7 +4,9 @@ import { PeoplePicker } from "./PeopleDirectory";
 import { appPath } from "./paths";
 import ExamBudget from "./ExamBudget";
 import { useExamPreflight } from "./useExamPreflight";
-import { useRetryAvailability } from "./RetryAvailability";
+import { useRetryStatus } from "./RetryAvailability";
+import { examLearnerState, isRetake } from "./examLearnerState";
+import { arrival } from "./serverClock";
 import { useEffect, useState } from "react";
 import {
   ClipboardList,
@@ -145,7 +147,11 @@ export default function Assignments({
   }
   const preflight = useExamPreflight(starting?.target_id);
   const startingExam = preflight.exam;
-  const waiting = useRetryAvailability(startingExam);
+  // Shown at once from the list and kept through a refresh; only a fresh answer enables the start.
+  const shownExam = preflight.shown ?? exams.find((exam) => exam.id === starting?.target_id);
+  const {waiting, now} = useRetryStatus(shownExam);
+  const shownState = shownExam && examLearnerState(shownExam, now).state;
+  const examFor = (row: Assignment) => row.kind === 'exam' ? exams.find(exam => exam.id === row.target_id) : undefined;
   const active = rows.filter((r) => r.status !== "cancelled");
   return (
     <>
@@ -163,7 +169,7 @@ export default function Assignments({
         )}
       </div>
       {assigned && <p className="notice" role="status">{t("Training assigned. Track completion below.")}</p>}
-      {assigned && receipt && <p className="notice" role="status">{t("{queued} emails queued; {missing} newly assigned people have no email address.", { queued: receipt.emails_queued, missing: receipt.people_without_email })}</p>}
+      {assigned && receipt && <p className="notice" role="status">{countLabel(receipt.emails_queued, receipt.people_without_email === 1 ? "{count} email queued; {missing} newly assigned person has no email address." : "{count} email queued; {missing} newly assigned people have no email address.", receipt.people_without_email === 1 ? "{count} emails queued; {missing} newly assigned person has no email address." : "{count} emails queued; {missing} newly assigned people have no email address.").replace("{missing}", String(receipt.people_without_email))}</p>}
       {params.get("action") === "assign" && !linkedCourse && <ErrorBox message={t("This course is unavailable for assignment. Choose a published course you manage.")} />}
       <div className="assignment-metrics">
         {[
@@ -262,7 +268,7 @@ export default function Assignments({
         </select>
       </div>
       <ErrorBox message={error} />
-      <div className="panel table-panel">
+      <div className="panel table-panel assignment-table">
         <div className="table-scroll">
           <table>
             <thead>
@@ -276,17 +282,20 @@ export default function Assignments({
               </tr>
             </thead>
             <tbody>
-              {visible.map((row) => (
-                <tr key={row.id}>
+              {visible.map((row) => {
+                const exam = examFor(row);
+                const examNow = exam?.server_time ? Date.parse(exam.server_time) + performance.now() - arrival(exam.server_time) : Date.now();
+                const examState = exam && examLearnerState(exam, examNow).state;
+                return <tr key={row.id}>
                   {report && (
-                    <td>
+                    <td data-label={t("Person")}>
                       <strong>{row.person}</strong>
                       <small className="cell-note">
                         {row.department || row.username}
                       </small>
                     </td>
                   )}
-                  <td>
+                  <td data-label={t("Training")}>
                     <strong>{row.title}</strong>
                     <small className="cell-note">
                       {row.kind === "course" ? t("Course") : t("Assessment")}
@@ -297,7 +306,7 @@ export default function Assignments({
                       </small>
                     )}
                   </td>
-                  <td>
+                  <td data-label={t("Due date")}>
                     {row.due_at
                       ? formatDateTime(row.due_at, getLocale())
                       : t("No deadline")}
@@ -307,7 +316,7 @@ export default function Assignments({
                       </div>
                     )}
                   </td>
-                  <td>
+                  <td data-label={t("Status")}>
                     <Badge
                       tone={
                         row.status === "completed"
@@ -320,7 +329,7 @@ export default function Assignments({
                       {statusLabel(row.status)}
                     </Badge>
                   </td>
-                  <td>
+                  <td data-label={t("Completion evidence")}>
                     {row.kind === "course"
                       ? row.progress_known === false ? t("In progress") : `${row.progress}%`
                       : row.score === null
@@ -332,7 +341,7 @@ export default function Assignments({
                       </small>
                     )}
                   </td>
-                  <td>
+                  <td data-label={t("Actions")}>
                     {report ? (
                       row.status !== "cancelled" && (
                         <button
@@ -348,23 +357,28 @@ export default function Assignments({
                     ) : row.available ? (
                       <button
                         className="text-btn"
-                        onClick={() =>
-                          row.kind === "course"
-                            ? go(`/courses?course=${row.target_id}&from=assignments`)
-                            : setStarting(row)
-                        }
+                        onClick={() => {
+                          if (row.kind === "course") go(`/courses?course=${row.target_id}&from=assignments`);
+                          else if (exam?.last_result && examState === 'completed') go(`/attempt/${exam.last_result.id}`);
+                          else setStarting(row);
+                        }}
                       >
                         {row.kind === "course"
                           ? t("Open course")
-                          : t("Open assessment")}
+                          : examState === 'upcoming' && exam?.starts_at
+                            ? t("Opens {time}", {time: formatDateTime(exam.starts_at, getLocale(), {zone: true})})
+                            : t(examState === 'active' ? "Resume" : examState === 'grading' ? "Awaiting grading" :
+                                examState === 'closed' ? "Assessment closed" : examState === 'retake' ? "Retake" :
+                                examState === 'waiting' ? exam?.attempts_used === 0 ? "Start" : "Retake" :
+                                examState === 'completed' ? exam?.last_result ? "View results" : "No attempts remaining" : "Open assessment")}
                         <ArrowRight size={14} />
                       </button>
                     ) : (
                       t("Unavailable")
                     )}
                   </td>
-                </tr>
-              ))}
+                </tr>;
+              })}
             </tbody>
           </table>
         </div>
@@ -399,13 +413,13 @@ export default function Assignments({
         <Modal title={t("Open assessment")} onClose={() => setStarting(null)}>
           <div className="modal-form">
             <h3>{starting.title}</h3>
-            {startingExam && (
+            {shownExam && (
               <>
                 <p>
-                  {countLabel(startingExam.duration_minutes, "{count} minute", "{count} minutes")} ·{" "}
-                  {t("Passing score")}: {startingExam.pass_score}
+                  {countLabel(shownExam.duration_minutes, "{count} minute", "{count} minutes")} ·{" "}
+                  {t("Passing score")}: {shownExam.pass_score}
                 </p>
-                <ExamBudget exam={startingExam} />
+                <ExamBudget exam={shownExam} />
               </>
             )}
             <ErrorBox message={preflight.error} />
@@ -439,6 +453,8 @@ export default function Assignments({
                   preflight.loading ||
                   !startingExam ||
                   waiting ||
+                  !startingExam.available_to_me ||
+                  !['ready', 'retake', 'active'].includes(examLearnerState(startingExam, now).state) ||
                   !!(
                     startingExam &&
                     startingExam.attempts_remaining === 0 &&
@@ -447,7 +463,10 @@ export default function Assignments({
                 }
                 onClick={start}
               >
-                {t("Start / resume exam")}
+                {t(shownState === 'active' ? "Resume" : shownState === 'grading' ? "Awaiting grading" :
+                  shownState === 'upcoming' ? "Start" : shownState === 'closed' ? "Assessment closed" :
+                  shownState === 'waiting' ? shownExam?.attempts_used === 0 ? "Start" : "Retake" :
+                  shownExam && isRetake(shownExam, now) ? "Retake" : "Start / resume exam")}
               </button>
             </div>
           </div>
@@ -559,8 +578,9 @@ function AssignmentEditor({
     }
   }
   return (
-    <Modal title={t("Assign training")} onClose={onClose} wide>
+    <Modal title={t("Assign training")} onClose={onClose} closeDisabled={busy} wide>
       <form className="modal-form" onSubmit={save}>
+        <fieldset className="course-editor-fields" disabled={busy}>
         <div className="form-grid">
           <label>
             {t("Training type")}
@@ -615,7 +635,7 @@ function AssignmentEditor({
         {audience === "people" && <PeoplePicker selected={people} onChange={setPeople} />}
 
         {audience === 'groups' && <><GroupPicker selected={groups} onChange={setGroups} disabled={busy} />
-          <p role="status">{groupPreview?.key === groupKey ? t('{count} active people will receive this training.', { count: groupPreview.people }) : groups.length ? t('Loading…') : t('Select at least one group.')}</p>
+          <p role="status">{groupPreview?.key === groupKey ? countLabel(groupPreview.people, '{count} active person will receive this training.', '{count} active people will receive this training.') : groups.length ? t('Loading…') : t('Select at least one group.')}</p>
           <p className="muted">{t('People in more than one selected group are counted once. Membership is checked again when saving.')}</p>
           {groupPreview?.key === groupKey && !groupPreview.within_limit && <p className="notice">{t('Assign between 1 and 500 active participants at a time.')}</p>}
         </>}
@@ -658,9 +678,10 @@ function AssignmentEditor({
             <p className="muted span-2">{t("Existing progress is kept. Up to 500 people per assignment.")}</p>
           </div>
         </details>
+        </fieldset>
         <ErrorBox message={error} />
         <div className="modal-footer">
-          <button type="button" className="btn" onClick={onClose}>
+          <button type="button" className="btn" disabled={busy} onClick={onClose}>
             {t("Cancel")}
           </button>
           <button className="btn primary" disabled={busy || audience === "groups" && !validGroups}>

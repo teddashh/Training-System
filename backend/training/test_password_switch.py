@@ -192,3 +192,9 @@ class PasswordSwitchTests(TestCase):
             )
             self.assertEqual(smtp.status_code, 200)
             self.assertEqual(check()["status"], "ready")
+
+    @override_settings(PASSWORD_SIGN_IN=False)
+    def test_anonymous_password_change_disabled_message(self):
+        response = APIClient().post('/api/auth/password/', {}, format='json')
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.data['detail'], 'Password sign-in is off.')

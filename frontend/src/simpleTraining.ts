@@ -159,7 +159,13 @@ export function nextMail(overview: Pick<TrainingOverview, 'sessions'>, now = Dat
     .sort((a, b) => Date.parse(a.scheduled_at!) - Date.parse(b.scheduled_at!))[0];
 }
 export const MAIL_KINDS: Record<string, string> = { session_tomorrow: 'Session tomorrow', quiz_ready: 'Quiz ready', quiz_reminder: 'Quiz reminder' };
-export const MAIL_STATES: Record<string, string> = { scheduled: 'Scheduled', produced: 'Sent', disabled: 'Off' };
+export const MAIL_STATES: Record<string, string> = { scheduled: 'Scheduled', produced: 'Queued', disabled: 'Off' };
 /** Sessions a person can still be moved into. */
 export const movableSessions = <T extends Pick<CourseSession, 'cancelled' | 'ends_at'>>(sessions: T[], now = Date.now()) =>
   sessions.filter(s => !s.cancelled && Date.parse(s.ends_at) > now);
+
+export function mailDelivery(event: Pick<MailEvent, 'state' | 'delivery'>): string[] {
+  if (event.state !== 'produced') return [MAIL_STATES[event.state] || event.state];
+  const labels = [event.delivery?.queued || event.delivery?.sending ? 'Queued' : '', event.delivery?.sent ? 'Sent' : '', event.delivery?.failed ? 'Failed' : ''].filter(Boolean);
+  return labels.length ? labels : ['Queued'];
+}

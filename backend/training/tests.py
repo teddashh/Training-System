@@ -351,6 +351,19 @@ class EnterpriseTests(TestCase):
         self.assertEqual(data["people"], 1)
         self.assertEqual(data["graded_count"], 0)
 
+    def test_dashboard_percentages_round_half_up(self):
+        course = Course.objects.create(title="Rounding", owner=self.admin)
+        now = timezone.now()
+        for index in range(16):
+            user = User.objects.create_user(f"rounding-{index}")
+            Enrollment.objects.create(course=course, user=user, status="approved", progress=100 if index < 10 else 0)
+            Attempt.objects.create(exam=self.exam, identity=identity_for_user(user), number=1,
+                                   status="graded", pass_score=70, deadline=now, submitted_at=now,
+                                   score=100 if index < 10 else 0, passed=index < 10)
+        self.login(self.admin)
+        data = self.client.get("/api/dashboard/").json()
+        self.assertEqual((data["completion"], data["pass_rate"]), (63, 63))
+
     def test_scheduled_exam_and_deadline_cap(self):
         self.exam.starts_at = timezone.now() + timedelta(days=1)
         self.exam.save()

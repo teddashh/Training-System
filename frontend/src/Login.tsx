@@ -47,7 +47,7 @@ export default function Login({
       </div>
       <div className="login-form">
         <div className="login-box">
-          <div className="login-mobile-brand"><Brand /><strong>{brand.organization}</strong></div>
+          <div className="login-mobile-brand"><Brand />{brand.organization !== brand.title && <strong>{brand.organization}</strong>}</div>
 
           <LanguagePicker />
           <h2>{t("Welcome back")}</h2>

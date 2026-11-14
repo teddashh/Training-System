@@ -15438,5 +15438,375 @@
     "en": "New accounts can use email codes when email delivery is configured. Existing accounts are never overwritten.",
     "zh-TW": "設定郵件服務後，新帳號即可使用電子郵件驗證碼登入。既有帳號不會被覆寫。",
     "es": "Las cuentas nuevas pueden usar códigos por correo cuando se configure el envío. Las cuentas existentes nunca se sobrescriben."
+  },
+  "{people}, {seats}": {
+    "en": "{people}, {seats}",
+    "zh-TW": "{people}，{seats}",
+    "es": "{people}, {seats}"
+  },
+  "{count} seat": {
+    "en": "{count} seat",
+    "zh-TW": "{count} 個名額",
+    "es": "{count} plaza"
+  },
+  "{count} seats": {
+    "en": "{count} seats",
+    "zh-TW": "{count} 個名額",
+    "es": "{count} plazas"
+  },
+  "Publish first.": {
+    "en": "Publish first.",
+    "zh-TW": "請先發布。",
+    "es": "Publica primero."
+  },
+  "Training not found.": {
+    "en": "Training not found.",
+    "zh-TW": "找不到訓練。",
+    "es": "No se encontró la capacitación."
+  },
+  "{count} cover": {
+    "en": "{count} cover",
+    "zh-TW": "{count} 張封面",
+    "es": "{count} portada"
+  },
+  "{count} enrollment": {
+    "en": "{count} enrollment",
+    "zh-TW": "{count} 筆報名",
+    "es": "{count} inscripción"
+  },
+  "{count} enrollments": {
+    "en": "{count} enrollments",
+    "zh-TW": "{count} 筆報名",
+    "es": "{count} inscripciones"
+  },
+  "Also used by {count} course": {
+    "en": "Also used by {count} course",
+    "zh-TW": "另有 {count} 門課程使用",
+    "es": "También usado por {count} curso"
+  },
+  "{count} active person will receive this training.": {
+    "en": "{count} active person will receive this training.",
+    "zh-TW": "將有 {count} 位有效使用者收到此訓練。",
+    "es": "{count} persona activa recibirá esta capacitación."
+  },
+  "{count} email queued; {missing} newly assigned person has no email address.": {
+    "en": "{count} email queued; {missing} newly assigned person has no email address.",
+    "zh-TW": "已排入 {count} 封電子郵件；{missing} 位新指派的使用者沒有電子郵件地址。",
+    "es": "{count} correo en cola; {missing} persona recién asignada no tiene dirección de correo."
+  },
+  "{count} email queued; {missing} newly assigned people have no email address.": {
+    "en": "{count} email queued; {missing} newly assigned people have no email address.",
+    "zh-TW": "已排入 {count} 封電子郵件；{missing} 位新指派的使用者沒有電子郵件地址。",
+    "es": "{count} correo en cola; {missing} personas recién asignadas no tienen dirección de correo."
+  },
+  "{count} emails queued; {missing} newly assigned person has no email address.": {
+    "en": "{count} emails queued; {missing} newly assigned person has no email address.",
+    "zh-TW": "已排入 {count} 封電子郵件；{missing} 位新指派的使用者沒有電子郵件地址。",
+    "es": "{count} correos en cola; {missing} persona recién asignada no tiene dirección de correo."
+  },
+  "{count} emails queued; {missing} newly assigned people have no email address.": {
+    "en": "{count} emails queued; {missing} newly assigned people have no email address.",
+    "zh-TW": "已排入 {count} 封電子郵件；{missing} 位新指派的使用者沒有電子郵件地址。",
+    "es": "{count} correos en cola; {missing} personas recién asignadas no tienen dirección de correo."
+  },
+  "{count} point": {
+    "en": "{count} point",
+    "zh-TW": "{count} 分",
+    "es": "{count} punto"
+  },
+  "{count} points": {
+    "en": "{count} points",
+    "zh-TW": "{count} 分",
+    "es": "{count} puntos"
+  },
+  "Created {count} personal invitation link.": {
+    "en": "Created {count} personal invitation link.",
+    "zh-TW": "已建立 {count} 個個人邀請連結。",
+    "es": "Se creó {count} enlace de invitación personal."
+  },
+  "All {count} recipient is valid. No links have been created yet.": {
+    "en": "The {count} recipient is valid. No links have been created yet.",
+    "zh-TW": "{count} 位收件者有效。目前尚未建立任何連結。",
+    "es": "{count} destinatario es válido. Aún no se han creado enlaces."
+  },
+  "{count} graded": {
+    "en": "{count} graded",
+    "zh-TW": "已評分 {count} 次",
+    "es": "{count} calificados"
+  },
+  "{count} total attempt": {
+    "en": "{count} total attempt",
+    "zh-TW": "共 {count} 次作答",
+    "es": "{count} intento en total"
+  },
+  "{count} total attempts": {
+    "en": "{count} total attempts",
+    "zh-TW": "共 {count} 次作答",
+    "es": "{count} intentos en total"
+  },
+  "After {count} graded failure, renew in {duration}; results stay saved.": {
+    "en": "After {count} graded failure, renew in {duration}; results stay saved.",
+    "zh-TW": "評分不通過 {count} 次後，將於 {duration} 後重新開放；結果會保留。",
+    "es": "Tras {count} intento reprobado y calificado, se renovará en {duration}; se conservarán los resultados."
+  },
+  "After {count} graded failures, renew in {duration}; results stay saved.": {
+    "en": "After {count} graded failures, renew in {duration}; results stay saved.",
+    "zh-TW": "評分不通過 {count} 次後，將於 {duration} 後重新開放；結果會保留。",
+    "es": "Tras {count} intentos reprobados y calificados, se renovará en {duration}; se conservarán los resultados."
+  },
+  "{count} day": {
+    "en": "{count} day",
+    "zh-TW": "{count} 天",
+    "es": "{count} día"
+  },
+  "{count} days": {
+    "en": "{count} days",
+    "zh-TW": "{count} 天",
+    "es": "{count} días"
+  },
+  "{count} hour": {
+    "en": "{count} hour",
+    "zh-TW": "{count} 小時",
+    "es": "{count} hora"
+  },
+  "{count} hours": {
+    "en": "{count} hours",
+    "zh-TW": "{count} 小時",
+    "es": "{count} horas"
+  },
+  "{count} matching invitation": {
+    "en": "{count} matching invitation",
+    "zh-TW": "共 {count} 筆符合條件的邀請",
+    "es": "{count} invitación coincidente"
+  },
+  "{count} new attempt available": {
+    "en": "{count} new attempt available",
+    "zh-TW": "可新增應試 {count} 次",
+    "es": "{count} nuevo intento disponible"
+  },
+  "Logo: {error}": {
+    "en": "Logo: {error}",
+    "zh-TW": "標誌：{error}",
+    "es": "Logotipo: {error}"
+  },
+  "{count} attempt record": {
+    "en": "{count} attempt record",
+    "zh-TW": "{count} 筆作答紀錄",
+    "es": "{count} registro de intento"
+  },
+  "{count} attempt records": {
+    "en": "{count} attempt records",
+    "zh-TW": "{count} 筆作答紀錄",
+    "es": "{count} registros de intentos"
+  },
+  "Total {count} record": {
+    "en": "Total {count} record",
+    "zh-TW": "共 {count} 筆紀錄",
+    "es": "Total: {count} registro"
+  },
+  "Total {count} records": {
+    "en": "Total {count} records",
+    "zh-TW": "共 {count} 筆紀錄",
+    "es": "Total: {count} registros"
+  },
+  "{count} active member": {
+    "en": "{count} active member",
+    "zh-TW": "{count} 位活躍成員",
+    "es": "{count} miembro activo"
+  },
+  "{count} person selected": {
+    "en": "{count} person selected",
+    "zh-TW": "已選擇 {count} 人",
+    "es": "{count} persona seleccionada"
+  },
+  "Remove {count} person from this group? Existing assignments and records are kept.": {
+    "en": "Remove {count} person from this group? Existing assignments and records are kept.",
+    "zh-TW": "從此群組移除 {count} 人？現有指派和紀錄將保留。",
+    "es": "¿Eliminar a {count} persona de este grupo? Se conservarán las asignaciones y los registros."
+  },
+  "Page {page} of {pages} · {count} group": {
+    "en": "Page {page} of {pages} · {count} group",
+    "zh-TW": "第 {page} 頁，共 {pages} 頁 · {count} 個群組",
+    "es": "Página {page} de {pages} · {count} grupo"
+  },
+  "Page {page} of {pages} · {count} groups": {
+    "en": "Page {page} of {pages} · {count} groups",
+    "zh-TW": "第 {page} 頁，共 {pages} 頁 · {count} 個群組",
+    "es": "Página {page} de {pages} · {count} grupos"
+  },
+  "Page {page} of {pages} · {count} person": {
+    "en": "Page {page} of {pages} · {count} person",
+    "zh-TW": "第 {page} 頁，共 {pages} 頁 · {count} 人",
+    "es": "Página {page} de {pages} · {count} persona"
+  },
+  "Page {page} of {pages} · {count} people": {
+    "en": "Page {page} of {pages} · {count} people",
+    "zh-TW": "第 {page} 頁，共 {pages} 頁 · {count} 人",
+    "es": "Página {page} de {pages} · {count} personas"
+  },
+  "{count} draft": {
+    "en": "{count} draft",
+    "zh-TW": "{count} 個草稿",
+    "es": "{count} borrador"
+  },
+  "{count} exam awaiting review": {
+    "en": "{count} exam awaiting review",
+    "zh-TW": "{count} 份考卷待評分",
+    "es": "{count} examen pendiente de revisión"
+  },
+  "{count} enrollment request": {
+    "en": "{count} enrollment request",
+    "zh-TW": "{count} 筆報名申請",
+    "es": "{count} solicitud de inscripción"
+  },
+  "Employee": {
+    "en": "Employee",
+    "zh-TW": "員工",
+    "es": "Empleado"
+  },
+  "Contractor": {
+    "en": "Contractor",
+    "zh-TW": "承包商",
+    "es": "Contratista"
+  },
+  "{count} submission": {
+    "en": "{count} submission",
+    "zh-TW": "{count} 筆提交",
+    "es": "{count} envío"
+  },
+  "{count} submissions": {
+    "en": "{count} submissions",
+    "zh-TW": "{count} 筆提交",
+    "es": "{count} envíos"
+  },
+  "{count} course": {
+    "en": "{count} course",
+    "zh-TW": "{count} 門課程",
+    "es": "{count} curso"
+  },
+  "{count} courses": {
+    "en": "{count} courses",
+    "zh-TW": "{count} 門課程",
+    "es": "{count} cursos"
+  },
+  "{count} total enrollment": {
+    "en": "{count} total enrollment",
+    "zh-TW": "共 {count} 筆報名",
+    "es": "{count} inscripción en total"
+  },
+  "{count} total enrollments": {
+    "en": "{count} total enrollments",
+    "zh-TW": "共 {count} 筆報名",
+    "es": "{count} inscripciones en total"
+  },
+  "{count} completed enrollment": {
+    "en": "{count} completed enrollment",
+    "zh-TW": "{count} 筆已完成報名",
+    "es": "{count} inscripción completada"
+  },
+  "{count} completed enrollments": {
+    "en": "{count} completed enrollments",
+    "zh-TW": "{count} 筆已完成報名",
+    "es": "{count} inscripciones completadas"
+  },
+  "{count} graded attempt in this period": {
+    "en": "{count} graded attempt in this period",
+    "zh-TW": "此期間 {count} 次已評分作答",
+    "es": "{count} intento calificado en este período"
+  },
+  "{count} graded attempts in this period": {
+    "en": "{count} graded attempts in this period",
+    "zh-TW": "此期間 {count} 次已評分作答",
+    "es": "{count} intentos calificados en este período"
+  },
+  "A numeric score is required": {
+    "en": "A numeric score is required",
+    "zh-TW": "請輸入數字分數",
+    "es": "Se requiere una puntuación numérica"
+  },
+  "{count} exam": {
+    "en": "{count} exam",
+    "zh-TW": "{count} 份考試",
+    "es": "{count} examen"
+  },
+  "{count} exams": {
+    "en": "{count} exams",
+    "zh-TW": "{count} 份考試",
+    "es": "{count} exámenes"
+  },
+  "{count} active person": {
+    "en": "{count} active person",
+    "zh-TW": "{count} 位活躍人員",
+    "es": "{count} persona activa"
+  },
+  "{count} active people": {
+    "en": "{count} active people",
+    "zh-TW": "{count} 位活躍人員",
+    "es": "{count} personas activas"
+  },
+  "Created {count} learner account.": {
+    "en": "Created {count} learner account.",
+    "zh-TW": "已建立 {count} 個學員帳號。",
+    "es": "Se creó {count} cuenta de estudiante."
+  },
+  "{count} row is valid. Ready to import.": {
+    "en": "{count} row is valid. Ready to import.",
+    "zh-TW": "{count} 列有效，可以匯入。",
+    "es": "{count} fila es válida. Lista para importar."
+  },
+  "{count} matching person; {adding} will be added. Existing members are kept.": {
+    "en": "{count} matching person; {adding} will be added. Existing members are kept.",
+    "zh-TW": "{count} 人符合條件；將新增 {adding} 人。現有成員會保留。",
+    "es": "{count} persona coincide; se añadirán {adding}. Se conservarán los miembros actuales."
+  },
+  "{count} matching people; {adding} will be added. Existing members are kept.": {
+    "en": "{count} matching people; {adding} will be added. Existing members are kept.",
+    "zh-TW": "{count} 人符合條件；將新增 {adding} 人。現有成員會保留。",
+    "es": "{count} personas coinciden; se añadirán {adding}. Se conservarán los miembros actuales."
+  },
+  "Session changed": {
+    "en": "Session changed",
+    "zh-TW": "場次已變更",
+    "es": "Sesión modificada"
+  },
+  "Request received": {
+    "en": "Request received",
+    "zh-TW": "已收到申請",
+    "es": "Solicitud recibida"
+  },
+  "Session reminder": {
+    "en": "Session reminder",
+    "zh-TW": "場次提醒",
+    "es": "Recordatorio de sesión"
+  },
+  "Other": {
+    "en": "Other",
+    "zh-TW": "其他",
+    "es": "Otro"
+  },
+  "Time remaining · +{minutes} min": {
+    "en": "Time remaining · +{minutes} min",
+    "zh-TW": "剩餘時間 · +{minutes} 分鐘",
+    "es": "Tiempo restante · +{minutes} min"
+  },
+  "Reminder no longer applies.": {
+    "en": "Reminder no longer applies.",
+    "zh-TW": "提醒已不適用。",
+    "es": "El recordatorio ya no corresponde."
+  },
+  "Notice no longer applies.": {
+    "en": "Notice no longer applies.",
+    "zh-TW": "通知已不適用。",
+    "es": "El aviso ya no corresponde."
+  },
+  "Could not be checked; it will be tried again.": {
+    "en": "Could not be checked; it will be tried again.",
+    "zh-TW": "無法檢查，稍後會再試一次。",
+    "es": "No se pudo comprobar; se intentará de nuevo."
+  },
+  "The server could not be reached. Check your connection and try again.": {
+    "en": "The server could not be reached. Check your connection and try again.",
+    "zh-TW": "無法連線到伺服器，請檢查網路連線後再試一次。",
+    "es": "No se pudo conectar con el servidor. Comprueba la conexión e inténtalo de nuevo."
   }
 }

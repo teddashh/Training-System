@@ -22,18 +22,33 @@ import { questionTypes, answerText, answerProvided } from "./questionTypes";
 import ExamPolicyNotice from "./ExamPolicyNotice";
 import OrderingAnswer from "./OrderingAnswer";
 import { ReviewModal } from "./Management";
-import { RetryNotice, useRetryAvailability } from "./RetryAvailability";
+import { RetryNotice, useRetryStatus } from "./RetryAvailability";
+import { examLearnerState, guestLearnerExam, isRetake } from "./examLearnerState";
+import { AssessmentWindow } from "./AssessmentBlock";
+import { appPath } from "./paths";
 
-function ResultRetryNotice({examId, refreshKey}: {examId: number; refreshKey: string}) {
-  const [exam, setExam] = useState<Exam | null>(null), [error, setError] = useState('');
+function ResultRetryNotice({examId, refreshKey, guest}: {examId: number; refreshKey: string; guest: boolean}) {
+  const [value, setValue] = useState<Exam | Guest | null>(null), [error, setError] = useState('');
+  const exam = value && ('remaining' in value ? guestLearnerExam(value) : value.available_to_me ? value : null);
+  const {now} = useRetryStatus(exam);
   useEffect(() => {
     let active = true;
-    setExam(null); setError('');
-    api<Exam>(`exams/${examId}/`).then(value => { if (active) { setExam(value); setError(''); } })
+    setValue(null); setError('');
+    api<Exam | Guest | GuestChallenge>(guest ? 'guest/exam/' : `exams/${examId}/`).then(value => {
+      if (!active || ('verification_required' in value && value.verification_required) || ('exam_id' in value && value.exam_id !== examId)) return;
+      setValue(value); setError('');
+    })
       .catch(e => { if (active && !(e instanceof ApiError && [403, 404].includes(e.status))) setError(e.message); });
     return () => { active = false; };
-  }, [examId, refreshKey]);
-  return <>{exam && <RetryNotice value={exam}/>}<ErrorBox message={error}/></>;
+  }, [examId, refreshKey, guest]);
+  const state = exam && examLearnerState(exam, now).state;
+  return <div className="result-retry-slot">
+    {exam && <RetryNotice value={exam}/>}
+    {exam && isRetake(exam, now) && (state === 'waiting'
+      ? <button className="btn" disabled>{t('Retake')}</button>
+      : <a className="btn" href={appPath(guest ? '/invite' : `/exams?exam=${examId}&action=start`)}>{t('Retake')}</a>)}
+    <ErrorBox message={error}/>
+  </div>;
 }
 export function GuestExam({ go }: { go: (p: string) => void }) {
   useLocale();
@@ -41,9 +56,21 @@ export function GuestExam({ go }: { go: (p: string) => void }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const pending = useRef<Promise<Guest | GuestChallenge> | null>(null);
-  const waiting = useRetryAvailability(
-    guest && !guest.verification_required ? guest : null,
-  );
+  const guestExam = guest && !guest.verification_required ? guestLearnerExam(guest) : null;
+  const {waiting, now} = useRetryStatus(guestExam);
+  const guestState = guestExam && examLearnerState(guestExam, now).state;
+  const nextRound = guestExam?.next_round_at;
+  const guestServerTime = guestExam?.server_time;
+  useEffect(() => {
+    if (!nextRound) return;
+    const delay = Date.parse(nextRound) - now;
+    if (delay <= 0) {
+      if (guestExam?.attempts_remaining === 0) void refreshAvailability(true);
+      return;
+    }
+    const timer = window.setTimeout(() => void refreshAvailability(true), Math.min(delay + 100, 2147483647));
+    return () => window.clearTimeout(timer);
+  }, [nextRound, guestServerTime]);
   async function refreshAvailability(preserveError = false) {
     setBusy(true);
     if (!preserveError) setError("");
@@ -73,7 +100,7 @@ export function GuestExam({ go }: { go: (p: string) => void }) {
     setError("");
     try {
       const result = await api<Data>("guest/exam/", "POST", {});
-      go("/attempt/" + result.id);
+      go("/attempt/" + result.id + "?guest=1");
     } catch (e) {
       setError((e as Error).message);
       await refreshAvailability(true);
@@ -129,7 +156,7 @@ export function GuestExam({ go }: { go: (p: string) => void }) {
                 "This link belongs to the named participant. Do not forward it. Starting uses one attempt; an existing active attempt will resume.",
               ) + " "}
             </p>
-            <RetryNotice value={guest} />
+            <RetryNotice value={guestExam!} />
             <ExamPolicyNotice value={guest} />
             {guest.retry_interval_minutes > 0 && (
               <button
@@ -140,14 +167,18 @@ export function GuestExam({ go }: { go: (p: string) => void }) {
                 {t("Refresh availability")}
               </button>
             )}
-            <button
+            {guestState === 'completed' && guest.last_result ? <button className="btn primary full" onClick={() => go(`/attempt/${guest.last_result!.id}?guest=1`)}>
+              {t("View results")}
+            </button> : <button
               className="btn primary full"
               onClick={start}
-              disabled={busy || waiting}
+              disabled={busy || waiting || guestState === 'grading' || guestState === 'closed' || guestState === 'upcoming' || (guest.remaining === 0 && !guest.active_attempt_id)}
             >
-              {busy ? t("Preparing\u2026") : t("Start / resume exam")}
+              {busy ? t("Preparing\u2026") : t(guestState === 'active' ? 'Resume' : guestState === 'grading' ? 'Awaiting grading' : guestState === 'upcoming' ? 'Start' : guestState === 'closed' ? 'Closed' : guestExam && isRetake(guestExam, now) ? 'Retake' : 'Start / resume exam')}
               <ArrowRight size={17} />
-            </button>
+            </button>}
+            {guest.last_result && guestState !== 'completed' && <button className="text-btn" onClick={() => go(`/attempt/${guest.last_result!.id}?guest=1`)}>{t("View results")}</button>}
+            {(guestState === 'upcoming' || guestState === 'closed') && <AssessmentWindow exam={guest} now={now} />}
           </>
         ) : (
           !error && <Spinner />
@@ -329,7 +360,7 @@ export default function Attempt({
   );
   if (attempt.status !== "in_progress")
     return (
-      <div className="result-celebration">
+      <div className={"result-celebration" + (!preview && !attempt.passed ? " result-celebration--retry" : "")}>
         <LanguagePicker />
         {previewNotice}
         <div className={"result-emblem " + (attempt.passed ? "passed" : "")}>
@@ -365,7 +396,6 @@ export default function Attempt({
                   : t("Review the course and prepare for your next attempt."),
               })}
         </p>
-        {!preview && !guest && !attempt.passed && <ResultRetryNotice examId={attempt.exam_id} refreshKey={attempt.server_time}/>}
         {attempt.review_available ? (
           <section
             className="response-review"
@@ -405,7 +435,6 @@ export default function Attempt({
             )}
           </p>
         )}
-        <ErrorBox message={error} />
         {preview && (
           <button className="btn" onClick={() => setReviewing(true)}>
             {t("Inspect test result")}
@@ -435,6 +464,8 @@ export default function Attempt({
               : t("Back to assessment history")}
           <ArrowRight size={16} />
         </button>
+        {!preview && !attempt.passed && <ResultRetryNotice examId={attempt.exam_id} refreshKey={attempt.server_time} guest={guest}/>}
+        <ErrorBox message={error} />
       </div>
     );
   const q = attempt.questions[index],
@@ -448,7 +479,7 @@ export default function Attempt({
     change(String(q.id), value);
   };
   return (
-    <div className="attempt-shell">
+    <div className={"attempt-shell" + (error ? " attempt-shell--has-error" : "")}>
       <LanguagePicker />
       {previewNotice}
       <div className="attempt-header">
@@ -474,18 +505,14 @@ export default function Attempt({
               : t("Untimed")}
           </strong>
           <span>
-            {attempt.deadline ? t("Time remaining") : t("Instructor preview")}
+            {attempt.deadline
+              ? attempt.extra_time_minutes > 0
+                ? t("Time remaining · +{minutes} min", { minutes: attempt.extra_time_minutes })
+                : t("Time remaining")
+              : t("Instructor preview")}
           </span>
         </div>
       </div>
-      <ErrorBox message={error} />
-      {attempt.extra_time_minutes > 0 && (
-        <p className="notice exam-policy-notice">
-          {t("Extra time granted: {minutes} minutes.", {
-            minutes: attempt.extra_time_minutes,
-          })}
-        </p>
-      )}
       {!attempt.allow_skip && (
         <p className="notice exam-policy-notice" id="sequential-rules">
           {attempt.deadline
@@ -497,24 +524,27 @@ export default function Attempt({
               )}
         </p>
       )}
-      {error && (
-        <div className="save-recovery">
-          {conflict && (
-            <p>
-              {t(
-                "Reloading replaces your unsaved changes with the answers stored on the server.",
-              )}
-            </p>
-          )}
-          <button
-            className="btn"
-            onClick={conflict ? reload : retry}
-            disabled={busy}
-          >
-            {conflict ? t("Reload saved answers") : t("Retry saving")}
-          </button>
-        </div>
-      )}
+      <div className="attempt-status" aria-live="polite">
+        <ErrorBox message={error} />
+        {error && (
+          <div className="save-recovery">
+            {conflict && (
+              <p>
+                {t(
+                  "Reloading replaces your unsaved changes with the answers stored on the server.",
+                )}
+              </p>
+            )}
+            <button
+              className="btn"
+              onClick={conflict ? reload : retry}
+              disabled={busy}
+            >
+              {conflict ? t("Reload saved answers") : t("Retry saving")}
+            </button>
+          </div>
+        )}
+      </div>
       <div className="attempt-layout">
         <aside className="question-navigation">
           <h3>

@@ -58,6 +58,8 @@ Compose constructs `DATABASE_URL` and mounts media at `/app/media`. Direct Pytho
 | Variables | Settings equivalent |
 | --- | --- |
 | `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, `ENTRA_CLIENT_SECRET` | Sign-in: Microsoft Entra ID |
+| `ENTRA_REDIRECT_URI` | Direct Python deployments: override the callback URI; default is `APP_ORIGIN + APP_BASE_PATH + /api/auth/entra/callback/`. Bundled Compose does not pass it. |
+| `EMAIL_FILE_PATH` | Direct Python deployments: output directory for Django file-based email. Bundled Compose does not pass it. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_WORKSPACE_DOMAINS` | Sign-in: Google Workspace, with comma-separated exact domains |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | Email: SMTP server. Server configuration uses STARTTLS when `EMAIL_USE_TLS=true`. |
 | `EMAIL_BACKEND` | Explicit Django transport. For Microsoft 365 use `training.mail.GraphEmailBackend`. |
@@ -116,7 +118,7 @@ At the outer proxy, forward `/training/` to the application listener and strip t
 
 The bundled [Nginx config](../deploy/nginx.conf) sets `X-Forwarded-Proto` from its own connection scheme. If TLS ends at an outer proxy, adapt the private proxy chain to pass trusted HTTPS information to Django. Overwrite client-supplied forwarding headers. Do not expose a listener that accepts spoofed HTTPS headers.
 
-Production cookies are Secure and require HTTPS for sign-in. Verify password login, CSRF-protected saves, provider callbacks and SCORM save/resume through the final proxy. Configuration checks do not perform those acceptance tests.
+Production cookies are Secure and require HTTPS for sign-in. Verify the sign-in methods this deployment enables, CSRF-protected saves, provider callbacks and SCORM save/resume through the final proxy. Configuration checks do not perform those acceptance tests.
 
 ## Check static-file caching
 
@@ -201,7 +203,7 @@ Creation stops running web, scheduler, API and content services while dumping Po
 
 The archive excludes `.env` and environment credentials. Back them up separately, including the settings encryption key. Restrict access to database dumps, which contain personal data and encrypted Settings credentials. Restore only trusted archives because database dumps contain executable SQL.
 
-Restore verifies the archive, starts only the destination database, restores database/media, applies migrations and runs Django checks. It leaves web, API, content and scheduler stopped. Inspect the restored records and files before routing traffic. Use matching code/images and an isolated environment for a rehearsal.
+Verify checks the custom dump magic, checksums and media paths; it is not a restore rehearsal. Restore verifies the archive, starts only the destination database, restores database/media, applies migrations and runs Django checks. It leaves web, API, content and scheduler stopped. Inspect the restored records and files before routing traffic. Use matching code/images and an isolated environment for a rehearsal.
 
 ## Upgrade and roll back
 

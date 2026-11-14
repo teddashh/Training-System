@@ -8,7 +8,7 @@ import {t, useLocale, countLabel} from './i18n';
 import {formatDateTime} from './datetime';
 import {appPath} from './paths';
 import {managesSomething} from './navigation';
-import {Spinner, ErrorBox, SectionTitle} from './ui';
+import {ErrorBox, SectionTitle} from './ui';
 import type {Course, Exam, User} from './types';
 
 export default function Dashboard({user, courses, exams, go, refreshKey}: {
@@ -29,15 +29,19 @@ export default function Dashboard({user, courses, exams, go, refreshKey}: {
 
   const [pending, setPending] = useState<{id: number; title: string; count: number}[]>([]);
   const [attentionError, setAttentionError] = useState('');
+  const [attentionReady, setAttentionReady] = useState(false);
   useEffect(() => {
     let active = true;
-    setPending([]); setAttentionError('');
-    if (user.access.courses !== 'none') {
+    setAttentionError('');
+    if (user.access.courses === 'none') { setPending([]); setAttentionReady(true); }
+    else {
+      // The list on screen stays until its new answer arrives.
       void Promise.all(courses.filter(course => course.can_manage && course.requires_approval).map(async course => {
         const roster = await api<{count: number}>(`courses/${course.id}/enrollments/?status=pending`);
         return {id: course.id, title: course.title, count: roster.count};
       })).then(rows => {if (active) setPending(rows.filter(row => row.count > 0));})
-        .catch(error => {if (active) setAttentionError(error.message);});
+        .catch(error => {if (active) {setPending([]); setAttentionError(error.message);}})
+        .finally(() => {if (active) setAttentionReady(true);});
     }
     return () => {active = false;};
   }, [courses, user.id, user.access.courses, refreshKey]);
@@ -52,29 +56,33 @@ export default function Dashboard({user, courses, exams, go, refreshKey}: {
   }});
   const personal = <>
     <div className="page-heading"><h1>{t('Welcome back, {name}.', {name: user.display_name || user.username})}</h1></div>
-    {!assignmentsReady ? <Spinner/> : assignmentsError ? <ErrorBox message={assignmentsError}/> : <section className="personal-progress">
+    <section className="personal-progress">
+      {!assignmentsReady ? <p role="status">{t("Loading…")}</p> : assignmentsError ? <ErrorBox message={assignmentsError}/> : <>
       <p>{progress.total === 0 || progress.done === progress.total ? t("You're all caught up.") : t('{done} of {total} done', progress)}</p>
       {progress.total > 0 && progress.done < progress.total && <progress aria-label={t('Training progress')} max={progress.total} value={progress.done}/>}
-    </section>}
-    <NextSteps rows={steps} go={go}/>
+      </>}
+    </section>
   </>;
+  // Sections appear from the top down: one whose answer arrives later never pushes down what is already shown.
+  const attention = assignmentsReady && attentionReady;
   return <>
     {personal}
     {user.access.courses !== 'none' && <div className="heading-actions home-create"><a className="btn primary" {...link('/authoring/new')}>{t('New training')}</a></div>}
-    {upcoming.length > 0 && <section className="panel home-actions">
+    {assignmentsReady && <NextSteps rows={steps} go={go}/>}
+    {assignmentsReady && upcoming.length > 0 && <section className="panel home-actions">
       <SectionTitle title={t('Upcoming sessions')}/>
       {upcoming.map(({course, session}) => <a className="home-action-row" key={session.id} {...link(`/authoring/${course.id}`)}>
         <time dateTime={session.starts_at}>{formatDateTime(session.starts_at, locale)}</time>
         <strong>{course.title}</strong><span>{t('{reserved} of {capacity}', {reserved: session.reserved, capacity: session.capacity})}</span>
       </a>)}
     </section>}
-    <ErrorBox message={attentionError}/>
-    {pending.length > 0 && <section className="panel home-actions">
+    {attention && <ErrorBox message={attentionError}/>}
+    {attention && pending.length > 0 && <section className="panel home-actions">
       <SectionTitle title={t('Needs attention')}/>
       {pending.map(course => <a className="home-action-row" key={course.id} {...link(`/authoring/${course.id}?tab=people&status=pending`)}>
         <strong>{course.title}</strong><span>{countLabel(course.count, '{count} request', '{count} requests')}</span>
       </a>)}
     </section>}
-    {managesSomething(user.access) && user.access.results === 'none' && <p className="home-more"><a className="text-btn" {...link('/reports')}>{t('Statistics')}</a></p>}
+    {attention && managesSomething(user.access) && user.access.results === 'none' && <p className="home-more"><a className="text-btn" {...link('/reports')}>{t('Statistics')}</a></p>}
   </>;
 }

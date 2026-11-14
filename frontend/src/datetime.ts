@@ -19,3 +19,12 @@ export function zoneName(locale: string) {
       .find(part => part.type === 'timeZoneName')?.value || Intl.DateTimeFormat().resolvedOptions().timeZone;
   } catch { return Intl.DateTimeFormat().resolvedOptions().timeZone; }
 }
+
+export function toLocalDateTime(value: string) {
+  const date = new Date(value), pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+export function localDateTimeToIso(value: string, original?: string | null) {
+  return value ? original && toLocalDateTime(original) === value ? original : new Date(value).toISOString() : null;
+}

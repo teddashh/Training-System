@@ -34,6 +34,8 @@ test('deep links preserve access and identify their area',()=>{
  for(const path of ['/assignments','/results','/exams'])assert.equal(canOpenRoute(learner,path),true);
  assert.equal(canOpenRoute(scheduler,'/reports'),true);
  assert.equal(activeArea(scheduler,'/reports')?.id,'home');
+ assert.equal(activeArea(scheduler,'/results','?from=reports')?.id,'home');
+ assert.equal(activeArea(admin,'/results','?from=reports')?.id,'reports');
  assert.equal(navigationAreas(scheduler).find(a=>a.id==='reports'),undefined);
  assert.equal(navigationAreas(admin).find(a=>a.id==='reports')?.tabs[0].path,'/reports');
  for(const path of ['/reports','/authoring','/insights','/question-bank','/manage','/people','/settings','/email'])assert.equal(canOpenRoute(learner,path),false);

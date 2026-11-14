@@ -23,6 +23,16 @@ export async function managementWorkflow(page: Page, browser: Browser) {
   await page.goto(url('/admin/'));
   await expect(page).toHaveURL(new RegExp(url('/manage') + '$'));
   await expect(page.getByRole('heading', { name: 'Management center', exact: true })).toBeVisible();
+  const viewport = page.viewportSize();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const tiles = page.locator('.management-summary > a');
+  await expect(tiles.locator('span')).toHaveText(['Courses', 'Exams', 'Active people', 'Enrollment requests']);
+  for (const tile of await tiles.all()) {
+    await expect(tile.locator('strong')).toHaveText(/^\d+$/);
+    await expect(tile.locator('small')).toBeVisible();
+    expect(await tile.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  }
+  if (viewport) await page.setViewportSize(viewport);
   await page.getByRole('button', { name: 'Create course', exact: true }).click();
   await page.getByLabel('Course title', { exact: true }).fill(title);
   await page.getByRole('radio', { name: 'Text lesson', exact: true }).check();

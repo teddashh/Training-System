@@ -1631,3 +1631,49 @@ class RosterConcurrencyTests(TransactionTestCase):
         with ThreadPoolExecutor(max_workers=2) as pool: list(pool.map(produce, range(2)))
         self.assertEqual(ReminderBatch.objects.count(), 1)
         self.assertEqual(OutboundEmail.objects.count(), 1)
+
+
+@override_settings(DEBUG=True)
+class AttendanceOverviewRegressionTests(TrainingFixture, TestCase):
+    def test_attendance_counts_exclude_removed_people(self):
+        self.ended()
+        row = self.seat(attendance='present', completed_at=timezone.now(), progress=100)
+        response = self.client.post(self.root + f'enrollments/{row.pk}/review/',
+            {'revision': row.revision, 'decision': 'removed', 'note': 'Removed'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        overview = self.client.get(self.root + 'training/')
+        self.assertEqual(overview.status_code, 200)
+        counts = next(s['counts'] for s in overview.data['sessions'] if s['id'] == self.session.pk)
+        self.assertEqual(counts['present'], 0)
+        people = self.client.get(self.root + 'enrollments/', {'status': 'all'}).data
+        self.assertEqual((people['counts']['attended'], people['counts']['absent']), (0, 0))
+        self.assertEqual(people['results'][0]['attendance'], 'present')
+        row.attendance = 'absent'
+        row.save(update_fields=['attendance'])
+        self.assertEqual(self.client.get(self.root + 'training/').data['sessions'][0]['counts']['absent'], 0)
+        self.assertEqual(self.client.get(self.root + 'enrollments/', {'status': 'all'}).data['counts']['absent'], 0)
+
+    def test_roster_does_not_erase_automatic_attendance(self):
+        self.course.venue = 'online'
+        self.course.save(update_fields=['venue'])
+        self.ended()
+        row = self.seat(attendance='absent', attended_at=self.session.starts_at)
+        response = self.client.post(self.root + 'roster/',
+            {'session': self.second.pk, 'people': [self.user.pk]}, format='json')
+        self.assertEqual(response.status_code, 200)
+        row.refresh_from_db()
+        self.assertEqual(row.session_id, self.session.pk)
+
+    def test_overview_queries_are_bounded_by_sessions(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        self.quiz()
+        with CaptureQueriesContext(connection) as first:
+            response = self.client.get(self.root + 'training/')
+            self.assertEqual(response.status_code, 200)
+        for n in range(8):
+            self.make_session(title=f'Added session {n}')
+        with CaptureQueriesContext(connection) as second:
+            response = self.client.get(self.root + 'training/')
+            self.assertEqual(response.status_code, 200)
+        self.assertLessEqual(len(second), len(first) + 3, (len(first), len(second)))

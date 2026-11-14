@@ -20,9 +20,9 @@ export default function SessionAttendance({course,session,onSaved,refreshKey,hea
   /** False inside a dialog that already names the session (the sign-in sheet is on its card there). */
   heading?:boolean}) {
   const locale=useLocale();
-  const [data,setData]=useState<Attendance|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[search,setSearch]=useState(''),[page,setPage]=useState(1);
+  const [data,setData]=useState<Attendance|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[search,setSearch]=useState(''),[page,setPage]=useState(1),[retry,setRetry]=useState(0);
   const base=`courses/${course.id}/sessions/${session.id}/`;
-  useEffect(()=>{let active=true;setData(null);setPage(1);setError('');void api<Attendance>(base+'attendance/').then(result=>{if(active)setData(result);}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[base,refreshKey]);
+  useEffect(()=>{let active=true;setData(null);setPage(1);setError('');void api<Attendance>(base+'attendance/').then(result=>{if(active)setData(result);}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[base,refreshKey,retry]);
   async function mark(attendance:string,enrollment?:number){setBusy(true);setError('');try{setData(await api<Attendance>(base+'attendance/','POST',{attendance,enrollment,all_present:!enrollment}));onSaved();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
   async function download(kind:SessionFile){setBusy(true);setError('');try{await downloadSessionFile(course.id,session.id,kind);}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
   const rows=(data?.results||[]).filter(row=>(row.person+' '+row.department+' '+(row.employee_id||'')).toLocaleLowerCase().includes(search.toLocaleLowerCase()));
@@ -48,6 +48,6 @@ export default function SessionAttendance({course,session,onSaved,refreshKey,hea
         {heading&&<button type="button" className="text-btn" disabled={busy} onClick={()=>void download('sign-in')}>{t('Sign-in sheet (.xlsx)')}</button>}
         <button type="button" className="text-btn" disabled={busy||Date.now()<Date.parse(session.starts_at)} onClick={()=>void download('attendance')}>{t('Attendance results (.xlsx)')}</button>
       </div>
-    </>:<p role="status">{t('Loading…')}</p>}
+    </>:error?<button type="button" className="btn" onClick={()=>setRetry(n=>n+1)}>{t('Try again')}</button>:<p role="status">{t('Loading…')}</p>}
   </section>;
 }

@@ -34,10 +34,11 @@ class DeploymentSettingsTests(TestCase):
 
     def test_general_allowance_is_wider_only_on_a_development_server(self):
         path = str(Path(settings.BASE_DIR) / 'config/settings.py')
-        for debug, rate in (('true', '6000/min'), ('false', '600/min')):
+        for debug, rate, sign_ins in (('true', '6000/min', 100), ('false', '600/min', 20)):
             with patch.dict(os.environ, {'DEBUG': debug, 'SECRET_KEY': 'synthetic-key-for-this-test'}):
                 config = runpy.run_path(path)
             self.assertEqual(config['REST_FRAMEWORK']['DEFAULT_THROTTLE_RATES'], {'anon': rate, 'user': rate})
+            self.assertEqual(config['AUTH_ACCOUNT_LIMIT'], sign_ins)
 
     @override_settings(INTERFACE_LANGUAGES=['es', 'en'])
     def test_current_locale_is_always_allowed(self):

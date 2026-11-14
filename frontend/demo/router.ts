@@ -190,7 +190,9 @@ export function createRouter(state: DemoState, options: {
     return exam.available_to_me;
   }
   function examView(exam: typeof state.data.exams[number]) {
-    const attempts = state.data.attempts.filter(a => a.exam_id === exam.id && a.user_id === state.data.userId);
+    return examViewForAttempts(exam, state.data.attempts.filter(a => a.exam_id === exam.id && a.user_id === state.data.userId));
+  }
+  function examViewForAttempts(exam: typeof state.data.exams[number], attempts: DemoAttempt[]) {
     const last = attempts.filter(a => a.status !== 'in_progress').at(-1);
     const can_manage = !!current()?.access.exams && current()?.access.exams !== 'none';
     const available_to_me = isAvailableToMe(exam);
@@ -199,7 +201,7 @@ export function createRouter(state: DemoState, options: {
     const next_attempt_at = opens && opens !== exam.starts_at && Date.parse(opens) > now() ? opens : exam.next_attempt_at;
     const course_links = exam.courses.map(cid => state.data.courses.find(c => c.id === cid)).filter((c): c is Course => !!c).map(c => ({ id: c.id, title: c.title }));
     return {
-      ...exam, course_links, available_to_me, starts_at, next_attempt_at, can_manage, can_view_results: manager(), active_attempt_id: attempts.find(a => a.status === 'in_progress')?.id || null, attempts_used: attempts.length, attempts_remaining: Math.max(0, exam.max_attempts - attempts.length), round_attempts_used: attempts.length, last_result: last ? { id: last.id, status: last.status, score: last.score, passed: last.passed } : null, server_time: relative(now(), 0)
+      ...exam, course_links, available_to_me, starts_at, next_attempt_at, can_manage, can_view_results: manager(), active_attempt_id: attempts.find(a => a.status === 'in_progress')?.id || null, attempts_used: attempts.length, attempts_remaining: Math.max(0, exam.max_attempts - attempts.length), round_attempts_used: attempts.length, has_passed: attempts.some(a => a.status === 'graded' && a.passed === true), last_result: last ? { id: last.id, status: last.status, score: last.status === 'graded' ? last.score : null, passed: last.status === 'graded' ? last.passed : null } : null, server_time: relative(now(), 0)
     };
   }
   function courseView(course: Course) {
@@ -278,8 +280,10 @@ export function createRouter(state: DemoState, options: {
     // GuestExam resolves its link on mount, including while signed out.
     if (key === 'guest/exam/' && method === 'GET' || key === 'guest/exchange/' && method === 'POST') {
       const exam = d.exams[0];
-      return json({ ...examView(exam), exam_id: exam.id, recipient: d.users[2].display_name,
-        remaining: exam.max_attempts, active_attempt_id: null, expires_at: relative(now(), 30) });
+      const invitationAttempts: DemoAttempt[] = [];
+      const view = examViewForAttempts(exam, invitationAttempts);
+      return json({ ...view, exam_id: exam.id, recipient: d.users[2].display_name,
+        remaining: view.attempts_remaining, invitation_remaining: view.attempts_remaining, expires_at: relative(now(), 30) });
     }
     const supportedWrite = route.write && (key === 'courses/:id/'
       ? method === 'PATCH' && Object.keys(body).length === 1 && body.published === true

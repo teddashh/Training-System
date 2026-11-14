@@ -9,7 +9,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { api } from "./api";
-import { t, useLocale, getLocale } from "./i18n";
+import { t, useLocale, getLocale, countLabel } from "./i18n";
 import { Badge, Empty, ErrorBox, Modal, Spinner } from "./ui";
 import type { Course, Enrollment } from "./types";
 import SessionAttendance from './SessionAttendance';
@@ -404,9 +404,7 @@ export function EnrollmentManager({
                             <small className="muted">
                               <Clock3 size={14} />
                               {row.requested_at
-                                ? new Date(row.requested_at).toLocaleString(
-                                    getLocale(),
-                                  )
+                                ? formatDateTime(row.requested_at, getLocale())
                                 : t("Existing enrollment")}
                               {" · "}
                               {t("Progress")}: {row.progress_known === false ? t("In progress") : `${row.progress}%`}{" · "}
@@ -450,7 +448,7 @@ export function EnrollmentManager({
                     />
                   )}
                   <div className="enrollment-pagination">
-                    <span>{t("{v0} enrollments", { v0: data.count })}</span>
+                    <span>{countLabel(data.count, "{count} enrollment", "{count} enrollments")}</span>
                     <div className="enrollment-buttons">
                       <button
                         className="btn"

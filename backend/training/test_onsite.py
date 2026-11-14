@@ -68,6 +68,29 @@ class OnsiteTests(TestCase):
         self.assertEqual(response.status_code, 200, getattr(response, 'data', None))
         return load_workbook(io.BytesIO(response.content)), response
 
+    def test_automatic_attendance_survives_concurrent_manual_mark(self):
+        from datetime import timedelta
+        from unittest.mock import patch
+        from .attendance import record_content_access
+        from .models import Enrollment
+        self.course.venue = 'online'
+        self.course.save(update_fields=['venue'])
+        row = self.row
+        save = Enrollment.save
+        def concurrent_access(instance, *args, **kwargs):
+            record_content_access(self.learner, self.course)
+            return save(instance, *args, **kwargs)
+        with patch.object(Enrollment, 'save', concurrent_access):
+            response = self.client.post(self.session_base + 'attendance/',
+                {'enrollment': row.pk, 'attendance': 'absent'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        row.refresh_from_db()
+        self.assertIsNotNone(row.attended_at)
+        self.assertEqual(self.mark('').status_code, 200)
+        row.refresh_from_db()
+        self.assertIsNotNone(row.attended_at)
+        self.assertEqual(row.attendance, '')
+
     def test_venue_requires_scheduled_and_valid_choice(self):
         for data in ({'delivery_mode':'self_paced'}, {'venue':'elsewhere'}):
             self.assertEqual(self.client.patch(self.base, data, format='json').status_code, 400)

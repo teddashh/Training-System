@@ -197,8 +197,16 @@ def next_attempt_at(exam, last_started_at):
     return last_started_at + timedelta(minutes=exam.retry_interval_minutes)
 
 
-@transaction.atomic
 def start_attempt(exam_id, identity, invitation=None):
+    with transaction.atomic():
+        try:
+            return _start_attempt(exam_id, identity, invitation)
+        except PermissionDenied as exc:
+            denial = exc
+    raise denial
+
+
+def _start_attempt(exam_id, identity, invitation=None):
     # Lock the exam first, including first-ever budgets. PostgreSQL serializes
     # account and guest starts, even when two workers race on an absent budget.
     exam = Exam.objects.select_for_update().get(pk=exam_id)

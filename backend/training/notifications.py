@@ -135,7 +135,8 @@ def session_content(event, course, session, *, note="", approved=False, old_sess
         prefix, lead = 'Today', 'Your session is today.'
     if event == 'Session tomorrow':
         subject = f"{prefix}: {title}, {subject_time(session.starts_at, with_date=False)}"
-    elif prefix == 'Changed':
+    elif prefix == 'Changed' and (event == 'Session rescheduled' or not old_session or
+                                  (old_session.starts_at, old_session.ends_at) != (session.starts_at, session.ends_at)):
         subject = f"{prefix}: {title}, now {subject_time(session.starts_at)}"
     else:
         subject = f"{prefix}: {title}, {subject_time(session.starts_at)}"
@@ -367,6 +368,49 @@ def daily_budget():
         return accepted_last_day(), state.accepted_total
 
 
+def valid_queued_notice(mail):
+    from .course_sessions import released
+    from .models import Enrollment, LearningAssignment
+    if mail.kind == 'assignment' and mail.context.get('assignment_id'):
+        return LearningAssignment.objects.filter(pk=mail.context['assignment_id'], cancelled_at__isnull=True).exists()
+    statuses = {'registered': ('approved',), 'enrollment_approved': ('approved',),
+                'request_received': ('pending',), 'session_changed': ('approved', 'pending'),
+                'session_rescheduled': ('approved', 'pending'), 'session_cancelled': ('approved', 'pending')}
+    if mail.kind not in statuses or 'enrollment_id' not in mail.context:
+        return True
+    row = Enrollment.objects.select_related('course', 'session').filter(pk=mail.context['enrollment_id']).first()
+    if not row or row.status not in statuses[mail.kind]:
+        return False
+    session_id = mail.context.get('session_id')
+    if mail.kind in ('session_changed', 'session_rescheduled', 'session_cancelled') and not session_id:
+        return False
+    if session_id and (row.session_id != session_id or not row.session or
+                       row.session.cancelled != (mail.kind == 'session_cancelled')):
+        return False
+    # Nobody can register before release, so a notice for a course that is no longer open has no reader.
+    return mail.kind in ('session_rescheduled', 'session_cancelled') or released(row.course)
+
+
+def stale_reason(row):
+    """Why a queued message should no longer go out, or ''. A day-before reminder gets its current content."""
+    if row.kind in {'session_tomorrow', 'quiz_ready', 'quiz_reminder'}:
+        from .reminders import valid_queued_reminder
+        if not valid_queued_reminder(row):
+            return 'Reminder no longer applies.'
+    if not valid_queued_notice(row):
+        return 'Notice no longer applies.'
+    if row.kind == 'session_tomorrow':
+        from .models import Enrollment
+        # The reminder shows the place and meeting link as they are now, not as they were when queued.
+        enrollment = Enrollment.objects.select_related('course', 'session').filter(
+            pk=row.context.get('enrollment_id')).first()
+        if enrollment and enrollment.session:
+            row.subject, row.body_text, row.body_html = message_content(
+                'Session tomorrow', enrollment.course, session=enrollment.session, approved=True,
+                many_sessions=enrollment.course.sessions.filter(cancelled=False).count() > 1)
+    return ''
+
+
 def claim_next(budget=None):
     with transaction.atomic():
         state = queue_state_locked()
@@ -386,10 +430,17 @@ def claim_next(budget=None):
             reason = "Recipient account is inactive."
         elif row.kind in VERIFICATION_KINDS or not row.body_text:
             reason = "Message cannot be queued."
-        if not reason and row.kind in {'session_tomorrow', 'quiz_ready', 'quiz_reminder'}:
-            from .reminders import valid_queued_reminder
-            if not valid_queued_reminder(row):
-                reason = 'Reminder no longer applies.'
+        if not reason:
+            try:
+                # In a savepoint: one message that cannot be checked must not stop the ones behind it.
+                with transaction.atomic():
+                    reason = stale_reason(row)
+            except Exception:
+                logger.exception("Queued mail %s could not be checked", row.pk)
+                row.next_attempt_at = timezone.now() + timedelta(minutes=15)
+                row.last_error = "Could not be checked; it will be tried again."
+                row.save(update_fields=["next_attempt_at", "last_error"])
+                return row
         if reason:
             row.status, row.last_error = "cancelled", reason
         else:
@@ -402,7 +453,7 @@ def claim_next(budget=None):
             row.next_attempt_at = timezone.now()
             state.active_email = row
             state.save(update_fields=["active_email"])
-        row.save(update_fields=["status", "attempts", "next_attempt_at", "last_error"])
+        row.save(update_fields=["status", "attempts", "next_attempt_at", "last_error", "subject", "body_text", "body_html"])
         return row
 
 

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Idempotently import generated original courses and exams as unpublished drafts.
+"""Import generated original courses and exams as unpublished drafts with record-based resume.
 
 Uses a protected Playwright storage-state file from an existing administrator
 session. The record file stores created IDs after each operation; never match or
-overwrite an unrelated course by title. No assignments or notifications are sent.
+overwrite an unrelated course by title. A matching unrecorded title stops the import
+for operator review; concurrent imports still require coordination. No assignments or notifications are sent.
 """
 import argparse
 import hashlib
@@ -13,6 +14,19 @@ import secrets
 import urllib.request
 from pathlib import Path
 from urllib.parse import urlsplit
+
+
+def refuse_existing_title(request, endpoint, title):
+    matches = [row for row in request(endpoint) if row["title"] == title]
+    if matches:
+        ids = ", ".join(str(row["id"]) for row in matches)
+        raise SystemExit(f"Refusing to create {endpoint.rstrip('/')} {title!r}: existing IDs {ids}; "
+                         "review the import record before continuing")
+
+
+def create_if_no_title(request, endpoint, title, data):
+    refuse_existing_title(request, endpoint, title)
+    return request(endpoint, 'POST', data)
 
 
 def main():
@@ -66,7 +80,7 @@ def main():
             payloads.append((formfield,path.name,body))
         found = next((r for r in record['courses'] if r['key'] == item['key']), None)
         if found is None:
-            course = request('courses/','POST',{k:item[k] for k in ('title','description','category','cover','duration_minutes')} | {'published':False,'blocks':[]})
+            course = create_if_no_title(request, 'courses/', item['title'], {k:item[k] for k in ('title','description','category','cover','duration_minutes')} | {'published':False,'blocks':[]})
             found = {'key':item['key'],'id':course['id'],'package_id':None,'sha256':item['sha256']}
             record['courses'].append(found);save()
         current = request(f"courses/{found['id']}/")
@@ -95,7 +109,7 @@ def main():
         data['shuffle_questions'] = True; data['shuffle_options'] = True
         # Explanations remain in the authored curriculum; the exam API stores answer keys.
         data['questions'] = [{k:v for k,v in q.items() if k != 'explanation'} for q in item['questions']]
-        exam = request('exams/','POST',data)
+        exam = create_if_no_title(request, 'exams/', item['title'], data)
         record['exams'].append({'key':item['key'],'id':exam['id']});save()
         print('Imported exam:',item['title'],flush=True)
     print(f"Verified {len(record['courses'])} courses and {len(record['exams'])} exams. New records remain drafts; no assignments sent.")

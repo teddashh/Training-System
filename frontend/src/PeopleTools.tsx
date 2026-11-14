@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Upload, CheckCircle2 } from "lucide-react";
 import { api } from "./api";
 import { signIn } from "./brand";
-import { t, useLocale } from "./i18n";
+import { countLabel, t, useLocale } from "./i18n";
 import { ErrorBox, Modal } from "./ui";
 import type { User } from "./types";
 
@@ -108,13 +108,9 @@ export function PeopleImport({
           <div aria-live="polite">
             <p className={preview.valid ? "notice success" : "notice"}>
               {preview.applied
-                ? t("Created {count} learner accounts.", {
-                    count: preview.count,
-                  })
+                ? countLabel(preview.count, "Created {count} learner account.", "Created {count} learner accounts.")
                 : preview.valid
-                  ? t("All {count} rows are valid. Ready to import.", {
-                      count: preview.count,
-                    })
+                  ? countLabel(preview.count, "{count} row is valid. Ready to import.", "All {count} rows are valid. Ready to import.")
                   : t("Fix the errors below. No accounts were created.")}
             </p>
             {preview.errors.map((item) => (

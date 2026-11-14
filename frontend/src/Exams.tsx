@@ -1,6 +1,8 @@
+import { localDateTimeToIso, toLocalDateTime } from "./datetime";
 import ActionMenu from "./ActionMenu";
 import { DeleteTraining } from "./TrainingLifecycle";
-import { AssessmentWindow } from "./AssessmentBlock";
+import { AssessmentWindow, ExamLearnerActions } from "./AssessmentBlock";
+import { examLearnerState, isRetake } from "./examLearnerState";
 import { GradingGuideEditor } from "./GradingGuide";
 import QuestionFigureEditor from "./QuestionFigureEditor";
 import { questionPayload } from "./QuestionFigure";
@@ -8,7 +10,7 @@ import { GroupPicker } from "./Groups";
 import { PeoplePicker } from "./PeopleDirectory";
 import ExamBudget from "./ExamBudget";
 import { useExamPreflight } from "./useExamPreflight";
-import { RetryNotice, useRetryAvailability } from "./RetryAvailability";
+import { RetryNotice, useRetryStatus } from "./RetryAvailability";
 import { countLabel, t, useLocale } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -89,26 +91,8 @@ export function ExamEditor({
     [allowReview, setAllowReview] = useState(
       exam?.allow_response_review ?? true,
     ),
-    [start, setStart] = useState(
-      exam?.starts_at
-        ? new Date(
-            new Date(exam.starts_at).getTime() -
-              new Date().getTimezoneOffset() * 60000,
-          )
-            .toISOString()
-            .slice(0, 16)
-        : "",
-    ),
-    [end, setEnd] = useState(
-      exam?.ends_at
-        ? new Date(
-            new Date(exam.ends_at).getTime() -
-              new Date().getTimezoneOffset() * 60000,
-          )
-            .toISOString()
-            .slice(0, 16)
-        : "",
-    ),
+    [start, setStart] = useState(exam?.starts_at ? toLocalDateTime(exam.starts_at) : ""),
+    [end, setEnd] = useState(exam?.ends_at ? toLocalDateTime(exam.ends_at) : ""),
     [questions, setQuestions] = useState<Question[]>(
       exam?.questions || [
         {
@@ -160,8 +144,8 @@ export function ExamEditor({
           shuffle_questions: shuffleQuestions,
           shuffle_options: shuffleOptions,
           questions_per_attempt: sample ? Number(sample) : null,
-          starts_at: start ? new Date(start).toISOString() : null,
-          ends_at: end ? new Date(end).toISOString() : null,
+          starts_at: localDateTimeToIso(start, exam?.starts_at),
+          ends_at: localDateTimeToIso(end, exam?.ends_at),
           questions: questions.map((q, i) => ({
             ...questionPayload(q),
             id: undefined,
@@ -279,7 +263,7 @@ export function ExamEditor({
           </label>
           <div className="form-section span-2">
             <label className="checkbox-label"><input type="checkbox" checked={renew} onChange={e => setRenew(e.target.checked)} />{t("Renew failed rounds")}</label>
-            {renew && <><div className="form-grid"><label>{t("Renewal wait")}<input type="number" min={1} max={Math.floor(525600/renewUnit)} step={1} required value={renewValue} onChange={e => setRenewValue(Number(e.target.value))} /></label><label>{t("Waiting period unit")}<select value={renewUnit} onChange={e => {setRenewUnit(Number(e.target.value));setRenewValue(1);}}><option value={1}>{t("Minutes")}</option><option value={60}>{t("Hours")}</option><option value={1440}>{t("Days")}</option></select></label></div><p className="field-hint">{t("After {count} graded failures, renew in {duration} {unit}; results stay saved.", {count: limit, duration: renewValue, unit: t(renewUnit === 1440 ? "Days" : renewUnit === 60 ? "Hours" : "Minutes")})}</p></>}
+            {renew && <><div className="form-grid"><label>{t("Renewal wait")}<input type="number" min={1} max={Math.floor(525600/renewUnit)} step={1} required value={renewValue} onChange={e => setRenewValue(Number(e.target.value))} /></label><label>{t("Waiting period unit")}<select value={renewUnit} onChange={e => {setRenewUnit(Number(e.target.value));setRenewValue(1);}}><option value={1}>{t("Minutes")}</option><option value={60}>{t("Hours")}</option><option value={1440}>{t("Days")}</option></select></label></div><p className="field-hint">{countLabel(limit, "After {count} graded failure, renew in {duration}; results stay saved.", "After {count} graded failures, renew in {duration}; results stay saved.").replace("{duration}", countLabel(renewValue, renewUnit === 1440 ? "{count} day" : renewUnit === 60 ? "{count} hour" : "{count} minute", renewUnit === 1440 ? "{count} days" : renewUnit === 60 ? "{count} hours" : "{count} minutes"))}</p></>}
           </div>
           <label>
             {t("Opens at") + " "}
@@ -434,8 +418,7 @@ export function ExamEditor({
           <h3>
             {t("Exam questions") + " "}
             <Badge tone="neutral">
-              {questions.length}
-              {" " + t("questions")}
+              {countLabel(questions.length, "{count} question", "{count} questions")}
             </Badge>
           </h3>
           <p>
@@ -640,40 +623,57 @@ export default function Exams({
   const linkedCourseId = /^[1-9]\d*$/.test(courseParam) ? Number(courseParam) : null;
   if (linkedCourseId) exams = exams.filter(e => e.courses.includes(linkedCourseId));
   const manage = user.access.exams !== "none";
-  const openedLink = useRef(false);
+  const openedLink = useRef("");
+  const [linkSearch, setLinkSearch] = useState(window.location.search);
+  useEffect(() => {
+    const onPop = () => { openedLink.current = ""; setEditing(undefined); setStarting(null); setPreviewing(null); setLinkSearch(window.location.search); };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  const closeLink = () => {
+    const url = new URL(window.location.href);
+    if (["start", "preview", "edit", "create"].includes(url.searchParams.get("action") || "") || url.searchParams.has("exam")) {
+      url.searchParams.delete("exam"); url.searchParams.delete("action");
+      window.history.replaceState(window.history.state, "", url);
+      openedLink.current = url.search; setLinkSearch(url.search);
+    }
+  };
   useEffect(() => {
     const destination = new URLSearchParams(window.location.search);
     const selected = exams.find(exam => exam.id === Number(destination.get("exam")));
-    if (openedLink.current) return;
+    if (openedLink.current === linkSearch && linkSearch) return;
     if (selected && !destination.get("action")) {
       if (!selected.can_manage && selected.available_to_me) {
-        openedLink.current = true;
+        openedLink.current = linkSearch;
         if (!selected.active_attempt_id && selected.last_result) go(`/attempt/${selected.last_result.id}`);
         else setStarting(selected);
       }
       return;
     }
     if (selected?.available_to_me && destination.get("action") === "start") {
-      openedLink.current = true; setStarting(selected); return;
+      openedLink.current = linkSearch; setStarting(selected); return;
     }
     if (selected?.can_manage && destination.get("action") === "preview") {
-      openedLink.current = true; setPreviewing(selected.id); return;
+      openedLink.current = linkSearch; setPreviewing(selected.id); return;
     }
     const params = new URLSearchParams(window.location.search);
     if (manage && params.get("action") === "create") {
-      openedLink.current = true;
+      openedLink.current = linkSearch;
       setEditing(null);
       return;
     }
     const target = exams.find(exam => exam.id === Number(params.get("exam")));
     if (target?.can_manage && params.get("action") === "edit") {
-      openedLink.current = true;
+      openedLink.current = linkSearch;
       setEditing(target);
     }
-  }, [exams, manage]);
+  }, [exams, manage, linkSearch]);
   const visibleExams = exams.filter(e => manage ? e.can_manage : e.published);
   const preflight = useExamPreflight(starting?.id);
-  const waiting = useRetryAvailability(preflight.exam);
+  // The dialog shows the list's row at once and keeps the last answer through a refresh.
+  // Only a fresh answer (preflight.exam) enables the start.
+  const shownExam = preflight.shown ?? starting;
+  const {waiting, now} = useRetryStatus(shownExam);
   async function start() {
     if (!starting) return;
     setBusy(true);
@@ -715,7 +715,7 @@ export default function Exams({
       {previewing !== null && (
         <ExamPreview
           id={previewing}
-          onClose={() => setPreviewing(null)}
+          onClose={() => { setPreviewing(null); closeLink(); }}
           go={go}
         />
       )}
@@ -748,13 +748,14 @@ export default function Exams({
                 <div className="exam-main">
                   <div className="exam-title"><h2>{exam.title}</h2>
                     {!exam.published && <Badge tone="neutral">{t('Draft')}</Badge>}
+                    {!manage && exam.last_result?.status === 'pending_review' && <Badge tone="purple">{t('Awaiting grading')}</Badge>}
                   </div>
                   <div className="exam-details">{countLabel(exam.question_count, '{count} question', '{count} questions')}</div>
                   {exam.published && <AssessmentWindow exam={exam}/>}
                   {!manage && exam.available_to_me && <RetryNotice value={exam}/>}
                 </div>
                 <div className="exam-actions">
-                  {!manage && exam.available_to_me && <button className="btn" disabled={!exam.published || (exam.attempts_remaining === 0 && !exam.active_attempt_id && !exam.next_round_at && !exam.round_awaiting_grading)} onClick={() => {setError(''); setStarting(exam);}}>{t('Start / resume')}</button>}
+                  {!manage && exam.available_to_me && <ExamLearnerActions exam={exam} personal showWindow={false}/>}
                   {exam.can_manage && <>
                     <button className="btn" aria-label={t("Edit ") + exam.title} onClick={() => setEditing(exam)}>{t('Edit')}</button>
                     <ActionMenu title={exam.title}>
@@ -783,11 +784,11 @@ export default function Exams({
           initialCourseId={courses.find(c => c.can_manage && c.id === Number(new URLSearchParams(window.location.search).get("course")))?.id}
           courses={courses}
           onSaved={() => onSaved()}
-          onClose={() => setEditing(undefined)}
+          onClose={() => { setEditing(undefined); closeLink(); }}
         />
       )}{" "}
       {starting && (
-        <Modal title={t("Ready to start?")} onClose={() => setStarting(null)}>
+        <Modal title={t("Ready to start?")} onClose={() => { setStarting(null); closeLink(); }}>
           <div className="modal-form">
             <h3>{starting.title}</h3>
             {starting.description && <p className="preserve-lines">{starting.description}</p>}
@@ -802,8 +803,7 @@ export default function Exams({
               <div>
                 <Target />
                 <strong>
-                  {starting.pass_score}
-                  {" " + t("points")}
+                  {countLabel(starting.pass_score, "{count} point", "{count} points")}
                 </strong>
                 <span>{t("Passing score")}</span>
               </div>
@@ -815,8 +815,8 @@ export default function Exams({
                 <span>{t("Total questions")}</span>
               </div>
             </div>
-            {preflight.exam && <><ExamBudget exam={preflight.exam} /><AssessmentWindow exam={preflight.exam}/></>}
-            <ErrorBox message={preflight.error} />
+            <div className="preflight-availability">{shownExam && <><ExamBudget exam={shownExam} /><AssessmentWindow exam={shownExam}/></>}
+            <ErrorBox message={preflight.error} /></div>
             <button
               type="button"
               className="text-btn"
@@ -837,7 +837,7 @@ export default function Exams({
             </p>
             <ErrorBox message={error} />
             <div className="modal-footer">
-              <button className="btn" onClick={() => setStarting(null)}>
+              <button className="btn" onClick={() => { setStarting(null); closeLink(); }}>
                 {t("Take it later") + " "}
               </button>
               <button
@@ -847,17 +847,14 @@ export default function Exams({
                   preflight.loading ||
                   !preflight.exam ||
                   !preflight.exam.available_to_me ||
-                  (!preflight.exam.active_attempt_id && (
-                    (!!preflight.exam.starts_at && Date.parse(preflight.exam.starts_at) > Date.now()) ||
-                    (!!preflight.exam.ends_at && Date.parse(preflight.exam.ends_at) <= Date.now())
-                  )) ||
+                  !['ready', 'retake', 'active'].includes(examLearnerState(preflight.exam, now).state) ||
                   waiting ||
                   (preflight.exam.attempts_remaining === 0 &&
                     !preflight.exam.active_attempt_id)
                 }
                 onClick={start}
               >
-                {busy ? t("Preparing\u2026") : t("Start / resume attempt")}
+                {busy ? t("Preparing\u2026") : t(shownExam && examLearnerState(shownExam, now).state === 'active' ? "Resume" : shownExam && examLearnerState(shownExam, now).state === 'grading' ? "Awaiting grading" : shownExam && isRetake(shownExam, now) ? "Retake" : "Start / resume attempt")}
                 <ArrowRight size={16} />
               </button>
             </div>

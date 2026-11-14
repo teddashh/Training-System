@@ -20,7 +20,7 @@ class BackupValidationTests(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.folder = Path(self.directory.name)
-        (self.folder / "database.dump").write_bytes(b"synthetic dump")
+        (self.folder / "database.dump").write_bytes(b"PGDMP synthetic dump")
 
     def make_archive(self, name="course/index.html", kind=tarfile.REGTYPE):
         with tarfile.open(self.folder / "media.tar.gz", "w:gz") as archive:
@@ -59,6 +59,12 @@ class BackupValidationTests(unittest.TestCase):
                 self.make_archive(name, kind)
                 with self.assertRaisesRegex(ValueError, "unsafe"):
                     backup.verify(self.folder)
+
+    def test_non_dump_with_matching_checksum_is_rejected(self):
+        (self.folder / "database.dump").write_bytes(b"not a dump")
+        self.make_archive()
+        with self.assertRaisesRegex(ValueError, "custom-format"):
+            backup.verify(self.folder)
 
     def test_incomplete_backup_is_rejected(self):
         self.make_archive()

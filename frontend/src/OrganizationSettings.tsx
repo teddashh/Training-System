@@ -49,10 +49,12 @@ export default function OrganizationSettings() {
         if (section === 'email') { body.port = Number(fields.port || 587); body.security = fields.security || 'starttls'; }
       }
       let updated = await api<Settings>(`settings/${section}/`, 'PUT', body);
+      setData(updated);
       if (section === 'organization' && (logo || removeLogo)) {
         const upload = new FormData();
         if (logo) upload.append('logo', logo);
-        updated = await api<Settings>('settings/logo/', logo ? 'POST' : 'DELETE', logo ? upload : undefined);
+        try { updated = await api<Settings>('settings/logo/', logo ? 'POST' : 'DELETE', logo ? upload : undefined); }
+        catch (e) { throw new Error(t('Logo: {error}', { error: (e as Error).message })); }
       }
       setData(updated); setSection(null);
       window.dispatchEvent(new Event('training-settings'));
@@ -132,9 +134,9 @@ export default function OrganizationSettings() {
           </>}
           {section === 'email' && provider !== 'off' && field('from_email', 'From address', 'email')}
         </>}
+        <div className="modal-footer"><button type="button" className="btn" disabled={busy} onClick={() => setSection(null)}>{t('Cancel')}</button><button className="btn primary" disabled={busy}>{t(busy ? 'Saving…' : 'Save')}</button></div>
         <ErrorBox message={error}/>
         {notice && <p role="status">{notice}</p>}
-        <div className="modal-footer"><button type="button" className="btn" disabled={busy} onClick={() => setSection(null)}>{t('Cancel')}</button><button className="btn primary" disabled={busy}>{t(busy ? 'Saving…' : 'Save')}</button></div>
       </form>
     </Modal>}
   </>;

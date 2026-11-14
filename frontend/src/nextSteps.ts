@@ -21,8 +21,8 @@ export function selectNextSteps(courses: Course[], exams: Exam[], assignments: O
   const add = (row: NextStep) => { if (!seen.has(row.key)) { seen.add(row.key); rows.push(row); } };
   const examPath = (id: number) => `/exams?exam=${id}&action=start`;
   const canStart = (e: Exam | Course['assessments'][number]) => e.available_to_me &&
-    ['ready', 'retake'].includes(examLearnerState(e, now).state) && (!e.next_attempt_at || Date.parse(e.next_attempt_at) <= now);
-  for (const e of exams) if (e.active_attempt_id) add({key: `exam:${e.id}`, title: e.title, path: examPath(e.id), action: 'Resume', caption: 'Attempt in progress'});
+    ['ready', 'retake'].includes(examLearnerState(e, now).state);
+  for (const e of exams) if (examLearnerState(e, now).state === 'active') add({key: `exam:${e.id}`, title: e.title, path: examPath(e.id), action: 'Resume', caption: 'Attempt in progress'});
   const reserved = courses.filter(c => c.enrollment && ['approved', 'pending'].includes(c.enrollment.status) && c.enrollment.session)
     .sort((a, b) => Date.parse(a.enrollment!.session!.starts_at) - Date.parse(b.enrollment!.session!.starts_at));
   for (const c of reserved) {
@@ -47,8 +47,9 @@ export function selectNextSteps(courses: Course[], exams: Exam[], assignments: O
       if (!c) continue;
       const hasSeat = c.enrollment && ['approved', 'pending'].includes(c.enrollment.status) && c.enrollment.session && !c.enrollment.session.cancelled;
       const choose = c.delivery_mode === 'scheduled' && !hasSeat;
-      add({...base, course: c, path: `/courses?course=${c.id}${c.delivery_mode === 'scheduled' ? `&action=${choose ? 'register' : 'learn'}` : ''}`,
-        action: choose ? 'Choose a session' : c.progress && c.progress < 100 ? 'Continue learning' : 'Start learning'});
+      const view = c.delivery_mode === 'scheduled' && !!hasSeat && !c.can_learn;
+      add({...base, course: c, path: `/courses?course=${c.id}${c.delivery_mode === 'scheduled' ? `&action=${choose || view ? 'register' : 'learn'}` : ''}`,
+        action: choose ? 'Choose a session' : view ? 'View session' : c.progress && c.progress < 100 ? 'Continue learning' : 'Start learning'});
     }
   }
   for (const c of courses) if (c.delivery_mode === 'self_paced' && c.enrollment?.status === 'approved' && c.can_learn && c.progress_known !== false && c.progress !== null && c.progress >= 1 && c.progress < 100)

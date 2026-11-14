@@ -17,6 +17,7 @@ export function learningProgress(courses: Course[], exams: Exam[], assignments: 
     const course = ownCourses.get(id);
     if (course?.enrollment?.completed_at || course?.progress === 100 || assignments.some(a => a.user_id === userId && a.kind === 'course' && a.target_id === id && a.status !== 'cancelled' && (a.completed_at || a.status === 'completed'))) done++;
   }
-  for (const exam of ownExams.values()) if (exam.last_result?.passed === true) done++;
+  // A pass stays done while a later attempt runs or waits for grading.
+  for (const exam of ownExams.values()) if (exam.has_passed || exam.last_result?.passed === true) done++;
   return {done, total: courseIds.size + ownExams.size};
 }

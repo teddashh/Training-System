@@ -62,7 +62,9 @@ Paste e-mail addresses or employee IDs, use **Pick people**, or upload CSV/XLSX.
 
 The training page has **Overview** and **People**. Overview contains the registration link, sessions, quiz state and **E-mail reminders**. People supports adding, moving, approving and removing participants. **Add people** adds participants directly; organizers with assignment rights also see **Assign training** for published trainings. A confirmed or pending registration reserves a seat. Learners can switch before their current session starts, subject to the destination window and capacity.
 
-For online sessions, select **Scheduled online sessions** in **Course settings** and save. Open the training page and choose **Add session** on Overview. Scheduled drafts can have sessions too. On-site courses require a place; scheduled sessions can have an HTTPS meeting link. Only managers and the learner's approved session expose that link.
+Changing a session's time or place e-mails the people registered for it; cancelling a session does too. A notice that is still waiting in the queue is checked again when it is sent: it is cancelled when the person was removed or moved, the session was cancelled, or the training is no longer open. The day-before reminder shows the place and meeting link as they are when it is sent.
+
+For online sessions, select **Scheduled online sessions** in **Course settings** and save. Publish the scheduled course, then open the training page and choose **Add session** on Overview. Existing sessions can still be canceled after unpublishing. On-site courses require a place; scheduled sessions can have an HTTPS meeting link. Only managers and the learner's approved session expose that link.
 
 From a session, choose **Attendance** after it starts. Mark **Present** or **Absent**; press the selected choice again to clear it. **Mark all present** marks the approved roster. Canceled sessions cannot be marked. Under **Sign-in sheet**, choose **PDF** for printing or **Excel** for the same roster as a spreadsheet. Attendance results are available from session start.
 
@@ -116,7 +118,7 @@ Short answers accept several alternatives. Choose a rule for each:
 
 | Rule | Comparison |
 | --- | --- |
-| Ignore case and extra spaces | Unicode case folding, trimmed edges and collapsed whitespace |
+| Ignore case and extra spaces | Unicode case folding and trimmed surrounding whitespace; internal whitespace is preserved |
 | Ignore case; preserve spacing | Yaksh `lower`, lowercase comparison with spaces and blank lines preserved |
 | Match case and spacing | Yaksh `exact`, case and spacing preserved |
 
@@ -304,7 +306,7 @@ Mailbox rejection pauses the whole queue, including later additions. HTTP 429/50
 
 Ambiguous failures, including timeouts and HTTP 500/502/504, fail without automatic resend. The message may already have arrived. Review before choosing **Retry**. **Cancel** applies only to queued rows. Codes and test messages cannot be retried from this queue.
 
-The daily limit counts accepted platform messages in a rolling 24 hours. Codes and tests count but bypass the limit. Mail sent outside the platform is not counted. `EMAIL_NOTIFICATIONS_ENABLED=false` pauses notifications while preserving queued rows; synchronous codes/tests remain separate.
+The daily limit counts accepted platform messages in a rolling 24 hours. Codes and tests count but bypass the limit. Mail sent outside the platform is not counted. `EMAIL_NOTIFICATIONS_ENABLED=false` pauses delivery and preserves existing queued rows; new events while disabled are not queued. Synchronous codes/tests remain separate.
 
 Queue snapshots contain personal information. Define retention and restrict access to the delivery log and backups. Logs use sanitized reasons, not raw provider responses or credentials.
 

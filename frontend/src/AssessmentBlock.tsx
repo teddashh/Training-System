@@ -9,15 +9,15 @@ import { appPath } from "./paths";
 import { examLearnerState } from "./examLearnerState";
 import { RetryNotice, useRetryStatus, type RetryInfo } from './RetryAvailability';
 
-export function AssessmentWindow({exam}: {exam: Pick<Assessment, "starts_at" | "ends_at">}) {
+export function AssessmentWindow({exam, now = Date.now()}: {exam: Pick<Assessment, "starts_at" | "ends_at">; now?: number}) {
   const locale = useLocale();
-  if (exam.starts_at && Date.parse(exam.starts_at) > Date.now()) return <p className="muted">{t("Opens {time}", {time: formatDateTime(exam.starts_at, locale, {zone: true})})}</p>;
-  if (exam.ends_at && Date.parse(exam.ends_at) <= Date.now()) return <p className="muted">{t("Assessment closed")}</p>;
+  if (exam.starts_at && Date.parse(exam.starts_at) > now) return <p className="muted">{t("Opens {time}", {time: formatDateTime(exam.starts_at, locale, {zone: true})})}</p>;
+  if (exam.ends_at && Date.parse(exam.ends_at) <= now) return <p className="muted">{t("Assessment closed")}</p>;
   return null;
 }
 
 export function ExamLearnerActions({exam, personal = false, showWindow = true, secondary = true}: {
-  exam: Pick<Assessment, "id" | "active_attempt_id" | "last_result" | "attempts_remaining" | "starts_at" | "ends_at"> & Partial<RetryInfo>; personal?: boolean; showWindow?: boolean; secondary?: boolean;
+  exam: Pick<Assessment, "id" | "active_attempt_id" | "last_result" | "has_passed" | "attempts_remaining" | "starts_at" | "ends_at"> & Partial<RetryInfo>; personal?: boolean; showWindow?: boolean; secondary?: boolean;
 }) {
   const {now} = useRetryStatus({...exam, next_attempt_at: exam.next_attempt_at || null});
   const {state} = examLearnerState(exam, now);
@@ -37,8 +37,8 @@ export function ExamLearnerActions({exam, personal = false, showWindow = true, s
     {result && <a className={linkClass} href={result}>{t("View results")}</a>}
   </>;
   return <>
-    <a className={linkClass} href={start}>{t(state === "active" ? personal ? "Resume" : "Continue" : state === "retake" ? "Retake" : personal ? "Start" : "Take assessment")}</a>
-    {state === "retake" && secondary && result && <a className="text-btn" href={result}>{t("View results")}</a>}
+    <a className={linkClass} href={start}>{t(state === "active" ? "Resume" : state === "retake" ? "Retake" : personal ? "Start" : "Take assessment")}</a>
+    {state === "retake" && (secondary || exam.last_result?.status === 'pending_review') && result && <a className="text-btn" href={result}>{t("View results")}</a>}
   </>;
 }
 
@@ -141,6 +141,7 @@ export default function AssessmentBlock({course, onNavigate, variant = "full", o
     </div> : variant === "full" && <h3>{t("Course assessment")} {manager && !rows.some(e => e.published) && <Badge tone="neutral">{t("Draft")}</Badge>}</h3>}
     {rows.map(exam => <div className="assessment-summary" key={exam.id}>
       <strong>{exam.title}</strong>
+      {exam.available_to_me && exam.last_result?.status === 'pending_review' && <Badge tone="purple">{t('Awaiting grading')}</Badge>}
       {manager && <>
         <Badge tone={exam.published ? "teal" : "neutral"}>{t(exam.published ? "Published" : "Draft")}</Badge>
         <InvitationOnlyNotice exam={exam}/>

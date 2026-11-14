@@ -479,6 +479,7 @@ class ExamSerializer(serializers.ModelSerializer):
     course_links = serializers.SerializerMethodField()
     available_to_me = serializers.SerializerMethodField()
     last_result = serializers.SerializerMethodField()
+    has_passed = serializers.SerializerMethodField()
     assignment_due_at = serializers.SerializerMethodField()
 
     def get_course_links(self, obj):
@@ -514,6 +515,9 @@ class ExamSerializer(serializers.ModelSerializer):
                 'score': row.score if row.status == 'graded' else None,
                 'passed': row.passed if row.status == 'graded' else None}
 
+    def get_has_passed(self, obj):
+        return any(row.status == 'graded' and row.passed is True for row in self.history(obj))
+
     def get_assignment_due_at(self, obj):
         from .models import LearningAssignment
         if 'exam_due_dates' not in self.context:
@@ -548,6 +552,7 @@ class ExamSerializer(serializers.ModelSerializer):
             "course_links",
             "available_to_me",
             "last_result",
+            "has_passed",
             "assignment_due_at",
             "duration_minutes",
             "max_attempts",

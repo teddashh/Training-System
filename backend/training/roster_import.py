@@ -431,7 +431,7 @@ def movable(row, now, move_started=False):
     """Never erase attendance: someone who attended (or may have) stays where they are."""
     from .attendance import effective
     old = row.session
-    if effective(row) == 'present':
+    if row.attended_at or effective(row) == 'present':
         return False
     if old is None or old.cancelled or now < old.starts_at or row.attendance == 'absent':
         return True

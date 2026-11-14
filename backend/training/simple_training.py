@@ -6,7 +6,8 @@ import secrets
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Value
+from django.db.models.functions import Length, Reverse, StrIndex, Substr
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers
@@ -206,12 +207,19 @@ def training_overview(request, course_id):
         item['participation'] = participation.get(link.exam_id, {'started': 0, 'passed': 0})
         quizzes.append(item)
     sessions = []
-    for session in course.sessions.all():
+    delivery_keys = set()
+    session_ids = []
+    for session in course.sessions.annotate(
+            registered_count=Count('enrollments', filter=Q(enrollments__status='approved')),
+            pending_count=Count('enrollments', filter=Q(enrollments__status='pending')),
+            present_count=Count('enrollments', filter=Q(enrollments__status='approved') & (Q(enrollments__attendance='present') | Q(enrollments__attendance='', enrollments__attended_at__isnull=False))),
+            absent_count=Count('enrollments', filter=Q(enrollments__status='approved', enrollments__attendance='absent')),
+        ).prefetch_related('reminder_batches'):
         session.course = course
-        counts = session.enrollments.aggregate(
-            registered=Count('pk', filter=Q(status='approved')), pending=Count('pk', filter=Q(status='pending')),
-            present=Count('pk', filter=Q(attendance='present') | Q(attendance='', attended_at__isnull=False)),
-            absent=Count('pk', filter=Q(attendance='absent')))
+        session_ids.append(str(session.pk))
+        counts = {'registered': session.registered_count, 'pending': session.pending_count,
+                  'present': session.present_count, 'absent': session.absent_count}
+        session.reserved_count = counts['registered'] + counts['pending']
         counts['seats'] = max(0, session.capacity - counts['registered'] - counts['pending'])
         events = []
         all_batches = list(session.reminder_batches.all())
@@ -232,6 +240,7 @@ def training_overview(request, course_id):
             batch = current(exam, kind) if exam else batches.get(key)
             key = batch.key if batch else key
             keys.add(key)
+            delivery_keys.add(key)
             enabled = course.reminders and course.published and not session.cancelled
             ready = current(exam, 'quiz_ready') if kind == 'quiz_reminder' else None
             due = schedule(session, exam, kind, ready.produced_at if ready else None)
@@ -248,15 +257,31 @@ def training_overview(request, course_id):
             events.append({'kind': kind, 'exam': exam.pk if exam else None, 'scheduled_at': due,
                            'produced_at': batch.produced_at if batch else None,
                            'state': 'produced' if batch else 'scheduled' if enabled else 'disabled',
-                           'delivery': dict(OutboundEmail.objects.filter(dedupe_key__startswith=key + ':').values('status').annotate(
-                               total=Count('pk')).values_list('status', 'total'))})
+                           'delivery': {}, '_delivery_key': key})
         for key, batch in batches.items():
             if key not in keys:
+                delivery_keys.add(key)
                 events.append({'kind': batch.kind, 'exam': batch.exam_id, 'scheduled_at': batch.scheduled_at,
                                'produced_at': batch.produced_at, 'state': 'superseded',
-                               'delivery': dict(OutboundEmail.objects.filter(dedupe_key__startswith=key + ':').values('status').annotate(
-                                   total=Count('pk')).values_list('status', 'total'))})
+                               'delivery': {}, '_delivery_key': key})
         sessions.append({**session_data(session, user=request.user), 'counts': counts, 'emails': events})
+    if delivery_keys:
+        delivery = {key: {} for key in delivery_keys}
+        # One prefix condition per session keeps the read on the key index.
+        prefixes = Q()
+        for pk in session_ids:
+            prefixes |= Q(dedupe_key__startswith=f'reminder:{pk}:')
+        mail = OutboundEmail.objects.filter(prefixes)
+        grouped = mail.annotate(event_prefix=Substr('dedupe_key', 1,
+            Length('dedupe_key') - StrIndex(Reverse('dedupe_key'), Value(':')))).values('event_prefix', 'status').annotate(total=Count('pk'))
+        for item in grouped:
+            for key in delivery_keys:
+                if (item['event_prefix'] + ':').startswith(key + ':'):
+                    counts = delivery[key]
+                    counts[item['status']] = counts.get(item['status'], 0) + item['total']
+        for session in sessions:
+            for event in session['emails']:
+                event['delivery'] = delivery[event.pop('_delivery_key')]
     return Response({'id': course.pk, 'title': course.title, 'published': course.published, 'release_at': course.release_at,
                      'sessions': sessions, 'registration_url': registration_path(course), 'quizzes': quizzes,
                      'reminders': course.reminders, 'people': participants.count()}, headers={'Cache-Control': 'no-store'})

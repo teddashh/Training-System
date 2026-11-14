@@ -1,4 +1,5 @@
 import { formatDateTime } from "./datetime";
+import { arrival } from "./serverClock";
 import AssessmentBlock from "./AssessmentBlock";
 import { useAccess } from "./access";
 import DocumentImport, { type DocumentPages } from "./DocumentImport";
@@ -356,7 +357,7 @@ export function ScormPlayer({
   scheduledClose.current = requestClose;
   useEffect(() => {
     if (!launch?.access_ends_at || !launch.server_time) return;
-    const deadline = performance.now() + Date.parse(launch.access_ends_at) - Date.parse(launch.server_time);
+    const deadline = arrival(launch.server_time) + Date.parse(launch.access_ends_at) - Date.parse(launch.server_time);
     let timer:ReturnType<typeof setTimeout>;
     const check=()=>{const remaining=deadline-performance.now();if(remaining<=0)scheduledClose.current();else timer=setTimeout(check,Math.min(remaining,2147483647));};
     check();
@@ -561,7 +562,13 @@ export default function Courses({
   const [opening, setOpening] = useState(false);
   const [categoryFilter,setCategoryFilter]=useState('');
   const manage = user.access.courses !== "none";
+  function clearLink() {
+    if (!openedLink.current) return;
+    const url = new URL(window.location.href); url.searchParams.delete("course"); url.searchParams.delete("action");
+    history.replaceState(history.state, "", url); openedLink.current = false;
+  }
   function closeLearning() {
+    clearLink();
     setViewing(null); setPlaying(null); setEnrolling(null);
     const from = new URLSearchParams(window.location.search).get("from");
     if (from === "assignments" || from === "my-training") window.location.assign(appPath(`/${from}`));
@@ -569,7 +576,7 @@ export default function Courses({
   const openedLink = useRef(false);
   useEffect(()=>{
     if(!viewing?.enrollment?.session || viewing.can_manage)return;
-    const deadline=performance.now()+Date.parse(viewing.enrollment.session.ends_at)-Date.parse(viewing.server_time);
+    const deadline=arrival(viewing.server_time)+Date.parse(viewing.enrollment.session.ends_at)-Date.parse(viewing.server_time);
     let timer:ReturnType<typeof setTimeout>;
     const check=()=>{const remaining=deadline-performance.now();if(remaining<=0){setViewing(null);onSaved();}else timer=setTimeout(check,Math.min(remaining,2147483647));};
     check();
@@ -837,12 +844,12 @@ export default function Courses({
         <CourseEditor
           course={editing}
           go={go}
-          onClose={() => setEditing(undefined)}
+          onClose={() => { clearLink(); setEditing(undefined); }}
           onSaved={() => onSaved()}
         />
       )}{" "}
       {enrolling && (enrolling.delivery_mode==='scheduled'?<SessionEnrollment message={registrationMessage} course={enrolling} onClose={closeLearning} onSaved={onSaved} onReady={course => {setEnrolling(null);void open(course,false,true);}}/>:<EnrollmentAccess course={enrolling} onClose={closeLearning} onSaved={onSaved} onReady={course => { setEnrolling(null); void open(course); }} />)}
-      {roster && <EnrollmentManager course={roster} onClose={() => setRoster(null)} onSaved={onSaved} />}
+      {roster && <EnrollmentManager course={roster} onClose={() => { clearLink(); setRoster(null); }} onSaved={onSaved} />}
       {uploading && (
         <Modal
           title={t("Upload SCORM content")}

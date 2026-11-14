@@ -8,7 +8,7 @@ import CourseCover, { suggestCover } from './CourseCover';
 import TrainingQuiz from './TrainingQuiz';
 import PeopleBox, { emptyNames, type PeopleNames } from './PeopleBox';
 import {
-  MAX_SESSIONS, accepted, formErrors, notifiedCount, hasPeople, localDay, newSession, receiptReports, rosterSignature, skipped, trainingPayload,
+  MAX_SESSIONS, formErrors, notifiedCount, hasPeople, localDay, newSession, receiptReports, rosterSignature, skipped, trainingPayload,
   updateSession, validateTraining, type RosterInput, type RosterReport, type SessionDraft, type TrainingReceipt,
 } from './simpleTraining';
 
@@ -27,9 +27,11 @@ function useLeaveGuard(dirty: boolean) {
       if (window.confirm(t('Discard this training?'))) leaving.current = true;
       else { event.preventDefault(); event.stopPropagation(); }
     };
+    const pop = (event: Event) => { if (!leaving.current) { if (window.confirm(t('Discard this training?'))) leaving.current = true; else event.preventDefault(); } };
+    window.addEventListener('training-before-pop', pop);
     window.addEventListener('beforeunload', warn);
     document.addEventListener('click', click, true);
-    return () => { window.removeEventListener('beforeunload', warn); document.removeEventListener('click', click, true); };
+    return () => { window.removeEventListener('training-before-pop', pop); window.removeEventListener('beforeunload', warn); document.removeEventListener('click', click, true); };
   }, [dirty]);
   return leaving;
 }
@@ -49,7 +51,10 @@ export default function NewTraining({ go }: { go: (path: string) => void }) {
   const [exam, setExam] = useState<number | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [checks, setChecks] = useState<Record<string, Check>>({}), [checking, setChecking] = useState(0);
+  // A failed automatic check shows in the box's check line, apart from the errors of pressing Create.
+  const [checkErrors, setCheckErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
+  const [uploads, setUploads] = useState<Record<string, boolean>>({});
   const form = useRef<HTMLFormElement>(null), latest = useRef(sessions), checkRun = useRef(0);
   latest.current = sessions;
   const dirty = !!(title.trim() || description.trim() || exam || sessions.some(s => s.date || s.start || s.end || s.location.trim() || hasPeople(s.roster)));
@@ -77,6 +82,7 @@ export default function NewTraining({ go }: { go: (path: string) => void }) {
       const keys = latest.current.map(s => s.key);
       setChecks(Object.fromEntries(boxes.flatMap((box, i) => hasPeople(box) && result.rosters[i] ? [[keys[i], { signature: rosterSignature(box), report: result.rosters[i] }]] : [])));
       clear(...boxes.map((_, i) => `people[${i}]`));
+      setCheckErrors({});
     } catch (e) {
       if (run !== checkRun.current) return;
       // Server limits (lines, characters) come back per roster and land under the box they concern.
@@ -87,7 +93,7 @@ export default function NewTraining({ go }: { go: (path: string) => void }) {
         if (at && message) found[`people[${at[1]}]`] = message;
       }
       if (!Object.keys(found).length) found[`people[${index}]`] = (e as Error).message;
-      setErrors(current => ({ ...current, ...found }));
+      setCheckErrors(found);
     } finally { if (run === checkRun.current) setChecking(0); }
   }
   async function upload(file: File) {
@@ -99,7 +105,7 @@ export default function NewTraining({ go }: { go: (path: string) => void }) {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || Object.values(uploads).some(Boolean)) return;
     setError('');
     const found = validateTraining(title, sessions);
     setErrors(found);
@@ -145,10 +151,10 @@ export default function NewTraining({ go }: { go: (path: string) => void }) {
         const key = (field: string) => `sessions[${i}].${field}`;
         const result = checks[session.key];
         const report = result && result.signature === rosterSignature(session.roster) ? result.report : undefined;
-        const people = accepted(report), seats = Number(session.capacity);
+        const seats = Number(session.capacity);
         return <fieldset className="training-session" key={session.key} disabled={busy}>
           <legend>{t('Session {number}', { number: i + 1 })}</legend>
-          {i > 0 && <button type="button" className="text-btn training-session-remove" onClick={() => { setSessions(current => current.filter(s => s.key !== session.key)); setErrors({}); }}>{t('Remove')}</button>}
+          {i > 0 && <button type="button" className="text-btn training-session-remove" onClick={() => { setSessions(current => current.filter(s => s.key !== session.key)); setErrors({}); setCheckErrors({}); }}>{t('Remove')}</button>}
           <div className="training-fields training-when">
             <Field id={fieldId(key('date'))} label={t('Date')} error={fieldError(key('date'))}>
               <input id={fieldId(key('date'))} type="date" min={today} value={session.date} {...invalid(key('date'))} onChange={e => patch(i, { date: e.target.value }, 'date', 'starts_at')} />
@@ -167,13 +173,13 @@ export default function NewTraining({ go }: { go: (path: string) => void }) {
             </Field>
             <Field id={fieldId(key('capacity'))} label={t('Seats')} error={fieldError(key('capacity'))}>
               <input id={fieldId(key('capacity'))} type="number" inputMode="numeric" min={1} max={10000} value={session.capacity} {...invalid(key('capacity'))} onChange={e => patch(i, { capacity: e.target.value }, 'capacity')} />
-              {people > seats && seats > 0 && <span className="field-hint training-warning" role="status">{t('{people} people, {seats} seats', { people, seats })}</span>}
             </Field>
           </div>
           <PeopleBox id={`training-people-${i}`} value={session.roster} names={names[session.key] || emptyNames()}
             report={report} checking={checking > 0 && hasPeople(session.roster) && !report} error={errors[`people[${i}]`]}
-            onChange={(roster, next) => { setSessions(current => current.map(s => s.key === session.key ? { ...s, roster } : s)); setNames(current => ({ ...current, [session.key]: next })); }}
-            onCheck={roster => void check(i, roster)} onUpload={upload} />
+            checkError={checkErrors[`people[${i}]`]} seats={seats}
+            onChange={(roster, next) => { ++checkRun.current; setChecking(0); setCheckErrors({}); setSessions(current => current.map(s => s.key === session.key ? { ...s, roster } : s)); setNames(current => ({ ...current, [session.key]: next })); }}
+            onCheck={roster => void check(i, roster)} onUpload={upload} onUploadingChange={uploading => setUploads(current => ({ ...current, [session.key]: uploading }))} />
         </fieldset>;
       })}
       {sessions.length < MAX_SESSIONS && <button type="button" className="btn dashed training-add-session" disabled={busy} onClick={() => setSessions(current => [...current, newSession(current[0])])}><Plus size={16} />{t('Add session')}</button>}
@@ -183,7 +189,7 @@ export default function NewTraining({ go }: { go: (path: string) => void }) {
       </div>
       <ErrorBox message={error} />
       <div className="heading-actions training-submit">
-        <button className="btn primary" disabled={busy}>{t(busy ? 'Creating…' : notify ? 'Create and notify' : 'Create')}</button>
+        <button className="btn primary" disabled={busy || Object.values(uploads).some(Boolean)}>{t(busy ? 'Creating…' : notify ? 'Create and notify' : 'Create')}</button>
         <button type="button" className="btn" disabled={busy} onClick={cancel}>{t('Cancel')}</button>
       </div>
       <details className="course-options">

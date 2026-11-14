@@ -89,16 +89,67 @@ export async function simpleTrainingWorkflow(page: Page, browser: Browser) {
     await second.getByLabel('Start', {exact: true}).fill('13:00');
     await second.getByLabel('End', {exact: true}).fill('14:30');
 
-    // One known e-mail, one known employee ID and one unknown line.
+    // Long automatic-check and upload failures must stay readable on a phone.
+    await s.setViewportSize({width: 390, height: 900});
+    const checkError = 'The automatic people check could not be completed. Please check the connection and try again. '.repeat(4).trim();
+    const uploadError = 'The uploaded people file could not be read. Please check its format and try again. '.repeat(4).trim();
+    const checkPeople = '**' + url('/api/trainings/check-people/');
+    const failCheck = (route: Route) => route.fulfill({status: 503, json: {
+      detail: route.request().headers()['content-type']?.startsWith('multipart/') ? uploadError : checkError,
+    }});
+    await s.route(checkPeople, failCheck);
+    await first.getByLabel('Seats', {exact: true}).fill('1');
     await first.getByLabel('People', {exact: true}).fill([`${alex}@example.test`, employeeId, unknown].join('\n'));
     await expect(s.getByRole('button', {name: 'Create and notify', exact: true})).toBeVisible();
     await first.getByLabel('Seats', {exact: true}).focus();
+    const checkAlert = first.locator('.people-check-slot').getByRole('alert');
+    await expect(checkAlert).toHaveText(checkError);
+    expect(await checkAlert.evaluate(el => getComputedStyle(el).whiteSpace === 'normal' && el.scrollHeight <= el.clientHeight)).toBe(true);
+    await first.locator('input[type=file]').setInputFiles({name: 'people.csv', mimeType: 'text/csv', buffer: Buffer.from('nobody@example.test')});
+    await expect(checkAlert).toHaveText(uploadError);
+    expect(await checkAlert.evaluate(el => getComputedStyle(el).whiteSpace === 'normal' && el.scrollHeight <= el.clientHeight)).toBe(true);
+    expect((await checkAlert.boundingBox())!.y + (await checkAlert.boundingBox())!.height).toBeLessThanOrEqual((await second.boundingBox())!.y);
+    await s.unroute(checkPeople, failCheck);
+    const resetDownload = s.waitForEvent('download');
+    await first.getByRole('button', {name: 'Download template', exact: true}).click();
+    await resetDownload;
+
+    // One known e-mail, one known employee ID and one unknown line.
+    await first.getByLabel('People', {exact: true}).focus();
+    await first.getByLabel('Seats', {exact: true}).focus();
     const check = first.locator('.people-check');
-    await expect(check).toContainText('2 people · 1 not found');
+    await expect(check).toContainText('2 people, 1 seat · 1 not found');
+    await expect(check.locator('.people-check-text')).toHaveAttribute('title', '2 people, 1 seat · 1 not found');
+    // Also exercise a narrower containing column, where the status must truncate before the button.
+    await check.evaluate(el => { el.style.maxWidth = '160px'; });
+    expect(await check.locator('.people-check-text').evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
+    const line = check.locator('p'), show = check.getByRole('button', {name: 'Show', exact: true});
+    const lineHeight = (await line.boundingBox())!.height, showBox = (await show.boundingBox())!, checkBox = (await check.boundingBox())!;
+    expect(showBox.x + showBox.width).toBeLessThanOrEqual(checkBox.x + checkBox.width);
+    const secondTop = await second.evaluate(el => el.getBoundingClientRect().top + window.scrollY);
     await check.getByRole('button', {name: 'Show', exact: true}).click();
     await expect(check.locator('.people-skipped li')).toHaveCount(1);
     await expect(check.locator('.people-skipped')).toContainText(unknown);
     await expect(check.locator('.people-skipped')).toContainText('Not found');
+    expect((await line.boundingBox())!.height).toBe(lineHeight);
+    expect(await second.evaluate(el => el.getBoundingClientRect().top + window.scrollY)).toBeGreaterThan(secondTop);
+    const skippedBox = (await check.locator('.people-skipped').boundingBox())!;
+    expect(skippedBox.y + skippedBox.height).toBeLessThanOrEqual((await second.boundingBox())!.y);
+    await check.getByRole('button', {name: 'Hide', exact: true}).click();
+    await check.getByRole('button', {name: 'Show', exact: true}).click();
+    await check.evaluate(el => { el.style.maxWidth = ''; });
+    const roster = [`${alex}@example.test`, employeeId, unknown];
+    await first.getByLabel('People', {exact: true}).fill([...roster, 'another-missing@example.test'].join('\n'));
+    const beforeCheck = await second.evaluate(el => el.getBoundingClientRect().top + window.scrollY);
+    await first.getByLabel('Seats', {exact: true}).focus();
+    await expect(check).toContainText('2 people, 1 seat · 2 not found');
+    await expect(check.getByRole('button', {name: 'Show', exact: true})).toBeVisible();
+    expect(Math.abs(await second.evaluate(el => el.getBoundingClientRect().top + window.scrollY) - beforeCheck)).toBeLessThanOrEqual(1);
+    await first.getByLabel('People', {exact: true}).fill(roster.join('\n'));
+    await first.getByLabel('Seats', {exact: true}).focus();
+    await expect(check).toContainText('2 people, 1 seat · 1 not found');
+    await first.getByLabel('Seats', {exact: true}).fill('30');
+    await s.setViewportSize({width: 1440, height: 900});
 
     await s.getByLabel('Quiz', {exact: true}).selectOption(String(quiz.id));
     await expect(s.getByLabel('Quiz', {exact: true}).locator(`option[value="${quiz.id}"]`)).toHaveText(`${quizTitle} · Draft`);
@@ -146,6 +197,13 @@ export async function simpleTrainingWorkflow(page: Page, browser: Browser) {
     await expect(s.getByText('Draft: participants cannot take it', {exact: true})).toHaveCount(0);
     await expect(s.getByRole('switch', {name: 'E-mail reminders', exact: true})).toBeChecked();
 
+    // The link row is a row of its own at every width: on a tablet its button stays inside the page and the link keeps room.
+    await s.setViewportSize({width: 768, height: 900});
+    expect(await s.locator('.training-share').evaluate(row => {
+      const copy = row.querySelector('button')!.getBoundingClientRect(), text = row.querySelector('p')!.getBoundingClientRect();
+      return copy.left >= 0 && copy.right <= innerWidth && text.width > 40;
+    })).toBe(true);
+    await s.setViewportSize({width: 1440, height: 900});
     await s.getByRole('button', {name: 'Copy link', exact: true}).click();
     await expect(s.getByRole('button', {name: 'Copied', exact: true})).toBeVisible();
     link = await s.evaluate(() => navigator.clipboard.readText());
@@ -222,7 +280,13 @@ export async function simpleTrainingWorkflow(page: Page, browser: Browser) {
     // place already, so the button stays under the pointer and the first click straight after typing lands.
     const add = s.locator('.training-add');
     await add.locator('textarea').fill('nobody-here@example.test');
-    await add.getByRole('button', {name: /^Add( and notify)?$/}).click();
+    // Leaving the box brings the check line with its Show button, the tallest one-line state: the button stays put.
+    const addButton = add.getByRole('button', {name: /^Add( and notify)?$/});
+    const addTop = (await addButton.boundingBox())!.y;
+    await add.getByRole('button', {name: 'Download template', exact: true}).focus();
+    await expect(add.locator('.people-check').getByRole('button', {name: 'Show', exact: true})).toBeVisible();
+    expect(Math.abs((await addButton.boundingBox())!.y - addTop)).toBeLessThanOrEqual(1);
+    await addButton.click();
     await expect(add.getByRole('status').filter({hasText: '0 people added.'})).toBeVisible();
     await expect(add.locator('.people-skipped')).toContainText('Not found');
 

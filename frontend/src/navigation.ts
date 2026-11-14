@@ -18,6 +18,7 @@ const areas: Area[] = [
   {id: 'settings', label: 'Settings', tabs: [{label: 'Administration', path: '/manage', capability: 'system_admin'}, {label: 'Settings', path: '/settings', capability: 'system_admin'}, {label: 'Email', path: '/email', capability: 'system_admin'}]},
 ];
 const deepLinks = [
+  {matches: (a: Access, p: string, q: URLSearchParams) => p === '/results' && q.get('from') === 'reports' && !has(a, 'results'), area: 'home', tab: '/'},
   {matches: (_a: Access, p: string) => p.startsWith('/attempt/'), area: 'learning', tab: '/my-exams'},
   {matches: (_a: Access, p: string) => p.startsWith('/preview/'), area: 'exams', tab: '/exams'},
   {matches: (a: Access, p: string, q: URLSearchParams) => p === '/exams' && (!has(a, 'exams') || q.get('action') === 'start'), area: 'learning', tab: '/my-exams'},
