@@ -218,6 +218,13 @@ export async function simpleTrainingWorkflow(page: Page, browser: Browser) {
     const addTemplate = await addTemplateDownload;
     expect(addTemplate.suggestedFilename()).toBe('people-template.xlsx');
     expect(readFileSync((await addTemplate.path())!).subarray(0, 2).toString('latin1')).toBe('PK');
+    // Pressing the button is what takes the focus from the box and brings the check line: the line has its
+    // place already, so the button stays under the pointer and the first click straight after typing lands.
+    const add = s.locator('.training-add');
+    await add.locator('textarea').fill('nobody-here@example.test');
+    await add.getByRole('button', {name: /^Add( and notify)?$/}).click();
+    await expect(add.getByRole('status').filter({hasText: '0 people added.'})).toBeVisible();
+    await expect(add.locator('.people-skipped')).toContainText('Not found');
 
     // The list shows the training with its next session and registrations.
     await navigateArea(s, 'Training');

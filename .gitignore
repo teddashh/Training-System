@@ -20,3 +20,4 @@ backend/test-mail/
 backups/
 *.dump
 media.tar.gz
+frontend/dist-demo/

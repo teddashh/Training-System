@@ -84,7 +84,10 @@ def session(request):
             "user": user_data(request.user) if request.user.is_authenticated else None,
             "languages": allowed_languages(),
             "organization": organization(),
-            "sign_in": {p: sign_in_config()["configured"] and sign_in_config()["provider"] == p for p in ("entra", "google")},
+            "sign_in": {
+                **{p: sign_in_config()["configured"] and sign_in_config()["provider"] == p for p in ("entra", "google")},
+                "password": settings.PASSWORD_SIGN_IN,
+            },
             "email_enabled": mail_enabled(),
             "demo_mode": settings.DEBUG
             and __import__("os").getenv("DEMO_MODE") == "true",
@@ -97,6 +100,8 @@ def session(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def password_login(request):
+    if not settings.PASSWORD_SIGN_IN:
+        return Response({"detail": translate("Password sign-in is off.")}, status=403)
     identifier = str(request.data.get("identifier", ""))
     rate_limit(request, identifier)
     existing = find_user(identifier)

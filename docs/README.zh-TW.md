@@ -2,6 +2,8 @@
 
 供組織自行架設的訓練、課程編輯與評量系統。
 
+**[試用示範](https://teddashh.github.io/Training-System/demo/)**：在瀏覽器中以合成資料操作實際介面，不會儲存任何變更。
+
 [English](../README.md) · [Español](README.es.md)
 
 ![訓練首頁](screenshots/dashboard-zh-TW.png)

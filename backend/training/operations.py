@@ -3,6 +3,7 @@
 import csv
 import io
 
+from django.conf import settings
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -430,6 +431,8 @@ class PasswordInput(serializers.Serializer):
 
 @api_view(["POST"])
 def change_password(request):
+    if not settings.PASSWORD_SIGN_IN:
+        return Response({"detail": translate("Password sign-in is off.")}, status=403)
     from .auth_views import rate_limit
 
     rate_limit(request, "password-change:" + str(request.user.pk))

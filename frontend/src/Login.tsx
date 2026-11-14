@@ -1,4 +1,4 @@
-import { brand } from "./brand";
+import { brand, signIn } from "./brand";
 import Brand from "./Brand";
 import SignInMethods from "./SignInMethods";
 import { t, useLocale, LanguagePicker } from "./i18n";
@@ -54,7 +54,7 @@ export default function Login({
           <p className="muted">
             {t("Sign in to your workspace and continue learning.")}
           </p>
-          <SignInMethods entra={entra} onLogin={onLogin} allowPassword />
+          <SignInMethods entra={entra} onLogin={onLogin} allowPassword={signIn.password} />
           <p className="login-help">
             {t(
               "Need an account? Contact your company training administrator.",

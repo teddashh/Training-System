@@ -100,6 +100,13 @@ def deployment_readiness():
             "Configuration check only. Test a real sign-in code and a verified guest invitation after deployment.",
         )
     configured = sign_in_config()['configured']
+    if not settings.PASSWORD_SIGN_IN:
+        add(
+            "sign_in",
+            "Sign-in methods",
+            configured or mail["provider"] != "off",
+            "Password sign-in is off. Turn on company sign-in or email so people can sign in.",
+        )
     checks.append(
         {
             "key": "entra",

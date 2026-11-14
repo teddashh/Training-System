@@ -28,6 +28,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { api } from "./api";
+import { signIn } from "./brand";
 import type { User, Exam, Invitation, ResultsPage, Attempt } from "./types";
 import {
   Modal,
@@ -1272,20 +1273,22 @@ function PeopleTable({ currentUser }: { currentUser: User }) {
                   {rolesFor().map(key => <option key={key} value={key}>{roleLabel(key)}</option>)}
                 </select>
               </label>
-              <label className="span-2">
-                {t("Initial password (optional, at least 12 characters)") + " "}
-                <input
-                  name="password"
-                  type="password"
-                  minLength={12}
-                  autoComplete="new-password"
-                />
-              </label>
+              {signIn.password && (
+                <label className="span-2">
+                  {t("Initial password (optional, at least 12 characters)") + " "}
+                  <input
+                    name="password"
+                    type="password"
+                    minLength={12}
+                    autoComplete="new-password"
+                  />
+                </label>
+              )}
             </div>
             <p className="notice">
-              {t(
-                "Sync Microsoft users from Entra before assigning training. This form creates local accounts for password or email-code access.",
-              ) + " "}
+              {t(signIn.password
+                ? "Sync Microsoft users from Entra before assigning training. This form creates local accounts for password or email-code access."
+                : "Sync Microsoft users from Entra before assigning training. This form creates local accounts for email-code access.") + " "}
             </p>
             <ErrorBox message={error} />
             <div className="modal-footer">

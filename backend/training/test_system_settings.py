@@ -189,7 +189,7 @@ class SystemSettingsTests(TestCase):
         self.assertEqual(response.data['organization'], {'name': 'Cedar', 'title': 'Cedar Training', 'logo_url': None})
         self.assertEqual(response.data['languages'], ['es', 'en'])
         self.assertEqual(response['Content-Language'], 'es')
-        self.assertEqual(response.data['sign_in'], {'entra': False, 'google': True})
+        self.assertEqual(response.data['sign_in'], {'entra': False, 'google': True, 'password': True})
         self.assertFalse(response.data['entra_enabled'])
         self.assertFalse(response.data['email_enabled'])
         from .i18n import current_locale

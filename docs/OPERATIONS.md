@@ -42,7 +42,7 @@ Preview, correct errors, then import. Import creates the whole batch or none. It
 
 **Edit person** also changes display name, department, employment, role and active status. Login identifiers are not editable through this API. You cannot disable yourself or remove your own administrator role. Disabling an account also blocks linked guest access and preserves learning records.
 
-The account menu's **Change password** requires the current local password. New passwords must meet Django validation, including at least 12 characters. It preserves the current session and invalidates other local sessions. Provider passwords remain managed by the identity provider.
+The account menu's **Change password** requires the current local password. New passwords must meet Django validation, including at least 12 characters. It preserves the current session and invalidates other local sessions. Provider passwords remain managed by the identity provider. When the server sets `PASSWORD_SIGN_IN=false`, password sign-in, **Change password** and the password fields for people are absent: people use company sign-in or an e-mail code.
 
 ## Create and publish a course
 

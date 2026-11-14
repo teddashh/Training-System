@@ -2,6 +2,8 @@
 
 Self-hosted training, course authoring and assessment for an organization.
 
+**[Try the demo](https://teddashh.github.io/Training-System/demo/)**: the real interface with synthetic data, in your browser. Nothing is saved.
+
 [繁體中文](docs/README.zh-TW.md) · [Español](docs/README.es.md)
 
 ![Training dashboard](docs/screenshots/dashboard.png)

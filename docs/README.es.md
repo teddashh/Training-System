@@ -2,6 +2,8 @@
 
 Sistema de formación, creación de cursos y evaluación alojado por una organización.
 
+**[Probar la demo](https://teddashh.github.io/Training-System/demo/)**: la interfaz real con datos sintéticos, en el navegador. No se guarda nada.
+
 [English](../README.md) · [繁體中文](README.zh-TW.md)
 
 ![Panel de formación](screenshots/dashboard-es.png)

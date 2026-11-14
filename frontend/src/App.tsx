@@ -1,4 +1,4 @@
-import { brand, applySessionSettings, type SessionSettings } from "./brand";
+import { brand, signIn, applySessionSettings, type SessionSettings } from "./brand";
 import { navigationAreas, activeArea, canOpenRoute } from "./navigation";
 import AreaTabs from "./AreaTabs";
 import LazyPageBoundary from "./LazyPageBoundary";
@@ -329,14 +329,16 @@ export default function App() {
                 <div className="profile-menu">
                   <strong>{user.email || user.username}</strong>
                   <span>{user.department || t("No department assigned")}</span>
-                  <button
-                    onClick={() => {
-                      setProfile(false);
-                      setPassword(true);
-                    }}
-                  >
-                    {t("Change password")}
-                  </button>
+                  {signIn.password && (
+                    <button
+                      onClick={() => {
+                        setProfile(false);
+                        setPassword(true);
+                      }}
+                    >
+                      {t("Change password")}
+                    </button>
+                  )}
                   <button onClick={signOut}>
                     <LogOut size={15} />
                     {t("Sign out") + " "}
@@ -460,9 +462,9 @@ export default function App() {
               </>
             )}
             <div className="notice">
-              {t(
-                "Contact your training administrator to change permissions, reset a password or adjust exam attempts.",
-              ) + " "}
+              {t(signIn.password
+                ? "Contact your training administrator to change permissions, reset a password or adjust exam attempts."
+                : "Contact your training administrator to change permissions or adjust exam attempts.") + " "}
             </div>
           </div>
         </Modal>

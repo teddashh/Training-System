@@ -5,7 +5,7 @@ import { countLabel, t, useLocale } from './i18n';
 import { ErrorBox, Modal } from './ui';
 import { PeoplePicker } from './PeopleDirectory';
 import { GroupPicker } from './Groups';
-import { REASONS, accepted, appendLines, skipped, type RosterInput, type RosterReport } from './simpleTraining';
+import { REASONS, accepted, appendLines, hasPeople, skipped, type RosterInput, type RosterReport } from './simpleTraining';
 
 export type PeopleNames = { people: Record<number, string>; groups: Record<number, string> };
 export const emptyNames = (): PeopleNames => ({ people: {}, groups: {} });
@@ -96,7 +96,8 @@ export default function PeopleBox({ id, value, names, onChange, onCheck, onUploa
     </div>
     {error && <span className="field-hint danger-text" id={id + '-error'}>{error}</span>}
     <ErrorBox message={uploadError} />
-    {!disabled && <CheckLine report={report} checking={checking} />}
+    {/* The check line has its place as soon as the box has content: arriving on blur, it must not move a button that is being pressed. */}
+    {!disabled && hasPeople(value) && <div className="people-check-slot"><CheckLine report={report} checking={checking} /></div>}
     {picking && <Modal title={t('Pick people')} wide onClose={closePicker}>
       <div className="modal-form">
         <div className="heading-actions training-views">

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import QuerySet
@@ -84,6 +85,8 @@ class UserSerializer(serializers.ModelSerializer):
                     "Sign-in identifiers cannot be changed through this API after creation, to preserve historical attempt ownership."
                 )
             )
+        if data.get("password") and not settings.PASSWORD_SIGN_IN:
+            raise serializers.ValidationError({"password": translate("Password sign-in is off.")})
         if data.get("password"):
             try:
                 validate_password(

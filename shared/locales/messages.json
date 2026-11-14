@@ -15408,5 +15408,35 @@
     "en": "Connection security",
     "zh-TW": "連線安全性",
     "es": "Seguridad de la conexión"
+  },
+  "Password sign-in is off.": {
+    "en": "Password sign-in is off.",
+    "zh-TW": "密碼登入已關閉。",
+    "es": "El inicio de sesión con contraseña está desactivado."
+  },
+  "Sign-in methods": {
+    "en": "Sign-in methods",
+    "zh-TW": "登入方式",
+    "es": "Métodos de inicio de sesión"
+  },
+  "Password sign-in is off. Turn on company sign-in or email so people can sign in.": {
+    "en": "Password sign-in is off. Turn on company sign-in or email so people can sign in.",
+    "zh-TW": "密碼登入已關閉。請啟用公司登入或電子郵件，使用者才能登入。",
+    "es": "El inicio de sesión con contraseña está desactivado. Activa el inicio de sesión corporativo o el correo para que las personas puedan acceder."
+  },
+  "Contact your training administrator to change permissions or adjust exam attempts.": {
+    "en": "Contact your training administrator to change permissions or adjust exam attempts.",
+    "zh-TW": "如需變更權限或調整考試次數，請聯絡公司訓練管理員。",
+    "es": "Contacta con el administrador de formación para cambiar permisos o ajustar los intentos."
+  },
+  "Sync Microsoft users from Entra before assigning training. This form creates local accounts for email-code access.": {
+    "en": "Sync Microsoft users from Entra before assigning training. This form creates local accounts for email-code access.",
+    "zh-TW": "指派訓練前，請先從 Entra 同步 Microsoft 使用者。此表單可建立使用電子郵件驗證碼登入的本機帳號。",
+    "es": "Sincronice los usuarios de Microsoft desde Entra antes de asignar formación. Este formulario crea cuentas locales con acceso mediante código por correo."
+  },
+  "New accounts can use email codes when email delivery is configured. Existing accounts are never overwritten.": {
+    "en": "New accounts can use email codes when email delivery is configured. Existing accounts are never overwritten.",
+    "zh-TW": "設定郵件服務後，新帳號即可使用電子郵件驗證碼登入。既有帳號不會被覆寫。",
+    "es": "Las cuentas nuevas pueden usar códigos por correo cuando se configure el envío. Las cuentas existentes nunca se sobrescriben."
   }
 }

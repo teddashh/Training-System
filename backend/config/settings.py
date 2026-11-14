@@ -183,6 +183,8 @@ DIRECTORY_REQUIRE_LICENSE = os.getenv("DIRECTORY_REQUIRE_LICENSE", "true").lower
 DIRECTORY_EMAIL_DOMAINS = [d.strip() for d in os.getenv("DIRECTORY_EMAIL_DOMAINS", "").split(",") if d.strip()]
 DIRECTORY_SYNC_INTERVAL_HOURS = max(0, float(os.getenv("DIRECTORY_SYNC_INTERVAL_HOURS", "0")))
 EMAIL_CODE_FOR_ENTRA_USERS = os.getenv("EMAIL_CODE_FOR_ENTRA_USERS", "false").lower() == "true"
+# False removes password sign-in and password changes; company sign-in and e-mail codes remain.
+PASSWORD_SIGN_IN = os.getenv("PASSWORD_SIGN_IN", "true").lower() == "true"
 EMAIL_CODE_DOMAINS = [d.strip() for d in os.getenv("EMAIL_CODE_DOMAINS", "").split(",") if d.strip()]
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")

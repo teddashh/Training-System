@@ -1,0 +1,17 @@
+body { --demo-bar-height: 48px; }
+#demo-bar { position: sticky; top: 0; z-index: 60; }
+.demo-bar { display: flex; align-items: center; gap: 8px; height: var(--demo-bar-height); padding: 0 12px; border-bottom: 1px solid var(--stroke); background: var(--surface); color: var(--text-secondary); font-size: var(--font-caption); }
+.demo-bar > span { margin-right: auto; min-width: 0; }
+.demo-bar select { width: auto; max-width: 132px; min-height: 32px; border: 1px solid var(--stroke); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); padding: 4px; }
+.demo-bar .btn { flex: none; font-size: var(--font-caption); }
+body .sidebar { top: var(--demo-bar-height); }
+body .topbar { top: var(--demo-bar-height); }
+body .app-shell { min-height: calc(100vh - var(--demo-bar-height)); }
+.demo-message { padding: 16px 24px; }
+.demo-lesson { max-width: 720px; margin: auto; padding: 24px; }
+.demo-lesson nav { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .demo-bar { padding-inline: 8px; gap: 4px; }
+  .demo-bar select, .demo-bar .btn { min-height: 44px; }
+  .demo-bar select { font-size: var(--font-body); }
+}

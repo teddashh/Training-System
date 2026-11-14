@@ -81,6 +81,7 @@ Leave those selector variables empty to use Settings. Name and logo remain edita
 | `DIRECTORY_SYNC_INTERVAL_HOURS` | Default 0: manual sync only. Positive hours enable scheduled sync. |
 | `EMAIL_CODE_FOR_ENTRA_USERS` | Default false: directory-linked users use Microsoft sign-in for passwordless access unless the domain exception applies. |
 | `EMAIL_CODE_DOMAINS` | Exact domains allowed for eligible learner codes and on-demand directory provisioning. Empty disables the exception. |
+| `PASSWORD_SIGN_IN` | Default true. False turns off password sign-in, password changes and the password fields for people, including the password form of the data maintenance tool. Company sign-in and e-mail codes remain: keep one of them working first. To recover access, set it to true and restart the API. |
 | `AUTH_NETWORK_LIMIT` | Default 300 requests per direct peer per ten minutes. Account limit remains 20. |
 
 Directory provisioning is separate from sign-in and mail. See [directory setup](#microsoft-entra-directory-provisioning) and [operator safeguards](OPERATIONS.md#directory-provisioning-operators).

@@ -5,8 +5,8 @@ import horizontalLogo from '@brand/logo-horizontal.svg';
 export const brand = { ...data, logo, horizontalLogo, customized: false, uploadedLogo: false };
 
 export type Organization = { name: string; title: string; logo_url: string | null };
-export type SessionSettings = { organization?: Organization; sign_in?: { entra: boolean; google: boolean }; email_enabled?: boolean };
-export const signIn = { entra: false, google: false, email: true };
+export type SessionSettings = { organization?: Organization; sign_in?: { entra: boolean; google: boolean; password?: boolean }; email_enabled?: boolean };
+export const signIn = { entra: false, google: false, email: true, password: true };
 export function applySessionSettings(session: SessionSettings) {
   if (session.organization) {
     const org = session.organization;

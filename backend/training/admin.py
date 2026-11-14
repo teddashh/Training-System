@@ -1,8 +1,11 @@
+import functools
+
 from .i18n import translate
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.conf import settings
 from django.db import transaction
+from django.http import HttpResponseRedirect
 from .brand import BRAND
 from .admin_forms import DirectoryUserChangeForm
 from .models import (
@@ -24,6 +27,20 @@ def has_system_admin_permission(request):
 
 
 admin.site.has_permission = has_system_admin_permission
+
+
+_password_login = admin.site.login
+
+
+@functools.wraps(_password_login)
+def login_unless_passwords_are_off(request, extra_context=None):
+    # With password sign-in off, people sign in through the application instead.
+    if not settings.PASSWORD_SIGN_IN:
+        return HttpResponseRedirect(settings.APP_BASE_PATH + "/")
+    return _password_login(request, extra_context)
+
+
+admin.site.login = login_unless_passwords_are_off
 admin.site.site_header = translate("{organization} data maintenance", organization=BRAND["organization"], locale="en")
 admin.site.site_title = translate("{organization} administration", organization=BRAND["organization"], locale="en")
 admin.site.index_title = "Advanced data tools"

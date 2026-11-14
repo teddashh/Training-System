@@ -36,17 +36,17 @@
       "zh": "在同一個工作區管理學習、梯次與考試。在設定中調整組織資訊、語言、登入方式與電子郵件。"
     },
     "primary": {
+      "href": "./demo/",
+      "label": {
+        "en": "Try the demo",
+        "zh": "試用示範"
+      }
+    },
+    "secondary": {
       "href": "#start",
       "label": {
         "en": "Start locally",
         "zh": "從本機開始"
-      }
-    },
-    "secondary": {
-      "href": "https://github.com/teddashh/Training-System",
-      "label": {
-        "en": "View repository",
-        "zh": "查看儲存庫"
       }
     },
     "notes": [
@@ -315,6 +315,13 @@
     }
   ],
   "links": [
+    {
+      "href": "https://teddashh.github.io/Training-System/demo/",
+      "label": {
+        "en": "Demo",
+        "zh": "示範"
+      }
+    },
     {
       "href": "https://github.com/teddashh/Training-System",
       "label": {

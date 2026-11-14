@@ -1,0 +1,337 @@
+{
+  "Demo · synthetic data": {
+    "en": "Demo · synthetic data",
+    "zh-TW": "示範 · 合成資料",
+    "es": "Demo · datos ficticios"
+  },
+  "Demo view": {
+    "en": "Demo view",
+    "zh-TW": "示範身分",
+    "es": "Vista de demo"
+  },
+  "This demo does not save this change.": {
+    "en": "This demo does not save this change.",
+    "zh-TW": "此示範不會儲存這項變更。",
+    "es": "Esta demo no guarda este cambio."
+  },
+  "Not available in this demo.": {
+    "en": "Not available in this demo.",
+    "zh-TW": "此示範不提供此功能。",
+    "es": "No disponible en esta demo."
+  },
+  "Not found.": {
+    "en": "Not found.",
+    "zh-TW": "找不到資料。",
+    "es": "No se encontró."
+  },
+  "Sign in to continue.": {
+    "en": "Sign in to continue.",
+    "zh-TW": "請登入以繼續。",
+    "es": "Inicia sesión para continuar."
+  },
+  "Permission denied.": {
+    "en": "Permission denied.",
+    "zh-TW": "沒有存取權限。",
+    "es": "Permiso denegado."
+  },
+  "Choose an available session.": {
+    "en": "Choose an available session.",
+    "zh-TW": "請選擇可報名的場次。",
+    "es": "Elige una sesión disponible."
+  },
+  "No attempts remaining.": {
+    "en": "No attempts remaining.",
+    "zh-TW": "已無剩餘作答次數。",
+    "es": "No quedan intentos."
+  },
+  "Product & Engineering": {
+    "en": "Product & Engineering",
+    "zh-TW": "產品與工程",
+    "es": "Producto e ingeniería"
+  },
+  "Sales & Marketing": {
+    "en": "Sales & Marketing",
+    "zh-TW": "業務與行銷",
+    "es": "Ventas y marketing"
+  },
+  "Operations": {
+    "en": "Operations",
+    "zh-TW": "營運",
+    "es": "Operaciones"
+  },
+  "Information security & data privacy": {
+    "en": "Information security & data privacy",
+    "zh-TW": "資訊安全與資料隱私",
+    "es": "Seguridad de la información y privacidad"
+  },
+  "Welcome to the team": {
+    "en": "Welcome to the team",
+    "zh-TW": "歡迎加入團隊",
+    "es": "Te damos la bienvenida al equipo"
+  },
+  "Communication & cross-team collaboration": {
+    "en": "Communication & cross-team collaboration",
+    "zh-TW": "溝通與跨團隊協作",
+    "es": "Comunicación y colaboración entre equipos"
+  },
+  "Microsoft 365 in practice": {
+    "en": "Microsoft 365 in practice",
+    "zh-TW": "Microsoft 365 實務應用",
+    "es": "Microsoft 365 en la práctica"
+  },
+  "Workplace ethics & compliance": {
+    "en": "Workplace ethics & compliance",
+    "zh-TW": "職場倫理與合規",
+    "es": "Ética y cumplimiento en el trabajo"
+  },
+  "Customer experience & service design": {
+    "en": "Customer experience & service design",
+    "zh-TW": "顧客體驗與服務設計",
+    "es": "Experiencia del cliente y diseño de servicios"
+  },
+  "Forklift safety workshop": {
+    "en": "Forklift safety workshop",
+    "zh-TW": "堆高機安全工作坊",
+    "es": "Taller de seguridad con carretillas elevadoras"
+  },
+  "Team leadership": {
+    "en": "Team leadership",
+    "zh-TW": "團隊領導",
+    "es": "Liderazgo de equipos"
+  },
+  "Build practical security awareness and protect company and personal information in your daily work.": {
+    "en": "Build practical security awareness and protect company and personal information in your daily work.",
+    "zh-TW": "建立實用的資安意識，在日常工作中保護公司與個人資訊。",
+    "es": "Desarrolla hábitos de seguridad y protege la información de la empresa y los datos personales en tu trabajo diario."
+  },
+  "Explore our team culture, workflows and collaboration tools as you start your new role.": {
+    "en": "Explore our team culture, workflows and collaboration tools as you start your new role.",
+    "zh-TW": "開始新職務時，認識團隊文化、工作流程與協作工具。",
+    "es": "Conoce la cultura del equipo, los procesos y las herramientas de colaboración al empezar tu nuevo puesto."
+  },
+  "Practice clear communication and active listening to help every collaboration run smoothly.": {
+    "en": "Practice clear communication and active listening to help every collaboration run smoothly.",
+    "zh-TW": "練習清楚表達與積極聆聽，讓每次協作更順暢。",
+    "es": "Practica la comunicación clara y la escucha activa para colaborar mejor."
+  },
+  "Use Teams, SharePoint and shared documents to organize your digital workspace.": {
+    "en": "Use Teams, SharePoint and shared documents to organize your digital workspace.",
+    "zh-TW": "運用 Teams、SharePoint 與共用文件整理數位工作空間。",
+    "es": "Usa Teams, SharePoint y documentos compartidos para organizar tu espacio de trabajo digital."
+  },
+  "Build sound workplace judgment around confidentiality, conflicts of interest and reporting concerns.": {
+    "en": "Build sound workplace judgment around confidentiality, conflicts of interest and reporting concerns.",
+    "zh-TW": "針對保密、利益衝突與問題通報，建立良好的職場判斷力。",
+    "es": "Desarrolla un buen criterio sobre confidencialidad, conflictos de intereses y comunicación de problemas."
+  },
+  "Consider the customer perspective and apply practical service methods to improve their experience.": {
+    "en": "Consider the customer perspective and apply practical service methods to improve their experience.",
+    "zh-TW": "從顧客角度思考，運用實用的服務方法改善體驗。",
+    "es": "Considera la perspectiva del cliente y aplica métodos prácticos para mejorar su experiencia."
+  },
+  "Practice equipment checks and safe movement with your instructor.": {
+    "en": "Practice equipment checks and safe movement with your instructor.",
+    "zh-TW": "跟隨講師練習設備檢查與安全操作。",
+    "es": "Practica las revisiones del equipo y los desplazamientos seguros con tu instructor."
+  },
+  "Prepare a clear plan and support your team.": {
+    "en": "Prepare a clear plan and support your team.",
+    "zh-TW": "擬定清楚的計畫，支持團隊。",
+    "es": "Prepara un plan claro y apoya a tu equipo."
+  },
+  "Core training": {
+    "en": "Core training",
+    "zh-TW": "核心訓練",
+    "es": "Formación básica"
+  },
+  "Onboarding": {
+    "en": "Onboarding",
+    "zh-TW": "新人訓練",
+    "es": "Incorporación"
+  },
+  "Before you begin": {
+    "en": "Before you begin",
+    "zh-TW": "開始之前",
+    "es": "Antes de empezar"
+  },
+  "Put it into practice": {
+    "en": "Put it into practice",
+    "zh-TW": "付諸實踐",
+    "es": "Ponlo en práctica"
+  },
+  "Pause, check the situation and ask your team lead when you are unsure.": {
+    "en": "Pause, check the situation and ask your team lead when you are unsure.",
+    "zh-TW": "先停下來確認狀況；不確定時，請詢問團隊主管。",
+    "es": "Detente, revisa la situación y consulta con tu responsable si tienes dudas."
+  },
+  "Choose one action to apply in your next working day.": {
+    "en": "Choose one action to apply in your next working day.",
+    "zh-TW": "選擇一項行動，在下一個工作天實踐。",
+    "es": "Elige una acción para aplicar en tu próxima jornada laboral."
+  },
+  "Morning workshop": {
+    "en": "Morning workshop",
+    "zh-TW": "上午工作坊",
+    "es": "Taller de mañana"
+  },
+  "Afternoon workshop": {
+    "en": "Afternoon workshop",
+    "zh-TW": "下午工作坊",
+    "es": "Taller de tarde"
+  },
+  "Previous workshop": {
+    "en": "Previous workshop",
+    "zh-TW": "上次工作坊",
+    "es": "Taller anterior"
+  },
+  "Training room A": {
+    "en": "Training room A",
+    "zh-TW": "A 訓練教室",
+    "es": "Sala de formación A"
+  },
+  "Team collaboration session": {
+    "en": "Team collaboration session",
+    "zh-TW": "團隊協作課程",
+    "es": "Sesión de colaboración en equipo"
+  },
+  "Practice session": {
+    "en": "Practice session",
+    "zh-TW": "實作課程",
+    "es": "Sesión práctica"
+  },
+  "What should you do if an unexpected email asks for your company password?": {
+    "en": "What should you do if an unexpected email asks for your company password?",
+    "zh-TW": "收到來路不明的電子郵件要求提供公司密碼時，應該怎麼做？",
+    "es": "¿Qué debes hacer si un correo inesperado solicita tu contraseña de la empresa?"
+  },
+  "Reply to the email": {
+    "en": "Reply to the email",
+    "zh-TW": "回覆該郵件",
+    "es": "Responder al correo"
+  },
+  "Report it to IT through the approved process": {
+    "en": "Report it to IT through the approved process",
+    "zh-TW": "透過核准的流程向資訊部門通報",
+    "es": "Informar a TI mediante el proceso autorizado"
+  },
+  "Forward it to everyone": {
+    "en": "Forward it to everyone",
+    "zh-TW": "轉寄給所有人",
+    "es": "Reenviarlo a todo el mundo"
+  },
+  "Click the link to investigate": {
+    "en": "Click the link to investigate",
+    "zh-TW": "點擊連結調查",
+    "es": "Hacer clic en el enlace para investigar"
+  },
+  "Which actions support secure collaboration? Select all that apply.": {
+    "en": "Which actions support secure collaboration? Select all that apply.",
+    "zh-TW": "哪些行為有助於安全協作？請選出所有正確答案。",
+    "es": "¿Qué acciones favorecen la colaboración segura? Selecciona todas las correctas."
+  },
+  "Use approved shared workspaces": {
+    "en": "Use approved shared workspaces",
+    "zh-TW": "使用核准的共用工作空間",
+    "es": "Usar espacios de trabajo compartidos autorizados"
+  },
+  "Grant access only to the people who need it": {
+    "en": "Grant access only to the people who need it",
+    "zh-TW": "僅授權給需要存取的人員",
+    "es": "Dar acceso solo a quienes lo necesitan"
+  },
+  "Write passwords in public documents": {
+    "en": "Write passwords in public documents",
+    "zh-TW": "將密碼寫在公開文件中",
+    "es": "Escribir contraseñas en documentos públicos"
+  },
+  "Review access permissions regularly": {
+    "en": "Review access permissions regularly",
+    "zh-TW": "定期檢查存取權限",
+    "es": "Revisar los permisos de acceso periódicamente"
+  },
+  "Enter the word safety.": {
+    "en": "Enter the word safety.",
+    "zh-TW": "請輸入英文單字 safety。",
+    "es": "Escribe la palabra inglesa safety."
+  },
+  "How many wheels are on a four-wheel vehicle?": {
+    "en": "How many wheels are on a four-wheel vehicle?",
+    "zh-TW": "四輪車有幾個輪子？",
+    "es": "¿Cuántas ruedas tiene un vehículo de cuatro ruedas?"
+  },
+  "Enter one half as a decimal.": {
+    "en": "Enter one half as a decimal.",
+    "zh-TW": "請以小數輸入二分之一。",
+    "es": "Escribe un medio como número decimal."
+  },
+  "Put the work steps in order.": {
+    "en": "Put the work steps in order.",
+    "zh-TW": "請排列工作步驟的順序。",
+    "es": "Ordena los pasos del trabajo."
+  },
+  "Describe one practical way you would improve team communication.": {
+    "en": "Describe one practical way you would improve team communication.",
+    "zh-TW": "請說明一項改善團隊溝通的實際做法。",
+    "es": "Describe una forma práctica de mejorar la comunicación del equipo."
+  },
+  "Look for a specific action and a clear benefit for the team.": {
+    "en": "Look for a specific action and a clear benefit for the team.",
+    "zh-TW": "確認是否提出具體行動及對團隊的明確效益。",
+    "es": "Busca una acción concreta y un beneficio claro para el equipo."
+  },
+  "Security & collaboration assessment": {
+    "en": "Security & collaboration assessment",
+    "zh-TW": "資安與協作測驗",
+    "es": "Evaluación de seguridad y colaboración"
+  },
+  "Forklift safety quiz": {
+    "en": "Forklift safety quiz",
+    "zh-TW": "堆高機安全測驗",
+    "es": "Cuestionario de seguridad con carretillas"
+  },
+  "Workplace skills assessment": {
+    "en": "Workplace skills assessment",
+    "zh-TW": "職場技能測驗",
+    "es": "Evaluación de habilidades laborales"
+  },
+  "Check your understanding and review your results.": {
+    "en": "Check your understanding and review your results.",
+    "zh-TW": "確認理解程度並檢視結果。",
+    "es": "Comprueba lo que has aprendido y revisa tus resultados."
+  },
+  "Complete this required training and discuss any questions with your team lead.": {
+    "en": "Complete this required training and discuss any questions with your team lead.",
+    "zh-TW": "完成此必修訓練，如有疑問請與團隊主管討論。",
+    "es": "Completa esta formación obligatoria y consulta tus dudas con tu responsable."
+  },
+  "Training group": {
+    "en": "Training group",
+    "zh-TW": "訓練群組",
+    "es": "Grupo de formación"
+  },
+  "Before you finish": {
+    "en": "Before you finish",
+    "zh-TW": "結束之前",
+    "es": "Antes de terminar"
+  },
+  "Agree on shared goals, then document meeting decisions and responsibilities.": {
+    "en": "Agree on shared goals, then document meeting decisions and responsibilities.",
+    "zh-TW": "先就共同目標達成共識，再記錄會議決議與責任分工。",
+    "es": "Acuerda objetivos comunes y documenta las decisiones y responsabilidades de la reunión."
+  },
+  "Reset": {
+    "en": "Reset",
+    "zh-TW": "重設",
+    "es": "Restablecer"
+  },
+  "Sign in": {
+    "en": "Sign in",
+    "zh-TW": "登入",
+    "es": "Iniciar sesión"
+  },
+  "Training System": {
+    "en": "Training System",
+    "zh-TW": "Training System",
+    "es": "Training System"
+  }
+}

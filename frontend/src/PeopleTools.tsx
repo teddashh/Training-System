@@ -2,6 +2,7 @@ import { roleInfo, roleLabel, rolesFor } from "./access";
 import { useState } from "react";
 import { Upload, CheckCircle2 } from "lucide-react";
 import { api } from "./api";
+import { signIn } from "./brand";
 import { t, useLocale } from "./i18n";
 import { ErrorBox, Modal } from "./ui";
 import type { User } from "./types";
@@ -129,9 +130,9 @@ export function PeopleImport({
           </div>
         )}
         <p className="notice">
-          {t(
-            "New accounts can use email codes when email delivery is configured. For employee-ID-only accounts, set an initial password in Edit person. Existing accounts are never overwritten.",
-          )}
+          {t(signIn.password
+            ? "New accounts can use email codes when email delivery is configured. For employee-ID-only accounts, set an initial password in Edit person. Existing accounts are never overwritten."
+            : "New accounts can use email codes when email delivery is configured. Existing accounts are never overwritten.")}
         </p>
         <div className="modal-footer">
           <button className="btn" onClick={onClose}>
@@ -233,16 +234,18 @@ export function PersonEditor({
             </select>
           </label>
           <p className="span-2 role-help" id="person-role-help">{t(roleInfo[role].help)}</p>
-          <label className="span-2">
-            {t("New password (leave blank to keep current)")}
-            <input
-              type="password"
-              name="password"
-              minLength={12}
-              maxLength={128}
-              autoComplete="new-password"
-            />
-          </label>
+          {signIn.password && (
+            <label className="span-2">
+              {t("New password (leave blank to keep current)")}
+              <input
+                type="password"
+                name="password"
+                minLength={12}
+                maxLength={128}
+                autoComplete="new-password"
+              />
+            </label>
+          )}
         </div>
         <ErrorBox message={error} />
         <div className="modal-footer">
