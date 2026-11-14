@@ -6,15 +6,30 @@ const learner: Access = {courses:'none',exams:'none',results:'none',assign:false
 const scheduler: Access = {...learner,courses:'own',exams:'own'};
 const admin: Access = {...learner,courses:'all',exams:'all',results:'all',assign:true,invitations:true,system_admin:true,people:true};
 test('learner, scheduler and administrator area contracts',()=>{
- assert.deepEqual(navigationAreas(learner).map(a=>a.label),['Home','My training']);
- assert.deepEqual(navigationAreas(scheduler).map(a=>a.label),['Home','My training','Training','Exams']);
+ assert.deepEqual(navigationAreas(learner).map(a=>a.label),['Home','My Training']);
+ assert.deepEqual(navigationAreas(scheduler).map(a=>a.label),['Home','My Training','Training','Exams']);
  assert.equal(navigationAreas(admin).length,7);
- assert.deepEqual(navigationAreas(learner)[1].tabs.map(t=>t.path),['/my-training','/my-exams','/results','/courses']);
- assert.deepEqual(navigationAreas(admin)[1].tabs.map(t=>t.path),['/my-training','/my-exams','/courses']);
+ assert.deepEqual(navigationAreas(learner)[1].tabs.map(t=>t.label),['Training','Exams','Results']);
+ assert.deepEqual(navigationAreas(learner)[1].tabs.map(t=>t.path),['/my-training','/my-exams','/results']);
+ assert.deepEqual(navigationAreas(admin)[1].tabs.map(t=>t.path),['/my-training','/my-exams']);
+ assert.deepEqual(navigationAreas({...learner,results:'own'})[1].tabs.map(t=>t.label),['Training','Exams']);
  assert.equal(navigationAreas(scheduler)[2].tabs.length,1);
  assert.deepEqual(navigationAreas({...learner,courses:'own',assign:true}).map(a=>a.id),['home','learning','training']);
  assert.deepEqual(navigationAreas({...learner,exams:'all',results:'all',assign:true,invitations:true}).find(a=>a.id==='training')?.tabs.map(t=>t.path),['/assignments']);
  assert.equal(navigationAreas({...admin,system_admin:false}).length,5);
+});
+test('course routes remain open and highlight Training for every role',()=>{
+ for(const access of [learner,scheduler,admin]){
+  for(const search of ['', '?course=1&action=learn', '?course=1&action=register', '?course=1&action=preview']){
+   const url = '/courses' + search;
+   assert.equal(canOpenRoute(access,url),true);
+   for(const current of [activeArea(access,'/courses',search),activeArea(access,url)]){
+    assert.equal(current?.id,'learning');
+    assert.equal(current?.label,'My Training');
+    assert.equal(current?.activePath,'/my-training');
+   }
+  }
+ }
 });
 test('areas choose the first permitted tab, including assignment-only access',()=>{
  const areas=navigationAreas({...learner,assign:true,invitations:true});

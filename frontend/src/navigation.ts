@@ -8,9 +8,9 @@ export const managesSomething = (access: Access) => (['courses', 'exams', 'resul
 // Navigation membership and deep-link ownership live here; visibility never revokes a route.
 const areas: Area[] = [
   {id: 'home', label: 'Home', tabs: [{label: 'Home', path: '/'}]},
-  {id: 'learning', label: 'My training', tabs: [
+  {id: 'learning', label: 'My Training', tabs: [
     {label: 'Training', path: '/my-training'}, {label: 'Exams', path: '/my-exams'},
-    {label: 'Results', path: '/results', personalResults: true}, {label: 'Catalog', path: '/courses'}]},
+    {label: 'Results', path: '/results', personalResults: true}]},
   {id: 'training', label: 'Training', tabs: [{label: 'Trainings', path: '/authoring', capability: 'courses'}, {label: 'Assignments', path: '/assignments', capability: 'assign'}]},
   {id: 'exams', label: 'Exams', tabs: [{label: 'Exams', path: '/exams', capability: 'exams'}, {label: 'Question bank', path: '/question-bank', capability: 'exams'}, {label: 'Guest invitations', path: '/invitations', capability: 'invitations'}]},
   {id: 'reports', label: 'Reports', tabs: [{label: 'Overview', path: '/reports', capability: 'results'}, {label: 'Results', path: '/results', capability: 'results'}, {label: 'Insights', path: '/insights', capability: 'results'}]},
@@ -19,6 +19,7 @@ const areas: Area[] = [
 ];
 const deepLinks = [
   {matches: (a: Access, p: string, q: URLSearchParams) => p === '/results' && q.get('from') === 'reports' && !has(a, 'results'), area: 'home', tab: '/'},
+  {matches: (_a: Access, p: string) => p === '/courses', area: 'learning', tab: '/my-training'},
   {matches: (_a: Access, p: string) => p.startsWith('/attempt/'), area: 'learning', tab: '/my-exams'},
   {matches: (_a: Access, p: string) => p.startsWith('/preview/'), area: 'exams', tab: '/exams'},
   {matches: (a: Access, p: string, q: URLSearchParams) => p === '/exams' && (!has(a, 'exams') || q.get('action') === 'start'), area: 'learning', tab: '/my-exams'},
@@ -29,13 +30,15 @@ export function navigationAreas(access: Access): Area[] {
   return areas.map(area => ({...area, tabs: area.tabs.filter(tab => has(access, tab.capability) && (!tab.personalResults || !has(access, 'results')))})).filter(area => area.tabs.length);
 }
 export function activeArea(access: Access, path: string, search = '') {
+  const [pathname, query = ''] = path.split('?', 2);
   const visible = navigationAreas(access);
-  const deep = deepLinks.find(row => row.matches(access, path, new URLSearchParams(search)));
-  const area = deep ? visible.find(area => area.id === deep.area) : visible.find(area => area.tabs.some(tab => tab.path === path));
-  return area ? {...area, activePath: deep?.tab || path} : undefined;
+  const deep = deepLinks.find(row => row.matches(access, pathname, new URLSearchParams(search || query)));
+  const area = deep ? visible.find(area => area.id === deep.area) : visible.find(area => area.tabs.some(tab => tab.path === pathname));
+  return area ? {...area, activePath: deep?.tab || pathname} : undefined;
 }
 export function canOpenRoute(access: Access, path: string) {
-  if (['/assignments', '/exams', '/results'].includes(path)) return true;
-  if (path === '/reports') return managesSomething(access);
-  return areas.some(area => area.tabs.some(tab => tab.path === path && has(access, tab.capability)));
+  const pathname = path.split('?', 1)[0];
+  if (['/assignments', '/courses', '/exams', '/results'].includes(pathname)) return true;
+  if (pathname === '/reports') return managesSomething(access);
+  return areas.some(area => area.tabs.some(tab => tab.path === pathname && has(access, tab.capability)));
 }

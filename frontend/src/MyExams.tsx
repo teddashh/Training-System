@@ -10,7 +10,7 @@ export default function MyExams({exams}: {exams: Exam[]}) {
   const locale = useLocale();
   const available = exams.filter(e => e.available_to_me);
   return <>
-    <div className="page-heading"><h1>{t("My exams")}</h1></div>
+    <div className="page-heading"><h1>{t("My Exams")}</h1></div>
     {!available.length && <Empty title={t("No exams available")} />}
     {["To do", "Completed", "Closed"].map(label => {
       const rows = available.filter(e => examLearnerState(e).group === label);

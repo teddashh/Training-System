@@ -30,6 +30,8 @@ import {
   type Route,
 } from "@playwright/test";
 
+const url = (path: string) => (process.env.E2E_SUBPATH || "") + path;
+
 async function downloadText(download: import("@playwright/test").Download) {
   const stream = await download.createReadStream();
   if (!stream) throw new Error("Download stream is unavailable");
@@ -478,7 +480,7 @@ test("dashboard, responsive navigation, library and persisted course editor", as
   await expect(page.getByText('Training participants', {exact: true})).toBeVisible();
   await expect(page.getByRole('heading', {name: 'Score distribution', exact: true})).toBeVisible();
   await expect(page.getByLabel('Reporting period')).toBeVisible();
-  await navigateArea(page, 'My training', 'Catalog');
+  await page.goto(url('/courses'));
   await page
     .getByRole("button", { name: "Create course", exact: true })
     .click();
@@ -914,7 +916,7 @@ test("three languages default to English and preserve form state and preferences
 }) => {
   await login(page);
   await notificationExamLinkWorkflow(page, browser);
-  await navigateArea(page, 'My training', 'Catalog');
+  await page.goto(url('/courses'));
   await page
     .getByRole("button", { name: "Create course", exact: true })
     .click();

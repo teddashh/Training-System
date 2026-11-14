@@ -104,7 +104,7 @@ Choose **After the session** for a scheduled course to gate that course-derived 
 
 Open **Training → Assignments → Assign training**. Choose a published course or exam, then people, departments, employment types or training groups. Add a due date and instructions under assignment options. Review the selected people before submitting.
 
-The assignment is a snapshot, not a live directory rule. Learners see it in **My training** or **My exams**. Uncheck **Email the people I assign** to suppress assignment mail. Completion and overdue counts appear in the assignment report and CSV export.
+The assignment is a snapshot, not a live directory rule. Learners see it in **My Training** or **My Exams**. Uncheck **Email the people I assign** to suppress assignment mail. Completion and overdue counts appear in the assignment report and CSV export.
 
 Cancelling an assignment removes the requirement without deleting learning evidence. Reactivating it can enqueue a new notification. Changing group membership later does not rewrite existing assignments.
 
@@ -222,7 +222,7 @@ A browser crash or shutdown cannot guarantee a final save. Reopening restores th
 
 Open **Reports → Overview** for training totals and trends. **Results** filters attempts and exports the same selection to CSV. **Insights** shows exam score distributions, departments and question analysis. Managers see only records allowed by their result scope. Training schedulers see linked quiz pass status in the training page, without scores or answer details.
 
-Use the assignment report for required-training completion and overdue status. Learners see their own results under **My training → Results**. A pending essay keeps the final result awaiting review.
+Use the assignment report for required-training completion and overdue status. Learners see their own results under **My Training → Results**. A pending essay keeps the final result awaiting review.
 
 ## Guest invitation cohorts
 

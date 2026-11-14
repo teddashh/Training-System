@@ -54,7 +54,7 @@ Use local system font stacks. App titles are 27px, section headings 18px, body t
 
 Reuse `.page-heading`, `.panel`, `.btn`, tables, `Modal`, badges and navigation. Keep one primary action per section. Use real counts and task labels. Show focus, hover, loading, error, empty and disabled states. Body and action text should meet 4.5:1 contrast. Mobile targets are 44px.
 
-Navigation groups Home, My training, Training, Exams, Reports, People and Settings by capability. Tabs wrap on small screens. Put personal next actions on Home and aggregate reporting under Reports.
+Navigation groups Home, My Training, Training, Exams, Reports, People and Settings by capability. Tabs wrap on small screens. Put personal next actions on Home and aggregate reporting under Reports.
 
 ## Separate editing from publication
 

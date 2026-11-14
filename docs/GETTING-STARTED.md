@@ -54,7 +54,7 @@ You now have a published assessment. Publication does not automatically assign i
 
 Click **Training → Assignments → Assign training**. Choose a published course or exam and its recipients. Set an optional due date and instructions. Decide whether to send assignment e-mail, then submit.
 
-People now see required work in My training or My exams. See [assignment rules](OPERATIONS.md#assign-required-training).
+People now see required work in My Training or My Exams. See [assignment rules](OPERATIONS.md#assign-required-training).
 
 ## 9. Read reports
 

@@ -17,7 +17,7 @@ async function mockShell(page: Page, access: Access) {
 for (const width of [390,768,1440]) {
   test(`areas and personal home at ${width}px`, async ({page}) => {
     await page.setViewportSize({width,height:900});
-    for (const [access, areas] of [[learner,['Home','My training']],[scheduler,['Home','My training','Training','Exams']],[admin,['Home','My training','Training','Exams','Reports','People','Settings']]] as const) {
+    for (const [access, areas] of [[learner,['Home','My Training']],[scheduler,['Home','My Training','Training','Exams']],[admin,['Home','My Training','Training','Exams','Reports','People','Settings']]] as const) {
       await page.unroute('**/api/**');
       await mockShell(page,access);
       await page.goto(url('/'));
@@ -31,13 +31,18 @@ for (const width of [390,768,1440]) {
       }
       const nav = page.getByRole('navigation',{name:'Main navigation',exact:true});
       await expect(nav.getByRole('link')).toHaveText([...areas]);
-      await navigateArea(page,'My training');
+      await navigateArea(page,'My Training');
       const tabs=page.locator('.area-tabs');
-      await expect(tabs.getByRole('link')).toHaveText(access.results==='none'?['Training','Exams','Results','Catalog']:['Training','Exams','Catalog']);
+      const expectedTabs = access.results==='none'?['Training','Exams','Results']:['Training','Exams'];
+      await expect(tabs.getByRole('link')).toHaveText(expectedTabs);
       await expect(tabs.getByRole('link',{name:'Training',exact:true})).toHaveAttribute('aria-current','page');
       for(const link of await tabs.getByRole('link').all())expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
       expect(await tabs.evaluate(node=>node.scrollWidth<=node.clientWidth)).toBe(true);
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+      await page.goto(url('/courses'));
+      await expect(page.getByRole('heading',{name:'Courses',exact:true})).toBeVisible();
+      await expect(tabs.getByRole('link')).toHaveText(expectedTabs);
+      await expect(tabs.getByRole('link',{name:'Training',exact:true})).toHaveAttribute('aria-current','page');
       if(access===admin){
         await navigateArea(page,'Reports');
         await expect(page.getByRole('heading',{name:'Training overview',exact:true})).toBeVisible();
@@ -114,7 +119,7 @@ for (const width of [390,768,1440]) test(`registration stays in place at ${width
   await expect(page.locator('.session-card.is-reserved')).toContainText('Synthetic session 2');
   expect(posts).toHaveLength(3);
   expect(posts.every(path=>path.endsWith('/enroll/'))).toBe(true);
-  await expect(page.getByRole('link',{name:'Go to my training'})).toHaveAttribute('href',url('/my-training'));
+  await expect(page.getByRole('link',{name:'Go to My Training'})).toHaveAttribute('href',url('/my-training'));
   await expect(page).toHaveURL(/\/register#synthetic-registration$/);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

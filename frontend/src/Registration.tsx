@@ -88,7 +88,7 @@ export default function Registration({user, entra, onLogin}: {
             if (user) void enroll(); else setSignin(true);
           }}>{t(busy ? 'Processing…' : course.requires_approval ? 'Request a seat' : 'Register')}</button></div>}
         {reserved && <div className="heading-actions">
-          <a className="text-btn" href={appPath('/my-training')}>{t('Go to my training')}</a>
+          <a className="text-btn" href={appPath('/my-training')}>{t('Go to My Training')}</a>
           {ownCourse?.enrollment?.session && Date.parse(ownCourse.enrollment.session.starts_at) > Date.now() && <button className="text-btn" disabled={busy} onClick={() => void cancel()}>{t('Cancel registration')}</button>}
         </div>}
         {signin && <section className="registration-signin">

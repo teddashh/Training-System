@@ -275,7 +275,7 @@ test('catalog settings link to the training page; self-paced redirects replace h
   state.course.venue = 'online';
   state.course.sessions = [];
   await page.goto(url('/my-training'));
-  await expect(page.getByRole('heading', { name: 'My training', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'My Training', exact: true })).toBeVisible();
   await page.goto(url('/authoring/901'));
   await expect(page).toHaveURL(new RegExp('/authoring\\?course=901&action=edit$'));
   await expect(settings).toBeVisible();
@@ -283,7 +283,7 @@ test('catalog settings link to the training page; self-paced redirects replace h
   await expect(page).toHaveURL(new RegExp('/my-training$'));
 });
 
-test('My training hides unpublished courses and restores republished courses', async ({ page }) => {
+test('My Training hides unpublished courses and restores republished courses', async ({ page }) => {
   const state = await setup(page);
   await page.goto(url('/my-training'));
   await expect(page.getByRole('heading', { name: 'Synthetic training', exact: true })).toBeVisible();
@@ -291,6 +291,9 @@ test('My training hides unpublished courses and restores republished courses', a
   state.unpublished = true;
   await page.reload();
   await expect(page.getByText('No training yet', { exact: true })).toBeVisible();
+  const empty = page.locator('.panel').filter({has: page.getByRole('heading', {name: 'No training yet', exact: true})});
+  await expect(empty).toHaveText('No training yet');
+  await expect(empty.locator('a, button')).toHaveCount(0);
   state.unpublished = false;
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Synthetic training', exact: true })).toBeVisible();

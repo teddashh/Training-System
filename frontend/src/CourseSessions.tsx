@@ -72,7 +72,7 @@ export function SessionEnrollment({course:initial,onClose,onSaved,onReady,messag
     </fieldset>
     <ErrorBox message={error}/>
     {!reserved&&<div className="registration-action-bar"><button type="button" className="btn primary" disabled={busy||!choice||row?.status==='removed'} onClick={()=>choice&&void change(choice)}>{t(busy?'Processing…':course.requires_approval?'Request a seat':'Register')}</button></div>}
-    {reserved&&<a className="text-btn" href={appPath('/my-training')}>{t('Go to my training')}</a>}
+    {reserved&&<a className="text-btn" href={appPath('/my-training')}>{t('Go to My Training')}</a>}
     {(course.can_manage||row?.status==='approved')&&<CourseMaterials course={course}/>}
     <AssessmentBlock course={course} onChanged={refresh}/>
     <div className="modal-footer"><button type="button" className="text-btn" disabled={busy} onClick={()=>{setBusy(true);void refresh().catch(e=>setError(e.message)).finally(()=>setBusy(false));}}>{t('Refresh status')}</button><button type="button" className="btn" onClick={onClose}>{t('Close')}</button></div>

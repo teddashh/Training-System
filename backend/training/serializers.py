@@ -656,7 +656,7 @@ class ExamSerializer(serializers.ModelSerializer):
         renew = self.get_round(obj)['next_round_at']
         if renew:
             value = max(value, renew) if value else renew
-        # Managers also participate in My exams. Keep their editable exam window
+        # Managers also participate in My Exams. Keep their editable exam window
         # intact while the existing personal start/cooldown field enforces the gate.
         from .services import exam_opens_for
         from django.utils import timezone

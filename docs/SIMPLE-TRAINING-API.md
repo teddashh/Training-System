@@ -111,13 +111,13 @@ non-invitation quizzes and the caller's manageable, nonempty own drafts; `gated`
 quiz or an Everyone draft (linking turns it course-only). The caller's own quizzes come first, then the others,
 each by title. Without the filter, the existing course chooser is unchanged.
 
-**“Opens for me” uses `starts_at`** in participant exam detail/list/My exams, course assessment rows and
+**“Opens for me” uses `starts_at`** in participant exam detail/list/My Exams, course assessment rows and
 `GET /api/exams/{id}/budget/`. It is the later of the exam start and the earliest eligible linked session end,
 unless an independent grant already provides access. An enrollment marked `absent` gives no after-session
 grant (start, list, detail, budget and course assessment rows agree) and no quiz-ready/reminder mail; queued
 ones are canceled at delivery. Correcting the mark restores access; an unmarked person counts as attended. Future participants remain visible with `available_to_me:true`;
 server admission still denies an early start. Management exam editing retains the actual exam window;
-`next_attempt_at` also carries the personal session gate, including for managers participating in My exams.
+`next_attempt_at` also carries the personal session gate, including for managers participating in My Exams.
 Budget GET returns `{id,starts_at,ends_at,available_to_me,attempts_remaining,active_attempt_id,next_attempt_at,next_round_at,server_time}`.
 Existing budget POST retains its management-only contract. Guest invitation access is not session-gated.
 

@@ -13384,13 +13384,13 @@
     "zh-TW": "請啟用工作階段儲存空間，以繼續使用 Microsoft 登入。",
     "es": "Habilite el almacenamiento de sesión para continuar con el inicio de sesión de Microsoft."
   },
-  "My training": {
-    "en": "My training",
+  "My Training": {
+    "en": "My Training",
     "zh-TW": "我的訓練",
     "es": "Mi formación"
   },
-  "My exams": {
-    "en": "My exams",
+  "My Exams": {
+    "en": "My Exams",
     "zh-TW": "我的考試",
     "es": "Mis exámenes"
   },
@@ -13629,8 +13629,8 @@
     "zh-TW": "已完成 {progress}%",
     "es": "{progress}% completado"
   },
-  "{count} more in My training and My exams": {
-    "en": "{count} more in My training and My exams",
+  "{count} more in My Training and My Exams": {
+    "en": "{count} more in My Training and My Exams",
     "zh-TW": "另有 {count} 項，請至「我的訓練」及「我的考試」查看",
     "es": "{count} más en Mi formación y Mis exámenes"
   },
@@ -14019,11 +14019,6 @@
     "zh-TW": "訓練課程",
     "es": "Formaciones"
   },
-  "Catalog": {
-    "en": "Catalog",
-    "zh-TW": "課程目錄",
-    "es": "Catálogo"
-  },
   "Reports": {
     "en": "Reports",
     "zh-TW": "報表",
@@ -14094,8 +14089,8 @@
     "zh-TW": "改選此梯次",
     "es": "Cambiar a esta sesión"
   },
-  "Go to my training": {
-    "en": "Go to my training",
+  "Go to My Training": {
+    "en": "Go to My Training",
     "zh-TW": "前往我的訓練",
     "es": "Ir a mi formación"
   },

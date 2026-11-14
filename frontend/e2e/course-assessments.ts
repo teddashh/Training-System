@@ -219,7 +219,7 @@ export async function courseAssessmentsWorkflow(page: Page, browser: Browser) {
       expect(Math.abs(inset.footer)).toBeLessThanOrEqual(1);
       expect(inset.right).toBeGreaterThan(10);
     }
-    await navigateArea(learner, 'My training', 'Exams');
+    await navigateArea(learner, 'My Training', 'Exams');
     await expect(learner.getByRole('navigation', {name: 'Main navigation'}).getByRole('link', {name: 'Exams', exact: true})).toHaveCount(0);
     await expect(learner.getByText(invitation.title, {exact: true})).toHaveCount(0);
     const card = learner.locator('.exam-card').filter({hasText: exam.title});

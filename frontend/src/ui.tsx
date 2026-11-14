@@ -197,7 +197,7 @@ export function Empty({
     <div className="empty">
       <Inbox size={34} />
       <h3>{title}</h3>
-      <p>{description}</p>
+      {description && <p>{description}</p>}
       {action}
     </div>
   );

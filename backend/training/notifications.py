@@ -45,7 +45,7 @@ def format_time(value):
 
 
 NEW_EVENTS = {
-    'You are registered': 'Check your session details below; you can switch or cancel from My training.',
+    'You are registered': 'Check your session details below; you can switch or cancel from My Training.',
     'Session changed': 'Check the new time and place for your session below.',
     'Registration cancelled': 'Choose another session when you are ready.',
     'Request received': 'Wait for the organizer to approve your seat; we will email you their decision.',
@@ -69,7 +69,7 @@ def next_step(event, target, *, session=None, note=""):
         return "Open the course to start learning."
     if event in {"Session registration confirmed", "Enrollment approved"}:
         if session:
-            return "Your seat is reserved. You can add the session to your calendar from My training."
+            return "Your seat is reserved. You can add the session to your calendar from My Training."
         return "You can start learning now."
     if event in {"Enrollment rejected", "Enrollment removed"}:
         sentence = ("Your enrollment request was not approved." if event == "Enrollment rejected"

@@ -20,8 +20,8 @@ export default function NextSteps({rows, go}: {rows: NextStep[]; go: (path: stri
         <div className="heading-actions"><button type="button" className={`btn${index === 0 ? ' primary' : ''}`} onClick={() => go(row.path)}>{t(row.action)}</button>{row.session && row.course && <AddToCalendar course={row.course}/>}</div>
       </li>;
     })}</ul>
-    {rows.length > 5 && <p className="muted">{t('{count} more in My training and My exams', {count: rows.length - 5})}</p>}
-    <div className="heading-actions"><button type="button" className="text-btn" onClick={() => go('/my-training')}>{t('My training')}</button><button type="button" className="text-btn" onClick={() => go('/my-exams')}>{t('My exams')}</button></div>
+    {rows.length > 5 && <p className="muted">{t('{count} more in My Training and My Exams', {count: rows.length - 5})}</p>}
+    <div className="heading-actions"><button type="button" className="text-btn" onClick={() => go('/my-training')}>{t('My Training')}</button><button type="button" className="text-btn" onClick={() => go('/my-exams')}>{t('My Exams')}</button></div>
     </div>
   </section>;
 }

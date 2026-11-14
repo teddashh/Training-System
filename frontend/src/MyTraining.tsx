@@ -9,7 +9,6 @@ import { Badge, Empty, ErrorBox, Spinner } from "./ui";
 import { CourseArtwork } from "./CourseCover";
 import { SessionEnrollment } from "./CourseSessions";
 import AssessmentBlock from "./AssessmentBlock";
-import { appPath } from "./paths";
 import { nextSessionDelay } from "./sessionBoundary";
 import { courseProgressLabels } from "./courseProgress";
 
@@ -31,9 +30,9 @@ export default function MyTraining({refreshKey, onSaved, go}: {refreshKey: numbe
   }, [refreshKey]);
   const group = (c: Course) => c.enrollment?.completed_at || c.progress === 100 ? "Completed" : c.enrollment?.session && Date.parse(c.enrollment.session.ends_at) > Date.now() ? "Upcoming sessions" : "Course in progress";
   return <>
-    <div className="page-heading"><h1>{t("My training")}</h1></div>
+    <div className="page-heading"><h1>{t("My Training")}</h1></div>
     <ErrorBox message={error}/>
-    {loading ? <Spinner/> : !courses.length ? <div className="panel"><Empty title={t("No training yet")} /><a className="btn" href={appPath("/courses")}>{t("Catalog")}</a></div> :
+    {loading ? <Spinner/> : !courses.length ? <div className="panel"><Empty title={t("No training yet")} description=""/></div> :
       ["Upcoming sessions", "Course in progress", "Completed"].map(label => {
         const rows = courses.filter(c => group(c) === label);
         return rows.length > 0 && <section key={label} className="personal-section"><h2>{t(label)}</h2>{label === "Upcoming sessions" && <p className="muted personal-section-caption">{t("Times shown in {zone}", {zone: zoneName(locale)})}</p>}<div className="course-grid">

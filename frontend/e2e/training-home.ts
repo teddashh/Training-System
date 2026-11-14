@@ -67,7 +67,7 @@ export async function trainingHomeWorkflow(page: Page) {
   // Both legacy links replace their entry: Back must leave the training, even after closing settings.
   for (const action of ['edit', 'enrollments']) {
     await page.goto(url('/my-training'));
-    await expect(page.getByRole('heading', { name: 'My training', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'My Training', exact: true })).toBeVisible();
     await page.goto(url(`/authoring?course=${course.id}&action=${action}`));
     if (action === 'edit') {
       await expect(page).toHaveURL(new RegExp(home + '\\?settings=1$'));
@@ -80,7 +80,7 @@ export async function trainingHomeWorkflow(page: Page) {
     }
     await page.goBack();
     await expect(page).toHaveURL(new RegExp(url('/my-training') + '$'));
-    await expect(page.getByRole('heading', { name: 'My training', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'My Training', exact: true })).toBeVisible();
   }
 
   await page.goto(home + '?settings=1');

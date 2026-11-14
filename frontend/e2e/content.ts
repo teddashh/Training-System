@@ -49,9 +49,9 @@ export async function contentWorkflow(page: Page, browser: Browser) {
   await expect(page.getByText('No matching courses', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Clear filters', exact: true }).click();
   await expect(directRow).toBeVisible();
-  await navigateArea(page, 'My training', 'Catalog');
-  await navigateArea(page, 'My training');
-  await expect(page.getByRole('heading', { name: 'My training', exact: true })).toBeVisible();
+  await page.goto(url('/courses'));
+  await navigateArea(page, 'My Training');
+  await expect(page.getByRole('heading', { name: 'My Training', exact: true })).toBeVisible();
   await navigateArea(page, 'Training');
   await expect(page.getByRole('heading', { name: 'Training', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Library', exact: true })).toHaveCount(0);

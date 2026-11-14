@@ -84,7 +84,6 @@ class NotificationContentTests(TestCase):
 
     def test_event_next_steps_and_buttons(self):
         self.course.delivery_mode = "scheduled"
-        seat = "Your seat is reserved. You can add the session to your calendar from My training."
         for event, session, note, sentence, button in (
             # Session mails (registered, approved, cancelled, rescheduled) have their own short layout.
             ("Enrollment approved", None, "", "You can start learning now.", "Open training"),
@@ -99,6 +98,23 @@ class NotificationContentTests(TestCase):
                 self.assertIn("\n\n" + sentence + "\n\n", text)
                 self.assertIn(escape(sentence), html)
                 self.assertIn('>' + button + '</a>', html)
+
+    def test_training_area_name_in_fallback_notifications(self):
+        self.course.delivery_mode = "scheduled"
+        session = CourseSession()
+        for event, selected_session, sentence in (
+            ("You are registered", None,
+             "Check your session details below; you can switch or cancel from My Training."),
+            ("Session registration confirmed", session,
+             "Your seat is reserved. You can add the session to your calendar from My Training."),
+            ("Enrollment approved", session,
+             "Your seat is reserved. You can add the session to your calendar from My Training."),
+        ):
+            with self.subTest(event=event):
+                _, text, html = message_content(event, self.course, session=selected_session)
+                self.assertIn(sentence, text)
+                self.assertIn(sentence, html)
+                self.assertIn("/training/courses?course=17&action=register", text)
 
     def test_plain_text_facts_order_and_html_parity(self):
         _, text, html = message_content("Enrollment removed", self.course, actor=self.actor,
