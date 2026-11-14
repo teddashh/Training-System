@@ -120,6 +120,9 @@ SECURE_HSTS_PRELOAD = False
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+# One browser-test account drives a development server, and the frontend's development mode repeats each page's
+# requests: the general allowance is ten times wider there. Outside development it stays 600 a minute.
+API_RATE = "6000/min" if DEBUG else "600/min"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "training.authentication.CsrfSessionAuthentication"
@@ -129,7 +132,7 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ],
-    "DEFAULT_THROTTLE_RATES": {"anon": "600/min", "user": "600/min"},
+    "DEFAULT_THROTTLE_RATES": {"anon": API_RATE, "user": API_RATE},
     "NUM_PROXIES": 0,
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
 }

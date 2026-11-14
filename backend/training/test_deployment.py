@@ -32,6 +32,13 @@ class DeploymentSettingsTests(TestCase):
         self.assertEqual(config['LANGUAGE_CODE'], 'zh-hant')
         self.assertEqual(config['LANGUAGES'], [('zh-hant', 'Traditional Chinese'), ('es', 'Spanish')])
 
+    def test_general_allowance_is_wider_only_on_a_development_server(self):
+        path = str(Path(settings.BASE_DIR) / 'config/settings.py')
+        for debug, rate in (('true', '6000/min'), ('false', '600/min')):
+            with patch.dict(os.environ, {'DEBUG': debug, 'SECRET_KEY': 'synthetic-key-for-this-test'}):
+                config = runpy.run_path(path)
+            self.assertEqual(config['REST_FRAMEWORK']['DEFAULT_THROTTLE_RATES'], {'anon': rate, 'user': rate})
+
     @override_settings(INTERFACE_LANGUAGES=['es', 'en'])
     def test_current_locale_is_always_allowed(self):
         with translation.override('zh-hant'):

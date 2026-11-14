@@ -244,7 +244,7 @@ History supports search, filters and pagination. **Disable** rejects later guest
 
 Password login and code requests/verification share 20 requests per account per ten minutes. Username, e-mail and employee ID aliases share the counter. Guest verification uses an invitation counter. The separate direct-peer limit defaults to 300 per ten minutes, controlled by `AUTH_NETWORK_LIMIT`. HTTP 429 includes `Retry-After`.
 
-The bundled Nginx peer is shared by users, so that limit is a deployment-wide allowance. Enforce real client-IP limits at the trusted outer proxy. General API throttles allow 600 requests per minute per authenticated user or anonymous direct peer. These are traffic controls, not a capacity promise.
+The bundled Nginx peer is shared by users, so that limit is a deployment-wide allowance. Enforce real client-IP limits at the trusted outer proxy. General API throttles allow 600 requests per minute per authenticated user or anonymous direct peer (6,000 on a development server started with `DEBUG=true`, where one test account drives every browser test). These are traffic controls, not a capacity promise.
 
 Sign-in codes have six digits, expire after ten minutes, allow at most five incorrect entries and are consumed on success. Unknown addresses receive the same response. Mail failures do not prove whether an account exists.
 
