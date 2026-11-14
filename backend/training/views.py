@@ -830,6 +830,7 @@ def dashboard(request):
         enrollments.order_by()
         .values("user__department")
         .annotate(total=Count("id"), completed=Count("id", filter=Q(progress=100)))
+        .order_by("user__department")
     )
     distribution = [
         graded.filter(score__gte=lo, score__lt=hi).count()

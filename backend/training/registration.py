@@ -49,7 +49,7 @@ def lookup(request):
     if isinstance(key, str) and 40 <= len(key) <= 64:
         course = Course.objects.prefetch_related(Prefetch('sessions', queryset=CourseSession.objects.annotate(
             reserved_count=Count('enrollments', filter=Q(enrollments__status__in=('approved', 'pending')))
-        ))).filter(registration_key=key).first()
+        ).order_by('starts_at', 'id'))).filter(registration_key=key).first()
     if not course or not released(course):
         return Response({'detail': translate('This registration link is not valid.')}, status=404,
                         headers={'Cache-Control': 'no-store'})

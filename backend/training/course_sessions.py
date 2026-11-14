@@ -163,7 +163,8 @@ def course_queryset(user):
     ).prefetch_related(
         Prefetch('assessments', queryset=exam_queryset(user), to_attr='linked_assessments'),
         Prefetch('sessions', queryset=CourseSession.objects.annotate(
-            reserved_count=Count('enrollments', filter=Q(enrollments__status__in=('approved', 'pending'))))),
+            reserved_count=Count('enrollments', filter=Q(enrollments__status__in=('approved', 'pending')))
+        ).order_by('starts_at', 'id')),
         Prefetch('enrollments', queryset=Enrollment.objects.filter(user=user).select_related('session'), to_attr='user_enrollments'),
         Prefetch('packages', queryset=ScormPackage.objects.order_by('-created_at'), to_attr='ordered_packages'),
     )

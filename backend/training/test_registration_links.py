@@ -102,8 +102,9 @@ class RegistrationLinkTests(TestCase):
         self.course.blocks = [{'private': 'private-material'}]
         self.course.save()
         now = timezone.now()
-        opened = self.session()
-        upcoming = self.session(registration_opens_at=now+timedelta(hours=1))
+        start = now + timedelta(days=1)
+        opened = self.session(starts_at=start)
+        upcoming = self.session(starts_at=start, registration_opens_at=now+timedelta(hours=1))
         full = self.session(capacity=1)
         full_upcoming = self.session(capacity=1, registration_opens_at=now+timedelta(hours=1))
         for session in (full, full_upcoming):

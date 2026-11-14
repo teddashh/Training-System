@@ -193,7 +193,7 @@ def training_overview(request, course_id):
     now = timezone.now()
     if not manages_course(request.user, course):
         raise PermissionDenied()
-    links = list(course.assessment_links.select_related('exam').annotate(question_count=Count('exam__questions')))
+    links = list(course.assessment_links.select_related('exam').annotate(question_count=Count('exam__questions')).order_by('created_at', 'id'))
     participants = course.enrollments.filter(status='approved').values('user_id')
     participation = {item['exam_id']: {'started': item['started'], 'passed': item['passed']}
         for item in Attempt.objects.filter(exam_id__in=[link.exam_id for link in links],
@@ -214,7 +214,7 @@ def training_overview(request, course_id):
             pending_count=Count('enrollments', filter=Q(enrollments__status='pending')),
             present_count=Count('enrollments', filter=Q(enrollments__status='approved') & (Q(enrollments__attendance='present') | Q(enrollments__attendance='', enrollments__attended_at__isnull=False))),
             absent_count=Count('enrollments', filter=Q(enrollments__status='approved', enrollments__attendance='absent')),
-        ).prefetch_related('reminder_batches'):
+        ).order_by('starts_at', 'id').prefetch_related('reminder_batches'):
         session.course = course
         session_ids.append(str(session.pk))
         counts = {'registered': session.registered_count, 'pending': session.pending_count,
